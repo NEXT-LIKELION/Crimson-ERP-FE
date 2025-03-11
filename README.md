@@ -9,6 +9,33 @@
 
 ---
 
+## 📂 프로젝트 폴더 구조
+
+```bash
+📂 ERP
+├── 📂 public
+├── 📂 src
+│   ├── 📂 api           # Axios API 요청 코드
+│   ├── 📂 assets        # 이미지, 아이콘, 폰트 등 정적 자원
+│   ├── 📂 components    # 재사용 가능한 공통 컴포넌트
+│   ├── 📂 hooks         # 커스텀 React 훅
+│   ├── 📂 pages         # 라우팅 페이지 (UI 페이지 구현)
+│   ├── 📂 routes        # React Router 라우팅 설정
+│   ├── 📂 store         # Zustand 상태 관리(store) 파일
+│   ├── 📂 utils         # 공통 유틸리티 함수 (날짜 변환 등)
+│   ├── App.tsx          # App 컴포넌트 (최상위 컴포넌트)
+│   ├── main.tsx         # 프로젝트 진입점(entry point)
+│   ├── index.css        # Tailwind CSS & Global Style
+│   └── vite-env.d.ts    # Vite 타입 정의
+├── .env                 # 환경변수 파일 (API 주소 등)
+├── tailwind.config.js   # Tailwind CSS 설정
+├── postcss.config.js    # PostCSS 설정 (Tailwind 사용 시 필요)
+├── tsconfig.json        # TypeScript 설정
+├── vite.config.ts       # Vite 프로젝트 설정
+└── package.json         # 프로젝트 종속성 및 스크립트
+```
+
+
 ## 📌 개발자 역할 분담
 
 각 담당자는 본인이 맡은 페이지의 아래 3가지 작업을 모두 책임지고 개발합니다.
