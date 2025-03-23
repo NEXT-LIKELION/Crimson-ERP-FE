@@ -1,9 +1,13 @@
-const DashboardPage = () =>{
+import Pagination from '../../components/pagination/pagination';
+import Table from '../../components/table/table';
+
+const DashboardPage = () => {
     return (
-        <div>
-            <h1>Dashboard</h1>
-        </div>
-    )
-}
+        <>
+            <Table />
+            <Pagination />
+        </>
+    );
+};
 
 export default DashboardPage;
