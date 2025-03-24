@@ -9,10 +9,11 @@ import HRPage from "../pages/HR/HRPage";
 import AuthPage from "../pages/Auth/AuthPage";
 import DashboardPage from "../pages/Dashboard/DashboardPage";
 import NotFound from "../pages/Notfound";
+import Layout from "../layout";
 
 const AppRoutes = () => {
     return (
-        <Router>
+        <Layout>
             <Routes>
                 {/* 메인 대시보드 */}
                 <Route path="/" element={<DashboardPage />} />
@@ -63,7 +64,7 @@ const AppRoutes = () => {
                 {/* 404 처리 */}
                 <Route path="*" element={<NotFound />} />
             </Routes>
-        </Router>
+        </Layout>
     );
 };
 
