@@ -1,7 +1,7 @@
 // src/components/Layout.tsx
 import React, { ReactNode } from 'react';
-import Sidebar from './sidebar';
-import { useAuthStore } from '../store/authStore';
+import Sidebar from './components/sidebar';
+import { useAuthStore } from './store/authStore';
 
 interface LayoutProps {
     children: ReactNode;
