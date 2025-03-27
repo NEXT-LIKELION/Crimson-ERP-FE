@@ -1,0 +1,122 @@
+[
+    {
+        "productCode": "P0023",
+        "categoryCode": "G0001",
+        "name": "텀블러(블랙)",
+        "option": "300ml",
+        "price": "15,000원",
+        "stock": 5,
+        "orderCount": 120,
+        "returnCount": 5,
+        "salesCount": 115,
+        "totalSales": "1,725,000원"
+    },
+    {
+        "productCode": "P0024",
+        "categoryCode": "G0001",
+        "name": "텀블러(화이트)",
+        "option": "300ml",
+        "price": "15,000원",
+        "stock": 18,
+        "orderCount": 95,
+        "returnCount": 2,
+        "salesCount": 93,
+        "totalSales": "1,395,000원"
+    },
+    {
+        "productCode": "P0025",
+        "categoryCode": "G0002",
+        "name": "머그컵(레드)",
+        "option": "400ml",
+        "price": "12,000원",
+        "stock": 10,
+        "orderCount": 80,
+        "returnCount": 3,
+        "salesCount": 77,
+        "totalSales": "924,000원"
+    },
+    {
+        "productCode": "P0026",
+        "categoryCode": "G0002",
+        "name": "머그컵(블루)",
+        "option": "400ml",
+        "price": "12,000원",
+        "stock": 7,
+        "orderCount": 60,
+        "returnCount": 1,
+        "salesCount": 59,
+        "totalSales": "708,000원"
+    },
+    {
+        "productCode": "P0027",
+        "categoryCode": "G0003",
+        "name": "스테인리스 보틀",
+        "option": "500ml",
+        "price": "20,000원",
+        "stock": 12,
+        "orderCount": 150,
+        "returnCount": 4,
+        "salesCount": 146,
+        "totalSales": "2,920,000원"
+    },
+    {
+        "productCode": "P0028",
+        "categoryCode": "G0003",
+        "name": "스테인리스 보틀",
+        "option": "750ml",
+        "price": "25,000원",
+        "stock": 8,
+        "orderCount": 130,
+        "returnCount": 6,
+        "salesCount": 124,
+        "totalSales": "3,100,000원"
+    },
+    {
+        "productCode": "P0029",
+        "categoryCode": "G0004",
+        "name": "보온병(그레이)",
+        "option": "1L",
+        "price": "30,000원",
+        "stock": 20,
+        "orderCount": 200,
+        "returnCount": 8,
+        "salesCount": 192,
+        "totalSales": "5,760,000원"
+    },
+    {
+        "productCode": "P0030",
+        "categoryCode": "G0004",
+        "name": "보온병(화이트)",
+        "option": "1L",
+        "price": "30,000원",
+        "stock": 15,
+        "orderCount": 180,
+        "returnCount": 5,
+        "salesCount": 175,
+        "totalSales": "5,250,000원"
+    },
+    {
+        "productCode": "P0031",
+        "categoryCode": "G0005",
+        "name": "캠핑컵(스테인리스)",
+        "option": "350ml",
+        "price": "10,000원",
+        "stock": 25,
+        "orderCount": 110,
+        "returnCount": 3,
+        "salesCount": 107,
+        "totalSales": "1,070,000원"
+    },
+    {
+        "productCode": "P0032",
+        "categoryCode": "G0005",
+        "name": "캠핑컵(플라스틱)",
+        "option": "350ml",
+        "price": "8,000원",
+        "stock": 30,
+        "orderCount": 90,
+        "returnCount": 2,
+        "salesCount": 88,
+        "totalSales": "704,000원"
+    }
+]
