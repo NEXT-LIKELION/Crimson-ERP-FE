@@ -12,7 +12,7 @@ interface SelectInputProps {
     options,
     onChange,
   }) => {
-    const [selectedValue, setSelectedValue] = useState<string>('');
+    const [selectedValue, setSelectedValue] = useState<string>(defaultText);
   
     const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
       const newValue = event.target.value;
