@@ -1,0 +1,96 @@
+{
+   "reorderItems": [
+        {
+            "productCode": "P0023",
+            "productName": "텀블러(블랙)",
+            "category": "판촉물",
+            "stock": "5 / 20"
+        },
+        {
+            "productCode": "P0041",
+            "productName": "에코백(대)",
+            "category": "판촉물",
+            "stock": "8 / 30"
+        },
+        {
+            "productCode": "P0057",
+            "productName": "가족필통(브라운)",
+            "category": "문구",
+            "stock": "3 / 15"
+        },
+        {
+            "productCode": "P0112",
+            "productName": "경영대 기념 인형",
+            "category": "기념품",
+            "stock": "12 / 40"
+        }
+    ],
+    "orderItems": [
+        {
+            "orderNumber": "02503101",
+            "company": "공장문구사",
+            "date": "2025-03-05",
+            "amount": "2,450,000원",
+            "status": "승인 대기"
+        },
+        {
+            "orderNumber": "02503088",
+            "company": "한국판촉물",
+            "date": "2025-03-03",
+            "amount": "1,875,000원",
+            "status": "승인됨"
+        },
+        {
+            "orderNumber": "02502075",
+            "company": "대한상사",
+            "date": "2025-02-28",
+            "amount": "560,000원",
+            "status": "입고 완료"
+        }
+    ],
+    "reorderAlert" :[
+        {
+            "productName": "텀블러(블랙)",
+            "productCode": "P0023",
+            "stock": 5,
+            "avgSales": 3,
+            "orderDeadline": "7일"
+          },
+          {
+            "productName": "에코백(대)",
+            "productCode": "P0041",
+            "stock": 8,
+            "avgSales": 2,
+            "orderDeadline": "10일"
+          },
+          {
+            "productName": "경영대 기념 인형",
+            "productCode": "P0112",
+            "stock": 12,
+            "avgSales": 1,
+            "orderDeadline": "14일"
+          }
+    ],
+    "salesData": {
+        "month": "18,750,000원",
+        "week": "4,320,000원",
+        "day": "850,000원"
+    },
+    "auth_user": [
+        {
+            "id": 1,
+            "username": "admin01",
+            "password": "admin123",
+            "email": "admin@test.com",
+            "role": "ADMIN"
+        },
+        {
+            "id": 2,
+            "username": "manager1",
+            "password": "manager123",
+            "email": "manager@test.com",
+            "role": "MANAGER"
+        }
+    ]    
+  }
+  

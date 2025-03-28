@@ -3,11 +3,12 @@ import React, { useState } from 'react';
 interface TextInputProps {
   placeholder?: string;
   disabled?: boolean;
+  className?: string;
   error?: boolean;
   onChange?: (value: string) => void;
 }
 
-const TextInput: React.FC<TextInputProps> = ({ placeholder, disabled = false, error = false, onChange }) => {
+const TextInput: React.FC<TextInputProps> = ({ placeholder, disabled = false, error = false, className, onChange }) => {
   const [value, setValue] = useState<string>('');
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,6 +33,7 @@ const TextInput: React.FC<TextInputProps> = ({ placeholder, disabled = false, er
         ${disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700'}
         ${error ? 'border-red-500 text-red-600' : ''}
         ${!disabled && !error ? 'focus:ring-2 focus:ring-indigo-600' : ''}
+        ${className}
       `}
     />
   );
