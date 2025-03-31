@@ -20,7 +20,7 @@ const AlertCard: React.FC<AlertCardProps> = ({
     <div className="
       bg-white rounded-lg shadow-sm overflow-hidden
       border-l-4 border-yellow-400 font-inter
-      w-92 h-40 p-4
+      w-92 p-4
     ">
       <div className="
         flex justify-between items-center
