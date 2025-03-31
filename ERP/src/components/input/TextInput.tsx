@@ -6,6 +6,8 @@ interface TextInputProps {
     className?: string;
     error?: boolean;
     onChange?: (value: string) => void;
+    extra?: Record<string, unknown>;
+    id?: string;
 }
 
 const TextInput: React.FC<TextInputProps> = ({ placeholder, disabled = false, error = false, className, onChange }) => {
