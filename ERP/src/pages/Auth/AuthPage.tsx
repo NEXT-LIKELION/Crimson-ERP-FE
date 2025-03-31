@@ -1,26 +1,40 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../../store/authStore";
+
+interface AuthUser {
+    id: number;
+    username: string;
+    email: string;
+    password: string;
+    role: "대표" | "일반 사용자";
+}
 
 const AuthPage = () => {
-    const [id, setId] = useState<string>('');
-    const [password, setPassword] = useState<string>('');
-    const [errorMessage, setErrorMessage] = useState<string>('');
+    const [id, setId] = useState<string>("");
+    const [password, setPassword] = useState<string>("");
+    const [errorMessage, setErrorMessage] = useState<string>("");
     const navigate = useNavigate();
+    const login = useAuthStore((state) => state.login);
 
     const handleLogin = async () => {
         try {
             // 더미 데이터 가져오기
-            const response = await fetch('/data/dummy.json');
+            const response = await fetch("/data/dummy.json");
             const data = await response.json();
-            const users = data.auth_user;
+            const users: AuthUser[] = data.auth_user;
 
             // 유효성 검사
-            const user = users.find((user: any) =>
-                (user.username === id || user.email === id) && user.password === password
+            const user = users.find(
+                (user) =>
+                    (user.username === id || user.email === id) &&
+                    user.password === password
             );
 
             if (!user) {
-                const userExists = users.some((user: any) => user.username === id || user.email === id);
+                const userExists = users.some(
+                    (user) => user.username === id || user.email === id
+                );
                 if (!userExists) {
                     setErrorMessage("존재하지 않는 이메일/사번입니다.");
                 } else {
@@ -30,9 +44,14 @@ const AuthPage = () => {
             }
 
             // 로그인 성공 시
+            login({
+                id: user.id,
+                username: user.username,
+                role: user.role,
+            });
             alert(`로그인 성공! 환영합니다, ${user.username}`);
-            setErrorMessage('');
-            navigate('/');
+            setErrorMessage("");
+            navigate("/");
         } catch (error) {
             setErrorMessage("로그인 중 문제가 발생했습니다.");
             console.error("로그인 오류:", error);
@@ -42,7 +61,11 @@ const AuthPage = () => {
     return (
         <div className="flex flex-col justify-center items-center">
             <div className="w-108.5 h-115 bg-white shadow-lg p-8 flex flex-col items-center justify-center mt-20">
-                <img src="/images/crimsonlogo.png" alt="로고" className="flex" />
+                <img
+                    src="/images/crimsonlogo.png"
+                    alt="로고"
+                    className="flex"
+                />
                 <div className="flex flex-col items-center justify-center space-y-4">
                     <input
                         type="text"
@@ -67,10 +90,8 @@ const AuthPage = () => {
                 </button>
             </div>
             {errorMessage && (
-                    <div className="text-red-800 text-sm mt-2">
-                        {errorMessage}
-                    </div>
-                )}
+                <div className="text-red-800 text-sm mt-2">{errorMessage}</div>
+            )}
         </div>
     );
 };

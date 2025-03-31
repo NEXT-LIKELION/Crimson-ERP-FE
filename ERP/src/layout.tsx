@@ -15,7 +15,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
     return (
         <div className="flex flex-col w-full h-screen bg-gray-50 font-inter">
-            <div className="w-[1440px] h-[900px] mx-auto flex flex-row">
+            <div className="w-[1440px] h-[900px] mx-auto flex flex-row border-gray-200 border-x-1">
             {!hideAuth && <Sidebar />}        
                 <main className="flex-1 flex flex-col">
                     {/* 헤더 */}

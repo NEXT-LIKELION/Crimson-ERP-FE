@@ -1,4 +1,5 @@
 import React from 'react';
+import {useState} from 'react';
 import { MdOutlineEdit, MdOutlineHistory } from 'react-icons/md';
 
 // 데이터 행의 타입 정의
