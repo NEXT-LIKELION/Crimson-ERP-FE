@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { MdOutlineEdit, MdOutlineHistory } from 'react-icons/md';
 
 // 데이터 행의 타입 정의
 interface TableRow {
     [key: string]: string | boolean;
 }
 
-// 테이블 컴포넌트의 props 타입 정의
 interface TableProps {
     columns: string[];
     data: TableRow[];
