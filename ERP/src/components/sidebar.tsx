@@ -50,7 +50,9 @@ const SidebarFooter: React.FC = () => {
             navigate('/auth'); // 로그인 페이지 경로 (제공된 라우팅에 맞춤)
         } catch (error) {
             console.error('로그아웃 실패:', error);
+            logout();
             alert('로그아웃 중 문제가 발생했습니다. 다시 시도해주세요.');
+            navigate('/auth');
         }
     };
 
