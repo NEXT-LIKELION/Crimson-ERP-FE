@@ -15,6 +15,8 @@ const MENU_ITEMS = [
 
 const SidebarHeader: React.FC = () => (
     <div className="h-16 px-4 py-1 border-b border-gray-200 flex items-center">
+        <img src="/images/crimsonlogo.png" alt="Logo" className="h-14 w-14 object-cover object-center mr-3 rounded" />
+
         <span className="text-xl font-bold text-black leading-7">크림슨스토어</span>
     </div>
 );
