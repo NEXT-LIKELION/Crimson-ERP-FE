@@ -1,0 +1,1010 @@
+[
+  {
+    "model": "auth.user",
+    "pk": 1,
+    "fields": {
+      "username": "admin01",
+      "password": "sha256$bd94dcda26fccb4e68d6a31f9b5aac0b571ae266d822620e901ef7ebe3a11d4f",
+      "email": "admin01@test.com",
+      "role": "ADMIN",
+      "contact": "010-1111-2222",
+      "status": "active",
+      "is_superuser": true,
+      "is_staff": true,
+      "is_active": true,
+      "last_login": "2025-04-26T10:57:50.709134",
+      "date_joined": "2025-04-26T10:57:50.709267"
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 2,
+    "fields": {
+      "username": "manager1",
+      "password": "sha256$bd94dcda26fccb4e68d6a31f9b5aac0b571ae266d822620e901ef7ebe3a11d4f",
+      "email": "manager1@test.com",
+      "role": "MANAGER",
+      "contact": "010-3333-4444",
+      "status": "inactive",
+      "is_superuser": false,
+      "is_staff": true,
+      "is_active": true,
+      "last_login": "2025-04-26T10:57:50.709276",
+      "date_joined": "2025-04-26T10:57:50.709278"
+    }
+  },
+  {
+    "model": "inventory.suppliers",
+    "pk": 1,
+    "fields": {
+      "name": "양이서",
+      "contact": "044-017-4145",
+      "address": "강원도 양주시 역삼762가 지하709",
+      "email": "lcoe@coeio.com"
+    }
+  },
+  {
+    "model": "inventory.suppliers",
+    "pk": 2,
+    "fields": {
+      "name": "(유) 김",
+      "contact": "041-733-5048",
+      "address": "세종특별자치시 영등포구 봉은사길 246-4 (영희고마을)",
+      "email": "cson@jusighoesa.com"
+    }
+  },
+  {
+    "model": "inventory.suppliers",
+    "pk": 3,
+    "fields": {
+      "name": "박이",
+      "contact": "053-752-1414",
+      "address": "대구광역시 노원구 양재천거리 714",
+      "email": "hyeonsugo@jusighoesa.kr"
+    }
+  },
+  {
+    "model": "inventory.products",
+    "pk": 1,
+    "fields": {
+      "product_code": "P1000",
+      "name": "Debitis 상품",
+      "created_at": "2025-04-26T10:57:50.709569"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 1,
+    "fields": {
+      "product": 1,
+      "variant_code": "P1000-A",
+      "option": "옵션-A",
+      "stock": 47,
+      "price": 16006,
+      "created_at": "2025-04-26T10:57:50.709581"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 2,
+    "fields": {
+      "product": 1,
+      "variant_code": "P1000-B",
+      "option": "옵션-B",
+      "stock": 85,
+      "price": 9149,
+      "created_at": "2025-04-26T10:57:50.709585"
+    }
+  },
+  {
+    "model": "inventory.products",
+    "pk": 2,
+    "fields": {
+      "product_code": "P1001",
+      "name": "Nesciunt 상품",
+      "created_at": "2025-04-26T10:57:50.709593"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 3,
+    "fields": {
+      "product": 2,
+      "variant_code": "P1001-A",
+      "option": "옵션-A",
+      "stock": 80,
+      "price": 9058,
+      "created_at": "2025-04-26T10:57:50.709596"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 4,
+    "fields": {
+      "product": 2,
+      "variant_code": "P1001-B",
+      "option": "옵션-B",
+      "stock": 90,
+      "price": 11313,
+      "created_at": "2025-04-26T10:57:50.709599"
+    }
+  },
+  {
+    "model": "inventory.products",
+    "pk": 3,
+    "fields": {
+      "product_code": "P1002",
+      "name": "Laudantium 상품",
+      "created_at": "2025-04-26T10:57:50.709605"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 5,
+    "fields": {
+      "product": 3,
+      "variant_code": "P1002-A",
+      "option": "옵션-A",
+      "stock": 38,
+      "price": 7546,
+      "created_at": "2025-04-26T10:57:50.709608"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 6,
+    "fields": {
+      "product": 3,
+      "variant_code": "P1002-B",
+      "option": "옵션-B",
+      "stock": 79,
+      "price": 16713,
+      "created_at": "2025-04-26T10:57:50.709611"
+    }
+  },
+  {
+    "model": "inventory.products",
+    "pk": 4,
+    "fields": {
+      "product_code": "P1003",
+      "name": "Facilis 상품",
+      "created_at": "2025-04-26T10:57:50.709615"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 7,
+    "fields": {
+      "product": 4,
+      "variant_code": "P1003-A",
+      "option": "옵션-A",
+      "stock": 56,
+      "price": 19531,
+      "created_at": "2025-04-26T10:57:50.709618"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 8,
+    "fields": {
+      "product": 4,
+      "variant_code": "P1003-B",
+      "option": "옵션-B",
+      "stock": 42,
+      "price": 18017,
+      "created_at": "2025-04-26T10:57:50.709621"
+    }
+  },
+  {
+    "model": "inventory.products",
+    "pk": 5,
+    "fields": {
+      "product_code": "P1004",
+      "name": "Doloribus 상품",
+      "created_at": "2025-04-26T10:57:50.709626"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 9,
+    "fields": {
+      "product": 5,
+      "variant_code": "P1004-A",
+      "option": "옵션-A",
+      "stock": 50,
+      "price": 5405,
+      "created_at": "2025-04-26T10:57:50.709629"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 10,
+    "fields": {
+      "product": 5,
+      "variant_code": "P1004-B",
+      "option": "옵션-B",
+      "stock": 49,
+      "price": 11684,
+      "created_at": "2025-04-26T10:57:50.709632"
+    }
+  },
+  {
+    "model": "inventory.products",
+    "pk": 6,
+    "fields": {
+      "product_code": "P1005",
+      "name": "Fuga 상품",
+      "created_at": "2025-04-26T10:57:50.709636"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 11,
+    "fields": {
+      "product": 6,
+      "variant_code": "P1005-A",
+      "option": "옵션-A",
+      "stock": 120,
+      "price": 18171,
+      "created_at": "2025-04-26T10:57:50.709639"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 12,
+    "fields": {
+      "product": 6,
+      "variant_code": "P1005-B",
+      "option": "옵션-B",
+      "stock": 59,
+      "price": 14789,
+      "created_at": "2025-04-26T10:57:50.709642"
+    }
+  },
+  {
+    "model": "inventory.products",
+    "pk": 7,
+    "fields": {
+      "product_code": "P1006",
+      "name": "Quis 상품",
+      "created_at": "2025-04-26T10:57:50.709646"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 13,
+    "fields": {
+      "product": 7,
+      "variant_code": "P1006-A",
+      "option": "옵션-A",
+      "stock": 120,
+      "price": 12075,
+      "created_at": "2025-04-26T10:57:50.709649"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 14,
+    "fields": {
+      "product": 7,
+      "variant_code": "P1006-B",
+      "option": "옵션-B",
+      "stock": 116,
+      "price": 7668,
+      "created_at": "2025-04-26T10:57:50.709651"
+    }
+  },
+  {
+    "model": "inventory.products",
+    "pk": 8,
+    "fields": {
+      "product_code": "P1007",
+      "name": "Alias 상품",
+      "created_at": "2025-04-26T10:57:50.709656"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 15,
+    "fields": {
+      "product": 8,
+      "variant_code": "P1007-A",
+      "option": "옵션-A",
+      "stock": 28,
+      "price": 5381,
+      "created_at": "2025-04-26T10:57:50.709658"
+    }
+  },
+  {
+    "model": "inventory.product_variants",
+    "pk": 16,
+    "fields": {
+      "product": 8,
+      "variant_code": "P1007-B",
+      "option": "옵션-B",
+      "stock": 61,
+      "price": 18768,
+      "created_at": "2025-04-26T10:57:50.709661"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 1,
+    "fields": {
+      "variant": 12,
+      "supplier": 1,
+      "quantity": 13,
+      "status": "CANCELLED",
+      "order_date": "2025-04-01T10:57:50.709670"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 2,
+    "fields": {
+      "variant": 14,
+      "supplier": 1,
+      "quantity": 18,
+      "status": "APPROVED",
+      "order_date": "2025-04-25T10:57:50.709676"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 3,
+    "fields": {
+      "variant": 1,
+      "supplier": 1,
+      "quantity": 23,
+      "status": "CANCELLED",
+      "order_date": "2025-04-10T10:57:50.709680"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 4,
+    "fields": {
+      "variant": 14,
+      "supplier": 3,
+      "quantity": 58,
+      "status": "APPROVED",
+      "order_date": "2025-04-13T10:57:50.709684"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 5,
+    "fields": {
+      "variant": 7,
+      "supplier": 2,
+      "quantity": 45,
+      "status": "CANCELLED",
+      "order_date": "2025-04-26T10:57:50.709687"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 6,
+    "fields": {
+      "variant": 7,
+      "supplier": 2,
+      "quantity": 12,
+      "status": "PENDING",
+      "order_date": "2025-04-20T10:57:50.709691"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 7,
+    "fields": {
+      "variant": 5,
+      "supplier": 1,
+      "quantity": 5,
+      "status": "APPROVED",
+      "order_date": "2025-03-30T10:57:50.709694"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 8,
+    "fields": {
+      "variant": 2,
+      "supplier": 2,
+      "quantity": 31,
+      "status": "PENDING",
+      "order_date": "2025-04-25T10:57:50.709697"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 9,
+    "fields": {
+      "variant": 13,
+      "supplier": 3,
+      "quantity": 47,
+      "status": "APPROVED",
+      "order_date": "2025-04-08T10:57:50.709700"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 10,
+    "fields": {
+      "variant": 2,
+      "supplier": 1,
+      "quantity": 39,
+      "status": "CANCELLED",
+      "order_date": "2025-03-29T10:57:50.709704"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 11,
+    "fields": {
+      "variant": 14,
+      "supplier": 1,
+      "quantity": 25,
+      "status": "PENDING",
+      "order_date": "2025-04-16T10:57:50.709707"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 12,
+    "fields": {
+      "variant": 4,
+      "supplier": 1,
+      "quantity": 28,
+      "status": "PENDING",
+      "order_date": "2025-04-07T10:57:50.709710"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 13,
+    "fields": {
+      "variant": 5,
+      "supplier": 2,
+      "quantity": 28,
+      "status": "PENDING",
+      "order_date": "2025-03-28T10:57:50.709714"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 14,
+    "fields": {
+      "variant": 8,
+      "supplier": 1,
+      "quantity": 58,
+      "status": "PENDING",
+      "order_date": "2025-04-11T10:57:50.709717"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 15,
+    "fields": {
+      "variant": 1,
+      "supplier": 3,
+      "quantity": 46,
+      "status": "APPROVED",
+      "order_date": "2025-04-06T10:57:50.709720"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 16,
+    "fields": {
+      "variant": 7,
+      "supplier": 3,
+      "quantity": 21,
+      "status": "CANCELLED",
+      "order_date": "2025-04-26T10:57:50.709723"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 17,
+    "fields": {
+      "variant": 6,
+      "supplier": 3,
+      "quantity": 20,
+      "status": "CANCELLED",
+      "order_date": "2025-03-27T10:57:50.709726"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 18,
+    "fields": {
+      "variant": 11,
+      "supplier": 3,
+      "quantity": 12,
+      "status": "APPROVED",
+      "order_date": "2025-04-24T10:57:50.709730"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 19,
+    "fields": {
+      "variant": 7,
+      "supplier": 3,
+      "quantity": 44,
+      "status": "APPROVED",
+      "order_date": "2025-04-01T10:57:50.709733"
+    }
+  },
+  {
+    "model": "inventory.orders",
+    "pk": 20,
+    "fields": {
+      "variant": 13,
+      "supplier": 2,
+      "quantity": 22,
+      "status": "APPROVED",
+      "order_date": "2025-04-08T10:57:50.709736"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 1,
+    "fields": {
+      "variant": 4,
+      "quantity": 6,
+      "total_price": 67878,
+      "sale_date": "2025-04-17T10:57:50.709748"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 2,
+    "fields": {
+      "variant": 15,
+      "quantity": 6,
+      "total_price": 32286,
+      "sale_date": "2025-04-25T10:57:50.709755"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 3,
+    "fields": {
+      "variant": 3,
+      "quantity": 4,
+      "total_price": 36232,
+      "sale_date": "2025-04-12T10:57:50.709759"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 4,
+    "fields": {
+      "variant": 5,
+      "quantity": 4,
+      "total_price": 30184,
+      "sale_date": "2025-04-13T10:57:50.709763"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 5,
+    "fields": {
+      "variant": 16,
+      "quantity": 4,
+      "total_price": 75072,
+      "sale_date": "2025-04-13T10:57:50.709768"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 6,
+    "fields": {
+      "variant": 7,
+      "quantity": 3,
+      "total_price": 58593,
+      "sale_date": "2025-04-18T10:57:50.709772"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 7,
+    "fields": {
+      "variant": 9,
+      "quantity": 5,
+      "total_price": 27025,
+      "sale_date": "2025-04-23T10:57:50.709776"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 8,
+    "fields": {
+      "variant": 10,
+      "quantity": 1,
+      "total_price": 11684,
+      "sale_date": "2025-04-14T10:57:50.709780"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 9,
+    "fields": {
+      "variant": 13,
+      "quantity": 4,
+      "total_price": 48300,
+      "sale_date": "2025-04-19T10:57:50.709784"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 10,
+    "fields": {
+      "variant": 6,
+      "quantity": 4,
+      "total_price": 66852,
+      "sale_date": "2025-04-23T10:57:50.709788"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 11,
+    "fields": {
+      "variant": 12,
+      "quantity": 4,
+      "total_price": 59156,
+      "sale_date": "2025-04-14T10:57:50.709792"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 12,
+    "fields": {
+      "variant": 11,
+      "quantity": 6,
+      "total_price": 109026,
+      "sale_date": "2025-04-18T10:57:50.709796"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 13,
+    "fields": {
+      "variant": 5,
+      "quantity": 4,
+      "total_price": 30184,
+      "sale_date": "2025-04-18T10:57:50.709800"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 14,
+    "fields": {
+      "variant": 13,
+      "quantity": 2,
+      "total_price": 24150,
+      "sale_date": "2025-04-11T10:57:50.709804"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 15,
+    "fields": {
+      "variant": 3,
+      "quantity": 6,
+      "total_price": 54348,
+      "sale_date": "2025-04-13T10:57:50.709808"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 16,
+    "fields": {
+      "variant": 6,
+      "quantity": 2,
+      "total_price": 33426,
+      "sale_date": "2025-04-15T10:57:50.709812"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 17,
+    "fields": {
+      "variant": 9,
+      "quantity": 1,
+      "total_price": 5405,
+      "sale_date": "2025-04-21T10:57:50.709816"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 18,
+    "fields": {
+      "variant": 6,
+      "quantity": 1,
+      "total_price": 16713,
+      "sale_date": "2025-04-17T10:57:50.709820"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 19,
+    "fields": {
+      "variant": 7,
+      "quantity": 1,
+      "total_price": 19531,
+      "sale_date": "2025-04-17T10:57:50.709823"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 20,
+    "fields": {
+      "variant": 3,
+      "quantity": 1,
+      "total_price": 9058,
+      "sale_date": "2025-04-20T10:57:50.709827"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 21,
+    "fields": {
+      "variant": 7,
+      "quantity": 5,
+      "total_price": 97655,
+      "sale_date": "2025-04-12T10:57:50.709831"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 22,
+    "fields": {
+      "variant": 12,
+      "quantity": 3,
+      "total_price": 44367,
+      "sale_date": "2025-04-18T10:57:50.709835"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 23,
+    "fields": {
+      "variant": 4,
+      "quantity": 1,
+      "total_price": 11313,
+      "sale_date": "2025-04-15T10:57:50.709839"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 24,
+    "fields": {
+      "variant": 4,
+      "quantity": 5,
+      "total_price": 56565,
+      "sale_date": "2025-04-18T10:57:50.709842"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 25,
+    "fields": {
+      "variant": 1,
+      "quantity": 6,
+      "total_price": 96036,
+      "sale_date": "2025-04-24T10:57:50.709846"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 26,
+    "fields": {
+      "variant": 2,
+      "quantity": 4,
+      "total_price": 36596,
+      "sale_date": "2025-04-12T10:57:50.709850"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 27,
+    "fields": {
+      "variant": 9,
+      "quantity": 1,
+      "total_price": 5405,
+      "sale_date": "2025-04-12T10:57:50.709854"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 28,
+    "fields": {
+      "variant": 10,
+      "quantity": 1,
+      "total_price": 11684,
+      "sale_date": "2025-04-16T10:57:50.709858"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 29,
+    "fields": {
+      "variant": 4,
+      "quantity": 4,
+      "total_price": 45252,
+      "sale_date": "2025-04-16T10:57:50.709862"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 30,
+    "fields": {
+      "variant": 6,
+      "quantity": 5,
+      "total_price": 83565,
+      "sale_date": "2025-04-12T10:57:50.709866"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 31,
+    "fields": {
+      "variant": 6,
+      "quantity": 2,
+      "total_price": 33426,
+      "sale_date": "2025-04-12T10:57:50.709870"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 32,
+    "fields": {
+      "variant": 1,
+      "quantity": 5,
+      "total_price": 80030,
+      "sale_date": "2025-04-15T10:57:50.709875"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 33,
+    "fields": {
+      "variant": 6,
+      "quantity": 1,
+      "total_price": 16713,
+      "sale_date": "2025-04-22T10:57:50.709879"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 34,
+    "fields": {
+      "variant": 13,
+      "quantity": 3,
+      "total_price": 36225,
+      "sale_date": "2025-04-16T10:57:50.709883"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 35,
+    "fields": {
+      "variant": 11,
+      "quantity": 1,
+      "total_price": 18171,
+      "sale_date": "2025-04-21T10:57:50.709887"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 36,
+    "fields": {
+      "variant": 11,
+      "quantity": 1,
+      "total_price": 18171,
+      "sale_date": "2025-04-24T10:57:50.709891"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 37,
+    "fields": {
+      "variant": 13,
+      "quantity": 4,
+      "total_price": 48300,
+      "sale_date": "2025-04-26T10:57:50.709895"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 38,
+    "fields": {
+      "variant": 6,
+      "quantity": 3,
+      "total_price": 50139,
+      "sale_date": "2025-04-14T10:57:50.709899"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 39,
+    "fields": {
+      "variant": 11,
+      "quantity": 1,
+      "total_price": 18171,
+      "sale_date": "2025-04-12T10:57:50.709902"
+    }
+  },
+  {
+    "model": "inventory.sales",
+    "pk": 40,
+    "fields": {
+      "variant": 14,
+      "quantity": 4,
+      "total_price": 30672,
+      "sale_date": "2025-04-11T10:57:50.709906"
+    }
+  },
+  {
+    "model": "inventory.alerts",
+    "pk": 1,
+    "fields": {
+      "variant": 4,
+      "threshold": 10,
+      "alert_date": "2025-04-26T10:57:50.709934",
+      "resolved": false
+    }
+  },
+  {
+    "model": "inventory.alerts",
+    "pk": 2,
+    "fields": {
+      "variant": 12,
+      "threshold": 10,
+      "alert_date": "2025-04-26T10:57:50.709937",
+      "resolved": false
+    }
+  },
+  {
+    "model": "inventory.alerts",
+    "pk": 3,
+    "fields": {
+      "variant": 6,
+      "threshold": 10,
+      "alert_date": "2025-04-26T10:57:50.709940",
+      "resolved": false
+    }
+  },
+  {
+    "model": "inventory.alerts",
+    "pk": 4,
+    "fields": {
+      "variant": 11,
+      "threshold": 10,
+      "alert_date": "2025-04-26T10:57:50.709942",
+      "resolved": false
+    }
+  },
+  {
+    "model": "inventory.alerts",
+    "pk": 5,
+    "fields": {
+      "variant": 8,
+      "threshold": 10,
+      "alert_date": "2025-04-26T10:57:50.709944",
+      "resolved": false
+    }
+  },
+  {
+    "model": "inventory.alerts",
+    "pk": 6,
+    "fields": {
+      "variant": 15,
+      "threshold": 10,
+      "alert_date": "2025-04-26T10:57:50.709947",
+      "resolved": false
+    }
+  }
+]
