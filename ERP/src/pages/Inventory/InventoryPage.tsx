@@ -3,8 +3,13 @@ import PrimaryButton from '../../components/button/PrimaryButton';
 import { FaPlus, FaFileArrowUp } from 'react-icons/fa6';
 import InputField from '../../components/inputfield/InputField';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
+import { useInventories } from '../../hooks/queries/useInventories';
 
 const InventoryPage = () => {
+    const { data, isLoading, error } = useInventories();
+
+    if (isLoading) return <p>로딩 중...</p>;
+    if (error) return <p>에러가 발생했습니다!</p>;
     return (
         <div className="p-6">
             {/* 상단 헤더 */}
@@ -26,7 +31,7 @@ const InventoryPage = () => {
             </div>
 
             {/* 재고 테이블 */}
-            <InventoryTable />
+            <InventoryTable inventories={data ?? []} />
         </div>
     );
 };

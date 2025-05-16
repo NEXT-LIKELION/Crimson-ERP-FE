@@ -5,17 +5,23 @@ import { MdFilterList, MdOutlineDownload } from 'react-icons/md';
 import { RxCaretSort } from 'react-icons/rx';
 
 // 상품 데이터 타입 정의
-interface Product {
-    productCode: string;
-    categoryCode: string;
+export interface Product {
+    product_code: string;
     name: string;
-    option: string;
-    price: string;
     stock: number;
-    orderCount: number;
-    returnCount: number;
-    salesCount: number;
-    totalSales: string;
+    option?: string;
+    price?: string;
+
+    categoryCode?: string;
+    orderCount?: number;
+    returnCount?: number;
+    salesCount?: number;
+    totalSales?: string;
+}
+
+// props 타입 추가
+interface InventoryTableProps {
+    inventories: Product[];
 }
 
 // 정렬 가능한 헤더 컴포넌트
@@ -38,22 +44,33 @@ const SortableHeader = ({
     </th>
 );
 
-const InventoryTable = () => {
+const InventoryTable = ({ inventories }: InventoryTableProps) => {
     const [data, setData] = useState<Product[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<{ key: keyof Product; order: 'asc' | 'desc' | null }>({
-        key: 'productCode',
+        key: 'product_code',
         order: null,
     });
 
     const itemsPerPage = 10;
 
     useEffect(() => {
-        fetch('/data/sampleData.json')
-            .then((res) => res.json())
-            .then((jsonData) => setData(jsonData))
-            .catch((err) => console.error('데이터 로드 오류:', err));
-    }, []);
+        // 프론트 전용 기본 필드 초기값 병합
+        if (!Array.isArray(inventories)) return;
+        const normalized = inventories.map((item) => ({
+            product_code: item.product_code,
+            name: item.name,
+            stock: item.stock ?? 0,
+            option: item.option ?? '',
+            price: item.price ?? '',
+            categoryCode: item.categoryCode ?? 'N/A',
+            orderCount: item.orderCount ?? 0,
+            returnCount: item.returnCount ?? 0,
+            salesCount: item.salesCount ?? 0,
+            totalSales: item.totalSales ?? '0원',
+        }));
+        setData(normalized);
+    }, [inventories]);
 
     // 정렬 함수
     const handleSort = (key: keyof Product) => {
@@ -111,8 +128,8 @@ const InventoryTable = () => {
                         <tr>
                             <SortableHeader
                                 label="상품코드"
-                                sortKey="productCode"
-                                sortOrder={sortConfig.key === 'productCode' ? sortConfig.order : null}
+                                sortKey="product_code"
+                                sortOrder={sortConfig.key === 'product_code' ? sortConfig.order : null}
                                 onSort={handleSort}
                             />
                             <SortableHeader
@@ -154,7 +171,7 @@ const InventoryTable = () => {
                     <tbody>
                         {paginatedData.map((product, index) => (
                             <tr key={index} className="bg-white border-b border-gray-200">
-                                <td className="px-4 py-2">{product.productCode}</td>
+                                <td className="px-4 py-2">{product.product_code}</td>
                                 <td className="px-4 py-2">{product.categoryCode}</td>
                                 <td className="px-4 py-2">{product.name}</td>
                                 <td className="px-4 py-2">{product.option}</td>
