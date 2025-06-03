@@ -89,13 +89,15 @@ const DashboardPage = () => {
             </div>
             <div className="flex gap-6">
                 <div className="bg-white shadow-md rounded-lg p-4 flex-1">
-                    <div className="flex h-17.25 pt-5 pb-5.25 pl-4 pr-4 items-center justify-between">
+                    <div className="flex h-17.25 pt-5 pb-5.25 pr-4 items-center justify-between border-b-1 border-b-">
                         <h2 className="text-lg font-medium text-gray-900 mb-2">
                             재고 부족 상품
                         </h2>
                         <img src="/images/warn.png" className="w-6 h-6" />
                     </div>
-                    <Table columns={columns1} data={data1} />
+                    <div className="mt-4">
+                        <Table columns={columns1} data={data1} />
+                    </div>
                     <div className="flex items-center space-x-1 text-indigo-600 hover:text-indigo-800 cursor-pointer mt-4">
                         <Link
                             to="/inventory"
@@ -122,13 +124,15 @@ const DashboardPage = () => {
                     </div>
                 </div>
                 <div className="bg-white shadow-md rounded-lg p-4 flex-1">
-                    <div className="flex h-17.25 pt-5 pb-5.25 pl-4 pr-4 items-center justify-between">
+                    <div className="flex h-17.25 pt-5 pb-5.25 pr-4 items-center justify-between border-b-1">
                         <h2 className="text-lg font-medium text-gray-900 mb-2">
                             최근 발주 현황
                         </h2>
                         <img src="/images/status.png" className="w-6 h-6" />
                     </div>
-                    <Table columns={columns2} data={data2} />
+                    <div className="mt-4">
+                        <Table columns={columns2} data={data2} />
+                    </div>
                     <div className="flex items-center space-x-1 text-indigo-600 hover:text-indigo-800 cursor-pointer mt-4">
                         <Link
                             to="/orders"

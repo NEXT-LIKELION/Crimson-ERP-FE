@@ -5,6 +5,7 @@ import { IconType } from 'react-icons';
 import { FiGrid, FiBox, FiShoppingCart, FiUsers, FiLogOut } from 'react-icons/fi';
 import axios from '../api/axios';
 import { useAuthStore } from '../store/authStore';
+import { useLogout } from "../hooks/queries/useLogout"
 
 const MENU_ITEMS = [
     { icon: FiGrid, label: '대시보드', path: '/' },
@@ -15,6 +16,8 @@ const MENU_ITEMS = [
 
 const SidebarHeader: React.FC = () => (
     <div className="h-16 px-4 py-1 border-b border-gray-200 flex items-center">
+        <img src="/images/crimsonlogo.png" alt="Logo" className="h-14 w-14 object-cover object-center mr-3 rounded" />
+
         <span className="text-xl font-bold text-black leading-7">크림슨스토어</span>
     </div>
 );
@@ -40,27 +43,17 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, active, on
 );
 
 const SidebarFooter: React.FC = () => {
-    const navigate = useNavigate();
-    const logout = useAuthStore((state) => state.logout);
-
-    const handleLogout = async () => {
-        try {
-            await axios.post('/logout');
-            logout();
-            navigate('/auth'); // 로그인 페이지 경로 (제공된 라우팅에 맞춤)
-        } catch (error) {
-            console.error('로그아웃 실패:', error);
-            alert('로그아웃 중 문제가 발생했습니다. 다시 시도해주세요.');
-        }
-    };
+    const logoutMutation = useLogout();
 
     return (
         <div
             className="px-4 py-4 border-t border-gray-200 flex items-center cursor-pointer hover:bg-gray-100"
-            onClick={handleLogout}
+            onClick={() => logoutMutation.mutate()}
         >
             <FiLogOut className="w-6 h-6 text-gray-600 mr-3" />
-            <span className="text-sm font-medium text-gray-600 leading-tight">로그아웃</span>
+            <span className="text-sm font-medium text-gray-600 leading-tight">
+                {logoutMutation.isPending ? "로그아웃 중..." : "로그아웃"}
+            </span>
         </div>
     );
 };
