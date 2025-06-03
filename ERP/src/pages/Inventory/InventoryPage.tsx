@@ -4,9 +4,33 @@ import { FaPlus, FaFileArrowUp } from 'react-icons/fa6';
 import InputField from '../../components/inputfield/InputField';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import { useInventories } from '../../hooks/queries/useInventories';
+import { updateInventoryItem } from '../../api/inventory';
+import { useSearchParams } from 'react-router-dom';
+import EditProductModal from '../../components/modal/EditProductModal';
 
 const InventoryPage = () => {
-    const { data, isLoading, error } = useInventories();
+    const { data, isLoading, error, refetch } = useInventories();
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const editId = searchParams.get('edit');
+    const selectedProduct = data?.find((p: any) => p.product_code === editId);
+
+    const handleCloseModal = () => {
+        searchParams.delete('edit');
+        setSearchParams(searchParams);
+    };
+
+    const handleSave = async (updatedProduct: any) => {
+        try {
+            await updateInventoryItem(updatedProduct.product_code, updatedProduct);
+            alert('상품이 성공적으로 수정되었습니다.');
+            refetch();
+            handleCloseModal();
+        } catch (err) {
+            console.error('상품 수정 실패:', err);
+            alert('상품 수정 중 오류가 발생했습니다.');
+        }
+    };
 
     if (isLoading) return <p>로딩 중...</p>;
     if (error) return <p>에러가 발생했습니다!</p>;
@@ -31,7 +55,15 @@ const InventoryPage = () => {
             </div>
 
             {/* 재고 테이블 */}
-            <InventoryTable inventories={data ?? []} />
+            <InventoryTable inventories={data ?? []} onSave={handleSave} />
+            {selectedProduct && (
+                <EditProductModal
+                    isOpen={!!editId}
+                    onClose={handleCloseModal}
+                    product={selectedProduct}
+                    onSave={handleSave}
+                />
+            )}
         </div>
     );
 };

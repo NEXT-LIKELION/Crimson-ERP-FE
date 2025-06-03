@@ -3,6 +3,7 @@ import Pagination from '../pagination/pagination';
 import { MdOutlineHistory, MdOutlineEdit } from 'react-icons/md';
 import { MdFilterList, MdOutlineDownload } from 'react-icons/md';
 import { RxCaretSort } from 'react-icons/rx';
+import { useNavigate } from 'react-router-dom';
 
 // 상품 데이터 타입 정의
 export interface Product {
@@ -22,6 +23,7 @@ export interface Product {
 // props 타입 추가
 interface InventoryTableProps {
     inventories: Product[];
+    onSave: (updatedProduct: any) => Promise<void>;
 }
 
 // 정렬 가능한 헤더 컴포넌트
@@ -45,6 +47,7 @@ const SortableHeader = ({
 );
 
 const InventoryTable = ({ inventories }: InventoryTableProps) => {
+    const navigate = useNavigate();
     const [data, setData] = useState<Product[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<{ key: keyof Product; order: 'asc' | 'desc' | null }>({
@@ -183,7 +186,7 @@ const InventoryTable = ({ inventories }: InventoryTableProps) => {
                                 <td className="px-4 py-2 flex space-x-2">
                                     <MdOutlineEdit
                                         className="text-indigo-500 cursor-pointer"
-                                        onClick={() => alert('수정 클릭')}
+                                        onClick={() => navigate(`?edit=${product.product_code}`)} // URL 변경
                                     />
                                     <MdOutlineHistory
                                         className="text-indigo-500 cursor-pointer"
