@@ -1,5 +1,5 @@
 // src/pages/HR/HRPage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiSearch, FiUser, FiCalendar, FiEdit, FiTrash2, FiEye } from 'react-icons/fi';
 import PrimaryButton from '../../components/button/PrimaryButton';
 import GreenButton from '../../components/button/GreenButton';
@@ -9,100 +9,26 @@ import SelectInput from '../../components/input/SelectInput';
 import EmployeeDetailsModal from '../../components/modal/EmployeeDetailsModal';
 import EmployeeContractModal from '../../components/modal/EmployeeContractModal';
 import NewEmployeeModal from '../../components/modal/NewEmployeeModal';
+import {
+    useEmployees,
+    useCreateEmployee,
+    useUpdateEmployee,
+    useTerminateEmployee,
+} from '../../hooks/queries/useEmployees';
+import { Employee } from '../../api/hr';
 
 // 직원 상태 타입
 type EmployeeStatus = 'active' | 'vacation' | 'leave' | 'terminated';
 
-// 직원 데이터 인터페이스
-interface Employee {
-    id: string;
-    name: string;
-    position: string;
-    startDate: string;
-    status: EmployeeStatus;
-    profileImage?: string;
-    // 추가 상세 정보 필드
-    email?: string;
-    phone?: string;
-    birthdate?: string;
-    gender?: string;
-    address?: string;
-    emergencyContact?: string;
-    job?: string;
-    contractPeriod?: string;
-    workHours?: string;
-    remainingLeave?: string;
-}
-
 const HRPage: React.FC = () => {
-    // 직원 목록 상태 (더미 데이터로 초기화)
-    const [employees, setEmployees] = useState<Employee[]>([
-        {
-            id: 'EMP-2025-0001',
-            name: '김정현',
-            position: '직원',
-            startDate: '2025-01-08',
-            status: 'active',
-            email: 'junghyun@example.com',
-            phone: '010-1234-1234',
-            birthdate: '1975-06-01',
-            gender: '남성',
-            address: '서울시 성북구 종암로108다길 55',
-            emergencyContact: '010-9876-5432 (배우자)',
-            job: '크림슨스토어 판매 및 관리',
-            contractPeriod: '2025-01-08 ~ 2026-01-07',
-            workHours: '평일 09:00 ~ 18:00',
-            remainingLeave: '15일',
-        },
-        {
-            id: 'EMP-2025-0002',
-            name: '신현성',
-            position: '직원',
-            startDate: '2025-01-15',
-            status: 'vacation',
-            email: 'hyunsung@example.com',
-            phone: '010-2345-6789',
-        },
-        {
-            id: 'EMP-2025-0003',
-            name: '배연준',
-            position: '직원',
-            startDate: '2025-02-01',
-            status: 'active',
-            email: 'yeonjun@example.com',
-            phone: '010-3456-7890',
-        },
-        {
-            id: 'EMP-2025-0004',
-            name: '이수진',
-            position: '직원',
-            startDate: '2024-11-15',
-            status: 'active',
-            email: 'sujin@example.com',
-            phone: '010-4567-8901',
-        },
-        {
-            id: 'EMP-2025-0005',
-            name: '박민지',
-            position: '직원',
-            startDate: '2025-01-22',
-            status: 'leave',
-            email: 'minji@example.com',
-            phone: '010-5678-9012',
-        },
-        {
-            id: 'EMP-2025-0006',
-            name: '유시진',
-            position: '대표',
-            startDate: '2024-10-05',
-            status: 'active',
-            email: 'sijin@example.com',
-            phone: '010-6789-0123',
-            birthdate: '1970-05-15',
-            gender: '남성',
-            address: '서울시 강남구 테헤란로 123',
-        },
-    ]);
+    // API 훅 사용
+    const { data: employeesData, isLoading, error } = useEmployees();
+    const createEmployee = useCreateEmployee();
+    const updateEmployee = useUpdateEmployee();
+    const terminateEmployee = useTerminateEmployee();
+
+    // 직원 목록 상태
+    const [employees, setEmployees] = useState<Employee[]>([]);
 
     // 검색어 상태
     const [searchQuery, setSearchQuery] = useState('');
@@ -117,12 +43,19 @@ const HRPage: React.FC = () => {
     const [showContractModal, setShowContractModal] = useState(false);
     const [showNewEmployeeModal, setShowNewEmployeeModal] = useState(false);
 
+    // API 데이터 로드
+    useEffect(() => {
+        if (employeesData?.data) {
+            setEmployees(employeesData.data);
+        }
+    }, [employeesData]);
+
     // 필터링된 직원 목록
     const filteredEmployees = employees.filter((employee) => {
         // 검색어 필터링
         const matchesSearch = searchQuery
             ? employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              employee.id.toLowerCase().includes(searchQuery.toLowerCase())
+              employee.id.toString().includes(searchQuery.toLowerCase())
             : true;
 
         // 직급 필터링
@@ -136,11 +69,23 @@ const HRPage: React.FC = () => {
     });
 
     // 직원 정보 업데이트
-    const handleUpdateEmployee = (updatedEmployee: Employee) => {
-        setEmployees((prev) => prev.map((emp) => (emp.id === updatedEmployee.id ? updatedEmployee : emp)));
-
-        // 선택된 직원 정보도 업데이트
-        setSelectedEmployee(updatedEmployee);
+    const handleUpdateEmployee = async (updatedEmployee: Employee) => {
+        try {
+            await updateEmployee.mutateAsync({
+                employeeId: updatedEmployee.id,
+                data: {
+                    name: updatedEmployee.name,
+                    position: updatedEmployee.position,
+                    department: updatedEmployee.department,
+                    email: updatedEmployee.email,
+                    phone: updatedEmployee.phone,
+                },
+            });
+            setSelectedEmployee(updatedEmployee);
+        } catch (error) {
+            console.error('직원 정보 업데이트 실패:', error);
+            alert('직원 정보 업데이트에 실패했습니다.');
+        }
     };
 
     // 직원 카드 컴포넌트
@@ -167,19 +112,16 @@ const HRPage: React.FC = () => {
             setShowDetailsModal(true);
         };
 
-        // 직원 삭제 처리
-        const handleDeleteEmployee = () => {
-            if (window.confirm(`${employee.name} 직원을 정말 삭제하시겠습니까?`)) {
-                setEmployees((prevEmployees) => prevEmployees.filter((emp) => emp.id !== employee.id));
-            }
-        };
-
-        // 휴가 등록 처리
-        const handleRegisterVacation = () => {
-            if (window.confirm(`${employee.name} 직원의 휴가를 등록하시겠습니까?`)) {
-                setEmployees((prevEmployees) =>
-                    prevEmployees.map((emp) => (emp.id === employee.id ? { ...emp, status: 'vacation' } : emp))
-                );
+        // 직원 퇴사 처리
+        const handleTerminateEmployee = async () => {
+            if (window.confirm(`${employee.name} 직원을 퇴사 처리하시겠습니까?`)) {
+                try {
+                    await terminateEmployee.mutateAsync(employee.id);
+                    alert('퇴사 처리가 완료되었습니다.');
+                } catch (error) {
+                    console.error('퇴사 처리 실패:', error);
+                    alert('퇴사 처리에 실패했습니다.');
+                }
             }
         };
 
@@ -194,7 +136,7 @@ const HRPage: React.FC = () => {
                     <div className="ml-4 flex-1">
                         <div className="flex justify-between items-start">
                             <h3 className="text-lg font-semibold text-gray-900">{employee.name}</h3>
-                            {getStatusBadge(employee.status)}
+                            {getStatusBadge(employee.status as EmployeeStatus)}
                         </div>
                         <p className="text-sm text-gray-600">{employee.id}</p>
                         <div className="mt-1">
@@ -202,7 +144,7 @@ const HRPage: React.FC = () => {
                                 <FiUser className="w-3 h-3 mr-2 text-gray-600" /> {employee.position}
                             </p>
                             <p className="text-sm text-gray-600 flex items-center">
-                                <FiCalendar className="w-3 h-3 mr-2 text-gray-600" /> 입사일: {employee.startDate}
+                                <FiCalendar className="w-3 h-3 mr-2 text-gray-600" /> 입사일: {employee.hire_date}
                             </p>
                         </div>
                     </div>
@@ -214,27 +156,21 @@ const HRPage: React.FC = () => {
                         <div className="flex items-center space-x-2">{/* 아이콘들 */}</div>
                         <div className="flex items-center space-x-2">
                             <button
-                                className="px-2 py-1 bg-blue-100 text-blue-700 rounded-md flex items-center text-xs font-medium"
-                                onClick={handleRegisterVacation}
-                                disabled={employee.status === 'vacation'}
-                            >
-                                <FiCalendar className="w-3 h-3 mr-1" />
-                                휴가등록
-                            </button>
-                            <button
                                 className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-md flex items-center text-xs font-medium"
                                 onClick={handleViewDetails}
                             >
                                 <FiEye className="w-3 h-3 mr-1" />
                                 상세보기
                             </button>
-                            <button
-                                className="px-2 py-1 bg-red-100 text-red-700 rounded-md flex items-center text-xs font-medium"
-                                onClick={handleDeleteEmployee}
-                            >
-                                <FiTrash2 className="w-3 h-3 mr-1" />
-                                삭제
-                            </button>
+                            {employee.status === 'active' && (
+                                <button
+                                    className="px-2 py-1 bg-red-100 text-red-700 rounded-md flex items-center text-xs font-medium"
+                                    onClick={handleTerminateEmployee}
+                                >
+                                    <FiTrash2 className="w-3 h-3 mr-1" />
+                                    퇴사
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -242,7 +178,7 @@ const HRPage: React.FC = () => {
         );
     };
 
-    // 직급 옵션 (필터링에 사용) - 간소화된 옵션
+    // 직급 옵션 (필터링에 사용)
     const positionOptions = ['전체', '대표', '직원'];
 
     // 상태 옵션 (필터링에 사용)
@@ -255,22 +191,21 @@ const HRPage: React.FC = () => {
     ];
 
     // 새 직원 등록
-    const handleAddEmployee = (employeeData: any) => {
-        // 가장 최근 ID 찾아서 다음 번호 부여
-        const lastEmpId = employees.map((e) => parseInt(e.id.split('-')[2])).sort((a, b) => b - a)[0];
-        const newId = `EMP-2025-${String(lastEmpId + 1).padStart(4, '0')}`;
-
-        const newEmployee: Employee = {
-            id: newId,
-            name: employeeData.name || '새 직원',
-            position: employeeData.position || '직원',
-            startDate: employeeData.startDate || new Date().toISOString().split('T')[0],
-            status: 'active',
-            ...employeeData,
-        };
-
-        setEmployees([...employees, newEmployee]);
-        setShowNewEmployeeModal(false);
+    const handleAddEmployee = async (employeeData: any) => {
+        try {
+            await createEmployee.mutateAsync({
+                name: employeeData.name,
+                position: employeeData.position,
+                department: employeeData.department,
+                email: employeeData.email,
+                phone: employeeData.phone,
+            });
+            setShowNewEmployeeModal(false);
+            alert('새 직원이 등록되었습니다.');
+        } catch (error) {
+            console.error('직원 등록 실패:', error);
+            alert('직원 등록에 실패했습니다.');
+        }
     };
 
     // 모달 제어 함수
@@ -294,6 +229,9 @@ const HRPage: React.FC = () => {
         setShowContractModal(false);
         setShowDetailsModal(true);
     };
+
+    if (isLoading) return <div>로딩 중...</div>;
+    if (error) return <div>에러가 발생했습니다.</div>;
 
     return (
         <div className="flex flex-col space-y-6">
