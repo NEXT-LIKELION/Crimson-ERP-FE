@@ -22,10 +22,9 @@ const InventoryPage = () => {
 
     const handleSave = async (updatedProduct: any) => {
         try {
-            await updateInventoryItem(updatedProduct.product_code, updatedProduct);
+            await updateInventoryItem(updatedProduct.id, updatedProduct);
             alert('상품이 성공적으로 수정되었습니다.');
             refetch();
-            handleCloseModal();
         } catch (err) {
             console.error('상품 수정 실패:', err);
             alert('상품 수정 중 오류가 발생했습니다.');

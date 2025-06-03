@@ -134,7 +134,13 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
                                     value={form.cost_price || ''}
                                     onChange={(val) => handleChange('cost_price', val)}
                                 />
-                                <TextInput label="현재 재고" value={(form.stock ?? 0).toString()} disabled />
+                                <TextInput
+                                    label="현재 재고"
+                                    type="number"
+                                    value={form.stock?.toString() || '0'}
+                                    onChange={(val) => handleChange('stock', Number(val))}
+                                />
+
                                 <div>
                                     <TextInput
                                         label="최소 재고"
