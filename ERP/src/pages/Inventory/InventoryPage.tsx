@@ -4,7 +4,7 @@ import { FaPlus, FaFileArrowUp } from 'react-icons/fa6';
 import InputField from '../../components/inputfield/InputField';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import { useInventories } from '../../hooks/queries/useInventories';
-import { updateInventoryItem } from '../../api/inventory';
+import { deleteInventoryItem, updateInventoryItem } from '../../api/inventory';
 import { useSearchParams } from 'react-router-dom';
 import EditProductModal from '../../components/modal/EditProductModal';
 import { useState } from 'react';
@@ -24,17 +24,6 @@ const InventoryPage = () => {
         setSearchParams(searchParams);
     };
 
-    const handleSave = async (updatedProduct: any) => {
-        try {
-            await updateInventoryItem(updatedProduct.id, updatedProduct);
-            alert('상품이 성공적으로 수정되었습니다.');
-            refetch();
-        } catch (err) {
-            console.error('상품 수정 실패:', err);
-            alert('상품 수정 중 오류가 발생했습니다.');
-        }
-    };
-
     const handleAddSave = async (_newProduct: any) => {
         try {
             await refetch();
@@ -47,6 +36,29 @@ const InventoryPage = () => {
 
     if (isLoading) return <p>로딩 중...</p>;
     if (error) return <p>에러가 발생했습니다!</p>;
+
+    const handleUpdateSave = async (updatedProduct: any) => {
+        try {
+            await updateInventoryItem(updatedProduct.id, updatedProduct);
+            alert('상품이 성공적으로 수정되었습니다.');
+            refetch();
+        } catch (err) {
+            console.error('상품 수정 실패:', err);
+            alert('상품 수정 중 오류가 발생했습니다.');
+        }
+    };
+
+    const handleDelete = async (productId: number) => {
+        if (!window.confirm('정말 이 상품을 삭제하시겠습니까?')) return;
+        try {
+            await deleteInventoryItem(productId);
+            alert('상품이 삭제되었습니다.');
+            refetch(); // 목록 다시 불러오기
+        } catch (err) {
+            console.error('상품 삭제 실패:', err);
+            alert('삭제 중 오류가 발생했습니다.');
+        }
+    };
     return (
         <div className="p-6">
             {/* 상단 헤더 */}
@@ -68,13 +80,13 @@ const InventoryPage = () => {
             </div>
 
             {/* 재고 테이블 */}
-            <InventoryTable inventories={data ?? []} onSave={handleSave} />
+            <InventoryTable inventories={data ?? []} onSave={handleUpdateSave} onDelete={handleDelete} />
             {selectedProduct && (
                 <EditProductModal
                     isOpen={!!editId}
                     onClose={handleCloseModal}
                     product={selectedProduct}
-                    onSave={handleSave}
+                    onSave={handleUpdateSave}
                 />
             )}
             {isAddModalOpen && (

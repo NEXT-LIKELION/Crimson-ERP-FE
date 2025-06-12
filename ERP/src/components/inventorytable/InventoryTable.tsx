@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Pagination from '../pagination/pagination';
-import { MdOutlineHistory, MdOutlineEdit } from 'react-icons/md';
+import { MdOutlineHistory, MdOutlineEdit, MdOutlineDelete } from 'react-icons/md';
 import { MdFilterList, MdOutlineDownload } from 'react-icons/md';
 import { RxCaretSort } from 'react-icons/rx';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,7 @@ import { Product } from '../../types/product';
 interface InventoryTableProps {
     inventories: Product[];
     onSave: (updatedProduct: any) => Promise<void>;
+    onDelete: (productId: number) => Promise<void>;
 }
 
 // 정렬 가능한 헤더 컴포넌트
@@ -32,7 +33,7 @@ const SortableHeader = ({
     </th>
 );
 
-const InventoryTable = ({ inventories }: InventoryTableProps) => {
+const InventoryTable = ({ inventories, onSave, onDelete }: InventoryTableProps) => {
     const navigate = useNavigate();
     const [data, setData] = useState<Product[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -193,6 +194,10 @@ const InventoryTable = ({ inventories }: InventoryTableProps) => {
                                     <MdOutlineHistory
                                         className="text-indigo-500 cursor-pointer"
                                         onClick={() => alert('조회 클릭')}
+                                    />
+                                    <MdOutlineDelete
+                                        className="text-red-500 cursor-pointer"
+                                        onClick={() => onDelete(product.id)}
                                     />
                                 </td>
                             </tr>

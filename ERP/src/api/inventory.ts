@@ -19,3 +19,11 @@ export const checkProductIdExists = async (product_id: string) => {
     });
     return res.data.length > 0;  // (product_id) 중복 검사 -> 존재하면 true
 };
+/**
+ * Delete an InventoryItem (and its variants via cascade).
+ * @param productId  the InventoryItem.id to delete
+ */
+export const deleteInventoryItem = async (productId: number) => {
+    const res = await api.delete(`/inventory/items/${productId}/`);
+    return res.data; 
+  };
