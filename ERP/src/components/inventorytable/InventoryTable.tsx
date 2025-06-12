@@ -46,22 +46,30 @@ const InventoryTable = ({ inventories, onSave, onDelete }: InventoryTableProps) 
     const itemsPerPage = 10;
 
     useEffect(() => {
-        // 프론트 전용 기본 필드 초기값 병합
         if (!Array.isArray(inventories)) return;
-        const normalized = inventories.map((item) => ({
-            id: item.id,
-            product_id: item.product_id,
-            name: item.name,
-            stock: item.stock ?? 0,
-            option: item.option ?? '',
-            price: item.price ?? '',
-            categoryCode: item.categoryCode ?? 'N/A',
-            orderCount: item.orderCount ?? 0,
-            returnCount: item.returnCount ?? 0,
-            salesCount: item.salesCount ?? 0,
-            totalSales: item.totalSales ?? '0원',
-        }));
-        setData(normalized);
+        const rows = inventories.map((item) => {
+            // pick the primary variant (or however you want to choose)
+            const v = item.variants && item.variants[0];
+
+            return {
+                product_id: item.product_id,
+                categoryCode: item.category ?? 'N/A',
+                name: item.name,
+                option: v?.option || '',
+                price: v ? String(v.price) : '0',
+                stock: v?.stock ?? 0,
+                // if you have orderCount/returnCount coming from somewhere, plug them in here…
+                orderCount: item.orderCount ?? 0,
+                returnCount: item.returnCount ?? 0,
+                salesCount: item.salesCount ?? 0,
+                totalSales: item.totalSales ?? '0원',
+                // preserve the IDs so edits/deletes still work:
+                id: item.id,
+                variant_id: v?.id,
+            };
+        });
+
+        setData(rows);
     }, [inventories]);
 
     // 정렬 함수
