@@ -9,6 +9,7 @@ import OrderDetailModal from '../../components/modal/OrderDetailModal';
 import NewOrderModal from '../../components/modal/NewOrderModal';
 import { useOrdersStore, Order, OrderStatus } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
+import { useOrder } from "../../hooks/queries/useOrder";
 import axios from '../../api/axios';
 
 // 검색 필터 타입 정의
@@ -37,92 +38,13 @@ const OrdersPage: React.FC = () => {
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
-    // 로딩 및 에러 상태
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
-
     // Zustand 스토어 훅
-    const { orders, setOrders, updateOrderStatus } = useOrdersStore();
+    const { data, isLoading, isError, refetch } = useOrder();
+    const orders = data?.data || [];
     const user = useAuthStore((state) => state.user);
     const isManager = user?.role === '대표';
 
-    // 주문 데이터 가져오기 (메모이제이션)
-    const fetchOrders = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
 
-        try {
-            // 실제 API 호출 시 아래 주석 해제
-            // const response = await axios.get('/api/orders');
-            // setOrders(response.data);
-
-            // 개발 환경용 샘플 데이터
-            const sampleOrders: Order[] = [
-                {
-                    id: 1,
-                    productName: 'ORD-2025-0011',
-                    orderDate: '2025-03-07',
-                    totalAmount: 850000,
-                    status: 'pending',
-                    manager: '이영희',
-                    supplier: '팩토리코퍼레이션',
-                    items: [],
-                },
-                {
-                    id: 2,
-                    productName: 'ORD-2025-0012',
-                    orderDate: '2025-03-06',
-                    totalAmount: 600000,
-                    status: 'pending',
-                    manager: '김철수',
-                    supplier: '한국판촉물',
-                    items: [],
-                },
-                {
-                    id: 3,
-                    productName: 'ORD-2025-0002',
-                    orderDate: '2025-01-15',
-                    totalAmount: 1875000,
-                    status: 'approved',
-                    manager: '박한솔',
-                    supplier: '한국판촉물',
-                    items: [],
-                },
-                {
-                    id: 4,
-                    productName: 'ORD-2024-0128',
-                    orderDate: '2024-12-28',
-                    totalAmount: 560000,
-                    status: 'completed',
-                    manager: '김재형',
-                    supplier: '대한상사',
-                    items: [],
-                },
-                {
-                    id: 5,
-                    productName: 'ORD-2025-0010',
-                    orderDate: '2025-03-04',
-                    totalAmount: 285000,
-                    status: 'completed',
-                    manager: '박지민',
-                    supplier: '대한상사',
-                    items: [],
-                },
-            ];
-
-            setOrders(sampleOrders);
-        } catch (err) {
-            console.error('Error fetching orders:', err);
-            setError('주문 정보를 불러오는 중 오류가 발생했습니다.');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [setOrders]);
-
-    // 초기 데이터 로드
-    useEffect(() => {
-        fetchOrders();
-    }, [fetchOrders]);
 
     // 필터링된 주문 목록 (메모이제이션)
     const filteredOrders = useMemo(() => {
@@ -195,7 +117,7 @@ const OrdersPage: React.FC = () => {
     const totalPages = useMemo(() => Math.ceil(filteredOrders.length / itemsPerPage), [filteredOrders, itemsPerPage]);
 
     // 주문 승인 핸들러
-    const handleApproveOrder = useCallback(
+    /*const handleApproveOrder = useCallback(
         async (orderId: number) => {
             try {
                 // 실제 환경에서는 아래 주석을 해제하고 API 호출
@@ -212,7 +134,7 @@ const OrdersPage: React.FC = () => {
             }
         },
         [updateOrderStatus]
-    );
+    );*/
 
     // 주문 상세 모달 열기
     const handleOpenOrderDetail = useCallback((orderId: number) => {
@@ -295,13 +217,13 @@ const OrdersPage: React.FC = () => {
     }, []);
 
     // 새 주문 성공 핸들러
-    const handleNewOrderSuccess = useCallback(
+    /*const handleNewOrderSuccess = useCallback(
         (newOrder: Order) => {
             fetchOrders();
             setIsNewOrderModalOpen(false);
         },
         [fetchOrders]
-    );
+    );*/
 
     // 상태 배지 렌더링
     const renderStatusBadge = useCallback((status: OrderStatus) => {
@@ -322,32 +244,31 @@ const OrdersPage: React.FC = () => {
         return `${amount.toLocaleString('ko-KR')}원`;
     }, []);
 
-    // 로딩 상태 렌더링
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center h-full">
-                <div className="flex items-center space-x-2">
-                    <FiLoader className="animate-spin text-indigo-600" size={24} />
-                    <span>주문 정보를 불러오는 중...</span>
-                </div>
+          <div className="flex justify-center items-center h-full">
+            <div className="flex items-center space-x-2">
+              <FiLoader className="animate-spin text-indigo-600" size={24} />
+              <span>주문 정보를 불러오는 중...</span>
             </div>
+          </div>
         );
-    }
-
-    // 에러 상태 렌더링
-    if (error) {
+      }
+      
+      if (isError) {
         return (
-            <div className="flex justify-center items-center h-full text-red-500">
-                <p>{error}</p>
-                <button
-                    onClick={fetchOrders}
-                    className="ml-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                >
-                    다시 시도
-                </button>
-            </div>
+          <div className="flex justify-center items-center h-full text-red-500">
+            <p>주문 정보를 불러오는 중 오류가 발생했습니다.</p>
+            <button
+              onClick={() => refetch()}
+              className="ml-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            >
+              다시 시도
+            </button>
+          </div>
         );
-    }
+      }
+      
 
     return (
         <div className="flex flex-col gap-6">
