@@ -4,21 +4,7 @@ import { MdOutlineHistory, MdOutlineEdit } from 'react-icons/md';
 import { MdFilterList, MdOutlineDownload } from 'react-icons/md';
 import { RxCaretSort } from 'react-icons/rx';
 import { useNavigate } from 'react-router-dom';
-
-// 상품 데이터 타입 정의
-export interface Product {
-    product_code: string;
-    name: string;
-    stock: number;
-    option?: string;
-    price?: string;
-
-    categoryCode?: string;
-    orderCount?: number;
-    returnCount?: number;
-    salesCount?: number;
-    totalSales?: string;
-}
+import { Product } from '../../types/product';
 
 // props 타입 추가
 interface InventoryTableProps {
@@ -51,9 +37,10 @@ const InventoryTable = ({ inventories }: InventoryTableProps) => {
     const [data, setData] = useState<Product[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<{ key: keyof Product; order: 'asc' | 'desc' | null }>({
-        key: 'product_code',
+        key: 'product_id',
         order: null,
     });
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
     const itemsPerPage = 10;
 
@@ -61,7 +48,8 @@ const InventoryTable = ({ inventories }: InventoryTableProps) => {
         // 프론트 전용 기본 필드 초기값 병합
         if (!Array.isArray(inventories)) return;
         const normalized = inventories.map((item) => ({
-            product_code: item.product_code,
+            id: item.id,
+            product_id: item.product_id,
             name: item.name,
             stock: item.stock ?? 0,
             option: item.option ?? '',
@@ -131,8 +119,8 @@ const InventoryTable = ({ inventories }: InventoryTableProps) => {
                         <tr>
                             <SortableHeader
                                 label="상품코드"
-                                sortKey="product_code"
-                                sortOrder={sortConfig.key === 'product_code' ? sortConfig.order : null}
+                                sortKey="product_id"
+                                sortOrder={sortConfig.key === 'product_id' ? sortConfig.order : null}
                                 onSort={handleSort}
                             />
                             <SortableHeader
@@ -174,7 +162,7 @@ const InventoryTable = ({ inventories }: InventoryTableProps) => {
                     <tbody>
                         {paginatedData.map((product, index) => (
                             <tr key={index} className="bg-white border-b border-gray-200">
-                                <td className="px-4 py-2">{product.product_code}</td>
+                                <td className="px-4 py-2">{product.product_id}</td>
                                 <td className="px-4 py-2">{product.categoryCode}</td>
                                 <td className="px-4 py-2">{product.name}</td>
                                 <td className="px-4 py-2">{product.option}</td>
@@ -186,7 +174,21 @@ const InventoryTable = ({ inventories }: InventoryTableProps) => {
                                 <td className="px-4 py-2 flex space-x-2">
                                     <MdOutlineEdit
                                         className="text-indigo-500 cursor-pointer"
-                                        onClick={() => navigate(`?edit=${product.product_code}`)} // URL 변경
+                                        onClick={() => {
+                                            const variant = product.variants?.[0];
+
+                                            const mergedProduct = {
+                                                ...product,
+                                                variant_id: variant?.id ?? undefined,
+                                                option: variant?.option ?? '',
+                                                price: variant?.price ?? '',
+                                                stock: variant?.stock ?? 0,
+                                                cost_price: variant?.cost_price ?? '',
+                                            };
+
+                                            setSelectedProduct(mergedProduct);
+                                            navigate(`?edit=${product.product_id}`);
+                                        }}
                                     />
                                     <MdOutlineHistory
                                         className="text-indigo-500 cursor-pointer"

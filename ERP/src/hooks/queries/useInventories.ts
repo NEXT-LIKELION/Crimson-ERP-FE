@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchInventories } from '../../api/inventory';
 import { AxiosResponse } from 'axios';
-import { Product } from '../../components/inventorytable/InventoryTable'; // Product 타입 사용
+import { Product } from '../../types/product';
 import { useEffect } from 'react';
 
 type InventoriesResponse = AxiosResponse<Product[]>;
