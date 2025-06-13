@@ -4,7 +4,7 @@ import { api } from "./axios";
 export const login = (payload: {
   username: string;
   password: string;
-}) => api.post("/api/v1/authentication/login/", payload);
+}) => api.post("/authentication/login/", payload);
 
 // 회원가입
 export const signup = (payload: {
