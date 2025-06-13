@@ -1,7 +1,7 @@
 // src/store/ordersStore.ts
-import { create } from 'zustand';
+import { create } from "zustand";
 
-export type OrderStatus = 'pending' | 'approved' | 'completed';
+export type OrderStatus = "PENDING" | "APPROVED" | "CANCELLED";
 
 export interface OrderItem {
     id: number;
@@ -16,33 +16,44 @@ export interface OrderItem {
 
 export interface Order {
     id: number;
-    productName: string;
-    orderDate: string;
-    totalAmount: number;
+    variant_id: string;
+    variant: {
+        id: number;
+        product_id: string;
+        name: string;
+        created_at: string;
+    };
+    supplier_id: number;
+    quantity: number;
     status: OrderStatus;
-    manager: string;
-    supplier: string;
-    items: OrderItem[];
+    order_date: string;
+    // Legacy fields for backward compatibility
+    productName?: string;
+    totalAmount?: number;
+    manager?: string;
 }
 
 interface OrdersState {
     orders: Order[];
-    setOrders: (orders: Order[]) => void;
-    updateOrderStatus: (orderId: number, status: OrderStatus) => void;
     addOrder: (order: Order) => void;
-    getOrderById: (orderId: number) => Order | undefined;
+    updateOrder: (id: number, order: Partial<Order>) => void;
+    deleteOrder: (id: number) => void;
 }
 
-export const useOrdersStore = create<OrdersState>((set, get) => ({
+export const useOrdersStore = create<OrdersState>((set) => ({
     orders: [],
-    setOrders: (orders) => set({ orders }),
-    updateOrderStatus: (orderId, status) =>
-        set((state) => ({
-            orders: state.orders.map((order) => (order.id === orderId ? { ...order, status } : order)),
-        })),
     addOrder: (order) =>
         set((state) => ({
             orders: [...state.orders, order],
         })),
-    getOrderById: (id) => get().orders.find((o) => o.id === id),
+    updateOrder: (id, updatedOrder) =>
+        set((state) => ({
+            orders: state.orders.map((order) =>
+                order.id === id ? { ...order, ...updatedOrder } : order
+            ),
+        })),
+    deleteOrder: (id) =>
+        set((state) => ({
+            orders: state.orders.filter((order) => order.id !== id),
+        })),
 }));

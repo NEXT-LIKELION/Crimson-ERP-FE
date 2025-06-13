@@ -1,7 +1,8 @@
 // src/components/modal/OrderDetailModal.tsx
-import React, { useEffect, useState, useRef } from 'react';
-import { FiX, FiPrinter, FiDownload, FiCheck } from 'react-icons/fi';
-import { useOrdersStore } from '../../store/ordersStore';
+import React, { useEffect, useState, useRef } from "react";
+import { FiX, FiPrinter, FiDownload, FiCheck } from "react-icons/fi";
+import { useOrdersStore } from "../../store/ordersStore";
+import axios from "../../api/axios";
 
 interface OrderDetailModalProps {
     orderId: number;
@@ -44,7 +45,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 }) => {
     const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const { updateOrderStatus, getOrderById } = useOrdersStore();
+    const { updateOrder } = useOrdersStore();
     const printRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -56,53 +57,53 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     const fetchOrderDetails = async () => {
         setIsLoading(true);
         try {
-            // 실제 환경에서는 API 호출:
-            // const response = await axios.get(`/api/orders/${orderId}`);
-            // setOrderDetail(response.data);
+            const response = await axios.get(`/orders/${orderId}`);
+            console.log("Received order data:", response.data);
 
-            // 개발 환경용 샘플 데이터:
-            const order = getOrderById(orderId);
-            if (!order) {
-                throw new Error('주문을 찾을 수 없습니다.');
+            if (!response.data) {
+                throw new Error("주문 데이터가 없습니다.");
             }
 
-            // 주문 상세 정보 생성
-            const mockOrderDetail: OrderDetail = {
-                id: orderId,
-                orderNumber: order.productName,
-                supplier: order.supplier,
-                orderDate: order.orderDate,
-                deliveryDate: '샘플 컨펌후 진행으로 2월초 예상',
-                totalAmount: order.totalAmount,
-                manager: order.manager,
-                hasPackaging: true,
-                items: [
-                    {
-                        id: 1,
-                        name: '텀블러(블랙) 샘플',
-                        spec: '300ml',
-                        unit: 'EA',
-                        quantity: 1,
-                        price: 50000,
-                        amount: 50000,
-                    },
-                    {
-                        id: 2,
-                        name: '텀블러(블랙) 본제품',
-                        spec: '300ml',
-                        unit: 'EA',
-                        quantity: 100,
-                        price: 8000,
-                        amount: 800000,
-                    },
-                ],
-                notes: '샘플 제작, 컨펌후 제작 총액 100% 850,000원 (VAT포함) 세금계산서 선발행, 제작 제품 출고 및 확인 후 입금합니다.',
+            const orderData = response.data;
+
+            // 필수 필드 검증
+            if (
+                !orderData.id ||
+                !orderData.variant_id ||
+                !orderData.supplier_id
+            ) {
+                throw new Error("필수 주문 정보가 누락되었습니다.");
+            }
+
+            // OrderDetail 형식으로 변환
+            const orderDetail: OrderDetail = {
+                id: orderData.id,
+                orderNumber: orderData.variant?.name || "주문번호 없음",
+                supplier: orderData.supplier?.name || "공급업체 정보 없음",
+                orderDate: orderData.order_date || "발주일자 없음",
+                deliveryDate: orderData.delivery_date || "납품일자 없음",
+                totalAmount: orderData.total_amount || 0,
+                manager: orderData.manager || "담당자 정보 없음",
+                hasPackaging: orderData.has_packaging || false,
+                items:
+                    orderData.items?.map((item: any) => ({
+                        id: item.id,
+                        name: item.name || "품목명 없음",
+                        spec: item.spec || "규격 없음",
+                        unit: item.unit || "EA",
+                        quantity: item.quantity || 0,
+                        price: item.price || 0,
+                        amount: item.amount || 0,
+                        note: item.note,
+                    })) || [],
+                notes: orderData.notes || "",
             };
 
-            setOrderDetail(mockOrderDetail);
+            console.log("Transformed order detail:", orderDetail);
+            setOrderDetail(orderDetail);
         } catch (error) {
-            console.error('주문 상세정보 조회 실패:', error);
-            alert('주문 상세정보를 불러오는데 실패했습니다.');
+            console.error("주문 상세정보 조회 실패:", error);
+            alert("주문 상세정보를 불러오는데 실패했습니다.");
         } finally {
             setIsLoading(false);
         }
@@ -112,14 +113,13 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         if (!orderDetail) return;
 
         try {
-            // 실제 환경에서는 API 호출:
-            // await axios.put(`/api/orders/${orderDetail.id}/approve`);
+            await axios.put(`/api/orders/${orderDetail.id}/approve`);
 
             // 로컬 상태 업데이트
-            updateOrderStatus(orderDetail.id, 'approved');
+            updateOrder(orderDetail.id, { status: "APPROVED" });
 
             // 성공 메시지
-            alert('발주가 성공적으로 승인되었습니다.');
+            alert("발주가 성공적으로 승인되었습니다.");
 
             // 성공 콜백 호출
             if (onApproveSuccess) {
@@ -128,16 +128,16 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
             onClose();
         } catch (error) {
-            console.error('발주 승인 실패:', error);
-            alert('발주 승인 중 오류가 발생했습니다.');
+            console.error("발주 승인 실패:", error);
+            alert("발주 승인 중 오류가 발생했습니다.");
         }
     };
 
     const handlePrintOrder = () => {
         // 인쇄 기능 구현
-        const printWindow = window.open('', '_blank');
+        const printWindow = window.open("", "_blank");
         if (!printWindow) {
-            alert('팝업이 차단되었습니다. 팝업 차단을 해제해주세요.');
+            alert("팝업이 차단되었습니다. 팝업 차단을 해제해주세요.");
             return;
         }
 
@@ -264,14 +264,18 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                         <div class="info-column">
                             <div class="info-item"><span class="label">발신:</span> ㈜고대미래</div>
                             <div class="info-item"><span class="label">전화:</span> 02-3290-5116</div>
-                            <div class="info-item"><span class="label">담당자:</span> ${orderDetail.manager}</div>
+                            <div class="info-item"><span class="label">담당자:</span> ${
+                                orderDetail.manager
+                            }</div>
                             <div class="info-item"><span class="label">FAX:</span> 02-923-0578</div>
                         </div>
                     </div>
                     
                     <div class="info-section">
                         <div class="info-column">
-                            <div class="info-item"><span class="label">수신:</span> ${orderDetail.supplier}</div>
+                            <div class="info-item"><span class="label">수신:</span> ${
+                                orderDetail.supplier
+                            }</div>
                             <div class="info-item"><span class="label">전화:</span> 010-6675-7797</div>
                             <div class="info-item"><span class="label">담당자:</span> 박한솔</div>
                             <div class="info-item"><span class="label">이메일:</span> hspark_factcorp@kakao.com</div>
@@ -284,7 +288,9 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                     
                     <div class="info-section">
                         <div class="info-column">
-                            <div class="info-item"><span class="label">발주일자:</span> ${orderDetail.orderDate}</div>
+                            <div class="info-item"><span class="label">발주일자:</span> ${
+                                orderDetail.orderDate
+                            }</div>
                             <div class="info-item"><span class="label">납품일자:</span> ${
                                 orderDetail.deliveryDate
                             }</div>
@@ -314,18 +320,24 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                                 .map(
                                     (item, index) => `
                                 <tr>
-                                    <td style="text-align: center;">${index + 1}</td>
+                                    <td style="text-align: center;">${
+                                        index + 1
+                                    }</td>
                                     <td>${item.name}</td>
                                     <td>${item.spec}</td>
-                                    <td style="text-align: center;">${item.unit}</td>
-                                    <td style="text-align: center;">${item.quantity}</td>
+                                    <td style="text-align: center;">${
+                                        item.unit
+                                    }</td>
+                                    <td style="text-align: center;">${
+                                        item.quantity
+                                    }</td>
                                     <td class="amount">${item.price.toLocaleString()}</td>
                                     <td class="amount">${item.amount.toLocaleString()}</td>
-                                    <td>${item.note || ''}</td>
+                                    <td>${item.note || ""}</td>
                                 </tr>
                             `
                                 )
-                                .join('')}
+                                .join("")}
                             <tr class="total-row">
                                 <td colspan="4" style="text-align: center;">합계</td>
                                 <td style="text-align: center;">${orderDetail.items.reduce(
@@ -333,7 +345,10 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                                     0
                                 )}</td>
                                 <td class="amount">${orderDetail.items
-                                    .reduce((total, item) => total + item.price, 0)
+                                    .reduce(
+                                        (total, item) => total + item.price,
+                                        0
+                                    )
                                     .toLocaleString()}</td>
                                 <td class="amount">${orderDetail.totalAmount.toLocaleString()}</td>
                                 <td></td>
@@ -350,7 +365,9 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                     
                     <div class="packaging">
                         <span class="label">포장:</span>
-                        <span class="packaging-value">${orderDetail.hasPackaging ? '있음' : '없음'}</span>
+                        <span class="packaging-value">${
+                            orderDetail.hasPackaging ? "있음" : "없음"
+                        }</span>
                     </div>
                     
                     <div class="note-section">
@@ -375,14 +392,14 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         // HTML 요소를 그대로 PDF로 변환
         if (printRef.current) {
             // 사용자에게 PDF 다운로드 중임을 알림
-            alert('PDF 파일이 다운로드됩니다. 잠시만 기다려주세요.');
+            alert("PDF 파일이 다운로드됩니다. 잠시만 기다려주세요.");
 
             // PDF 파일 생성 (실제 환경에서는 html2canvas 및 jsPDF를 사용)
             // html2canvas 및 jsPDF 라이브러리를 설치해야 함 (npm install html2canvas jspdf)
             // 이 예제에서는 간단히 새 창을 열어 페이지를 그대로 표시
-            const printWindow = window.open('', '_blank');
+            const printWindow = window.open("", "_blank");
             if (!printWindow) {
-                alert('팝업이 차단되었습니다. 팝업 차단을 해제해주세요.');
+                alert("팝업이 차단되었습니다. 팝업 차단을 해제해주세요.");
                 return;
             }
 
@@ -443,185 +460,282 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             <div className="w-[896px] max-h-[90vh] bg-white rounded-lg shadow-xl overflow-auto">
                 {/* Header */}
                 <div className="w-full h-16 border-b border-gray-200 px-4 flex justify-between items-center">
-                    <h2 className="text-lg font-medium text-gray-900">발주서 상세보기 - {orderDetail.orderNumber}</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+                    <h2 className="text-lg font-medium text-gray-900">
+                        발주서 상세보기 - {orderDetail.orderNumber}
+                    </h2>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-500"
+                    >
                         <FiX className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* Content - PDF로 저장될 부분 */}
                 <div ref={printRef} className="p-6 overflow-auto">
-                    <div className="w-full border border-stone-300">
-                        {/* Title */}
-                        <div className="text-center my-5">
-                            <h3 className="text-xl font-bold">발 주 서</h3>
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-64">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
                         </div>
+                    ) : (
+                        <div className="w-full border border-stone-300">
+                            {/* Title */}
+                            <div className="text-center my-5">
+                                <h3 className="text-xl font-bold">발 주 서</h3>
+                            </div>
 
-                        {/* Company Information */}
-                        <div className="flex px-5 mb-3">
-                            <div className="w-1/2 space-y-1">
-                                <p>
-                                    <span className="font-bold">사업자번호:</span> 682-88-00080
-                                </p>
-                                <p>
-                                    <span className="font-bold">상호:</span> ㈜고대미래
-                                </p>
-                                <p>
-                                    <span className="font-bold">대표자:</span> 유시진
-                                </p>
-                                <p>
-                                    <span className="font-bold">주소:</span> 서울특별시 성북구 안암로145, 고려대학교
-                                    100주년삼성기념관 103호 크림슨 스토어
+                            {/* Company Information */}
+                            <div className="flex px-5 mb-3">
+                                <div className="w-1/2 space-y-1">
+                                    <p>
+                                        <span className="font-bold">
+                                            사업자번호:
+                                        </span>{" "}
+                                        682-88-00080
+                                    </p>
+                                    <p>
+                                        <span className="font-bold">상호:</span>{" "}
+                                        ㈜고대미래
+                                    </p>
+                                    <p>
+                                        <span className="font-bold">
+                                            대표자:
+                                        </span>{" "}
+                                        유시진
+                                    </p>
+                                    <p>
+                                        <span className="font-bold">주소:</span>{" "}
+                                        서울특별시 성북구 안암로145, 고려대학교
+                                        100주년삼성기념관 103호 크림슨 스토어
+                                    </p>
+                                </div>
+                                <div className="w-1/2 space-y-1">
+                                    <p>
+                                        <span className="font-bold">발신:</span>{" "}
+                                        ㈜고대미래
+                                    </p>
+                                    <p>
+                                        <span className="font-bold">전화:</span>{" "}
+                                        02-3290-5116
+                                    </p>
+                                    <p>
+                                        <span className="font-bold">
+                                            담당자:
+                                        </span>{" "}
+                                        {orderDetail.manager}
+                                    </p>
+                                    <p>
+                                        <span className="font-bold">FAX:</span>{" "}
+                                        02-923-0578
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Supplier Information */}
+                            <div className="px-5 my-5">
+                                <div className="space-y-1">
+                                    <p>
+                                        <span className="font-bold">수신:</span>{" "}
+                                        {orderDetail.supplier}
+                                    </p>
+                                    <p>
+                                        <span className="font-bold">전화:</span>{" "}
+                                        010-6675-7797
+                                    </p>
+                                    <p>
+                                        <span className="font-bold">
+                                            담당자:
+                                        </span>{" "}
+                                        박한솔
+                                    </p>
+                                    <p>
+                                        <span className="font-bold">
+                                            이메일:
+                                        </span>{" "}
+                                        hspark_factcorp@kakao.com
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Order Message */}
+                            <div className="px-5 my-6">
+                                <p className="text-base">
+                                    아래와 같이 발주하오니 기일 내 필히 납품하여
+                                    주시기 바랍니다.
                                 </p>
                             </div>
-                            <div className="w-1/2 space-y-1">
-                                <p>
-                                    <span className="font-bold">발신:</span> ㈜고대미래
-                                </p>
-                                <p>
-                                    <span className="font-bold">전화:</span> 02-3290-5116
-                                </p>
-                                <p>
-                                    <span className="font-bold">담당자:</span> {orderDetail.manager}
-                                </p>
-                                <p>
-                                    <span className="font-bold">FAX:</span> 02-923-0578
-                                </p>
-                            </div>
-                        </div>
 
-                        {/* Supplier Information */}
-                        <div className="px-5 my-5">
-                            <div className="space-y-1">
-                                <p>
-                                    <span className="font-bold">수신:</span> {orderDetail.supplier}
-                                </p>
-                                <p>
-                                    <span className="font-bold">전화:</span> 010-6675-7797
-                                </p>
-                                <p>
-                                    <span className="font-bold">담당자:</span> 박한솔
-                                </p>
-                                <p>
-                                    <span className="font-bold">이메일:</span> hspark_factcorp@kakao.com
-                                </p>
+                            {/* Order Details */}
+                            <div className="px-5 flex my-5">
+                                <div className="w-1/2 space-y-1">
+                                    <p>
+                                        <span className="font-bold">
+                                            발주일자:
+                                        </span>{" "}
+                                        {orderDetail.orderDate}
+                                    </p>
+                                    <p>
+                                        <span className="font-bold">
+                                            납품일자:
+                                        </span>{" "}
+                                        {orderDetail.deliveryDate}
+                                    </p>
+                                    <p>
+                                        <span className="font-bold">
+                                            납품장소:
+                                        </span>{" "}
+                                        고려대학교 100주년기념관(크림슨스토어)
+                                    </p>
+                                </div>
+                                <div className="w-1/2 space-y-1">
+                                    <p>
+                                        <span className="font-bold">
+                                            구매비용:
+                                        </span>{" "}
+                                        일금 팔십오만 원정 (₩{" "}
+                                        {orderDetail.totalAmount.toLocaleString()}
+                                        )
+                                    </p>
+                                    <p>
+                                        <span className="font-bold">
+                                            부가세:
+                                        </span>{" "}
+                                        포함
+                                    </p>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Order Message */}
-                        <div className="px-5 my-6">
-                            <p className="text-base">아래와 같이 발주하오니 기일 내 필히 납품하여 주시기 바랍니다.</p>
-                        </div>
-
-                        {/* Order Details */}
-                        <div className="px-5 flex my-5">
-                            <div className="w-1/2 space-y-1">
-                                <p>
-                                    <span className="font-bold">발주일자:</span> {orderDetail.orderDate}
-                                </p>
-                                <p>
-                                    <span className="font-bold">납품일자:</span> {orderDetail.deliveryDate}
-                                </p>
-                                <p>
-                                    <span className="font-bold">납품장소:</span> 고려대학교 100주년기념관(크림슨스토어)
-                                </p>
-                            </div>
-                            <div className="w-1/2 space-y-1">
-                                <p>
-                                    <span className="font-bold">구매비용:</span> 일금 팔십오만 원정 (₩{' '}
-                                    {orderDetail.totalAmount.toLocaleString()})
-                                </p>
-                                <p>
-                                    <span className="font-bold">부가세:</span> 포함
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Items Table */}
-                        <div className="px-5 my-5">
-                            <table className="w-full border border-gray-300">
-                                <thead className="bg-gray-100">
-                                    <tr>
-                                        <th className="border border-stone-300 p-2 text-center w-12">NO</th>
-                                        <th className="border border-stone-300 p-2 text-center">발주품목 및 내역</th>
-                                        <th className="border border-stone-300 p-2 text-center w-20">규격</th>
-                                        <th className="border border-stone-300 p-2 text-center w-14">단위</th>
-                                        <th className="border border-stone-300 p-2 text-center w-14">수량</th>
-                                        <th className="border border-stone-300 p-2 text-center w-40">
-                                            단가 (VAT 포함)
-                                        </th>
-                                        <th className="border border-stone-300 p-2 text-center w-40">
-                                            금액 (VAT 포함)
-                                        </th>
-                                        <th className="border border-stone-300 p-2 text-center w-14">비고</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {orderDetail.items.map((item, index) => (
-                                        <tr key={item.id}>
-                                            <td className="border border-stone-300 p-2 text-center">{index + 1}</td>
-                                            <td className="border border-stone-300 p-2">{item.name}</td>
-                                            <td className="border border-stone-300 p-2">{item.spec}</td>
-                                            <td className="border border-stone-300 p-2 text-center">{item.unit}</td>
-                                            <td className="border border-stone-300 p-2 text-center">{item.quantity}</td>
-                                            <td className="border border-stone-300 p-2 text-right">
-                                                {item.price.toLocaleString()}
-                                            </td>
-                                            <td className="border border-stone-300 p-2 text-right">
-                                                {item.amount.toLocaleString()}
-                                            </td>
-                                            <td className="border border-stone-300 p-2">{item.note || ''}</td>
+                            {/* Items Table */}
+                            <div className="px-5 my-5">
+                                <table className="w-full border border-gray-300">
+                                    <thead className="bg-gray-100">
+                                        <tr>
+                                            <th className="border border-stone-300 p-2 text-center w-12">
+                                                NO
+                                            </th>
+                                            <th className="border border-stone-300 p-2 text-center">
+                                                발주품목 및 내역
+                                            </th>
+                                            <th className="border border-stone-300 p-2 text-center w-20">
+                                                규격
+                                            </th>
+                                            <th className="border border-stone-300 p-2 text-center w-14">
+                                                단위
+                                            </th>
+                                            <th className="border border-stone-300 p-2 text-center w-14">
+                                                수량
+                                            </th>
+                                            <th className="border border-stone-300 p-2 text-center w-40">
+                                                단가 (VAT 포함)
+                                            </th>
+                                            <th className="border border-stone-300 p-2 text-center w-40">
+                                                금액 (VAT 포함)
+                                            </th>
+                                            <th className="border border-stone-300 p-2 text-center w-14">
+                                                비고
+                                            </th>
                                         </tr>
-                                    ))}
-                                    <tr>
-                                        <td colSpan={4} className="border border-stone-300 p-2 text-center">
-                                            합계
-                                        </td>
-                                        <td className="border border-stone-300 p-2 text-center">
-                                            {orderDetail.items.reduce((total, item) => total + item.quantity, 0)}
-                                        </td>
-                                        <td className="border border-stone-300 p-2 text-right">
-                                            {orderDetail.items
-                                                .reduce((total, item) => total + item.price, 0)
-                                                .toLocaleString()}
-                                        </td>
-                                        <td className="border border-stone-300 p-2 text-right">
-                                            {orderDetail.totalAmount.toLocaleString()}
-                                        </td>
-                                        <td className="border border-stone-300 p-2"></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Work Instructions */}
-                        <div className="px-5 my-5">
-                            <div className="mb-2">
-                                <span className="font-bold">작업지시사항:</span>
+                                    </thead>
+                                    <tbody>
+                                        {orderDetail.items.map(
+                                            (item, index) => (
+                                                <tr key={item.id}>
+                                                    <td className="border border-stone-300 p-2 text-center">
+                                                        {index + 1}
+                                                    </td>
+                                                    <td className="border border-stone-300 p-2">
+                                                        {item.name}
+                                                    </td>
+                                                    <td className="border border-stone-300 p-2">
+                                                        {item.spec}
+                                                    </td>
+                                                    <td className="border border-stone-300 p-2 text-center">
+                                                        {item.unit}
+                                                    </td>
+                                                    <td className="border border-stone-300 p-2 text-center">
+                                                        {item.quantity}
+                                                    </td>
+                                                    <td className="border border-stone-300 p-2 text-right">
+                                                        {item.price.toLocaleString()}
+                                                    </td>
+                                                    <td className="border border-stone-300 p-2 text-right">
+                                                        {item.amount.toLocaleString()}
+                                                    </td>
+                                                    <td className="border border-stone-300 p-2">
+                                                        {item.note || ""}
+                                                    </td>
+                                                </tr>
+                                            )
+                                        )}
+                                        <tr>
+                                            <td
+                                                colSpan={4}
+                                                className="border border-stone-300 p-2 text-center"
+                                            >
+                                                합계
+                                            </td>
+                                            <td className="border border-stone-300 p-2 text-center">
+                                                {orderDetail.items.reduce(
+                                                    (total, item) =>
+                                                        total + item.quantity,
+                                                    0
+                                                )}
+                                            </td>
+                                            <td className="border border-stone-300 p-2 text-right">
+                                                {orderDetail.items
+                                                    .reduce(
+                                                        (total, item) =>
+                                                            total + item.price,
+                                                        0
+                                                    )
+                                                    .toLocaleString()}
+                                            </td>
+                                            <td className="border border-stone-300 p-2 text-right">
+                                                {orderDetail.totalAmount.toLocaleString()}
+                                            </td>
+                                            <td className="border border-stone-300 p-2"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
-                            <div className="border border-gray-300 p-3 min-h-16">
+
+                            {/* Work Instructions */}
+                            <div className="px-5 my-5">
+                                <div className="mb-2">
+                                    <span className="font-bold">
+                                        작업지시사항:
+                                    </span>
+                                </div>
+                                <div className="border border-gray-300 p-3 min-h-16">
+                                    <p>
+                                        로고 디자인은 첨부파일대로 적용해 주시기
+                                        바랍니다. 샘플 확인 후 본 생산 진행
+                                        예정입니다.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Packaging */}
+                            <div className="px-5 my-5 flex items-center">
+                                <span className="font-bold mr-6">포장:</span>
+                                <div className="bg-zinc-100 px-3 py-1 rounded-md border border-gray-300">
+                                    <span>
+                                        {orderDetail.hasPackaging
+                                            ? "있음"
+                                            : "없음"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Notes */}
+                            <div className="px-5 my-5">
                                 <p>
-                                    로고 디자인은 첨부파일대로 적용해 주시기 바랍니다. 샘플 확인 후 본 생산 진행
-                                    예정입니다.
+                                    <span className="font-bold">비고:</span>{" "}
+                                    {orderDetail.notes}
                                 </p>
                             </div>
                         </div>
-
-                        {/* Packaging */}
-                        <div className="px-5 my-5 flex items-center">
-                            <span className="font-bold mr-6">포장:</span>
-                            <div className="bg-zinc-100 px-3 py-1 rounded-md border border-gray-300">
-                                <span>{orderDetail.hasPackaging ? '있음' : '없음'}</span>
-                            </div>
-                        </div>
-
-                        {/* Notes */}
-                        <div className="px-5 my-5">
-                            <p>
-                                <span className="font-bold">비고:</span> {orderDetail.notes}
-                            </p>
-                        </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Footer */}

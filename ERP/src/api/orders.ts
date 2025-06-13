@@ -1,7 +1,7 @@
 import { api } from "./axios";
 
 // 🔹 1. 발주 목록 조회 (GET /orders/)
-export const fetchOrders = () => api.get("/orders/orders");
+export const fetchOrders = () => api.get("/orders");
 
 // 🔹 2. 발주 생성 (POST /orders/)
 export const createOrder = (payload: {
