@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 
 interface TextInputProps {
+    label?: string;
+    value?: string;
+    type?: string;
     placeholder?: string;
     disabled?: boolean;
     className?: string;
@@ -10,23 +13,36 @@ interface TextInputProps {
     id?: string;
 }
 
-const TextInput: React.FC<TextInputProps> = ({ placeholder, disabled = false, error = false, className, onChange }) => {
-    const [value, setValue] = useState<string>('');
+const TextInput: React.FC<TextInputProps> = ({
+    label,
+    value = '',
+    type = 'text',
+    placeholder,
+    disabled = false,
+    error = false,
+    className,
+    onChange,
+}) => {
+    const [internalValue, setInternalValue] = useState<string>('');
+    const isControlled = value !== undefined;
+    const inputValue = isControlled ? value : internalValue;
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = event.target.value;
-        setValue(newValue);
+        if (!isControlled) setInternalValue(newValue);
         onChange?.(newValue); // 상태 전달
     };
 
     return (
-        <input
-            type="text"
-            value={value}
-            placeholder={placeholder}
-            disabled={disabled}
-            onChange={handleChange}
-            className={`
+        <div>
+            {label && <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>}
+            <input
+                type={type}
+                value={inputValue}
+                placeholder={placeholder}
+                disabled={disabled}
+                onChange={handleChange}
+                className={`
         h-9 w-52 rounded-md
         text-sm font-normal
         pl-3 pr-10 pt-2.5 pb-2
@@ -37,7 +53,8 @@ const TextInput: React.FC<TextInputProps> = ({ placeholder, disabled = false, er
         ${!disabled && !error ? 'focus:ring-2 focus:ring-indigo-600' : ''}
         ${className}
       `}
-        />
+            />
+        </div>
     );
 };
 

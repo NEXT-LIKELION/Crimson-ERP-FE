@@ -1,21 +1,16 @@
 import { useState, useEffect } from 'react';
 import Pagination from '../pagination/pagination';
-import { MdOutlineHistory, MdOutlineEdit } from 'react-icons/md';
+import { MdOutlineHistory, MdOutlineEdit, MdOutlineDelete } from 'react-icons/md';
 import { MdFilterList, MdOutlineDownload } from 'react-icons/md';
 import { RxCaretSort } from 'react-icons/rx';
+import { useNavigate } from 'react-router-dom';
+import { Product } from '../../types/product';
 
-// 상품 데이터 타입 정의
-interface Product {
-    productCode: string;
-    categoryCode: string;
-    name: string;
-    option: string;
-    price: string;
-    stock: number;
-    orderCount: number;
-    returnCount: number;
-    salesCount: number;
-    totalSales: string;
+// props 타입 추가
+interface InventoryTableProps {
+    inventories: Product[];
+    onSave: (updatedProduct: any) => Promise<void>;
+    onDelete: (productId: number) => Promise<void>;
 }
 
 // 정렬 가능한 헤더 컴포넌트
@@ -38,22 +33,44 @@ const SortableHeader = ({
     </th>
 );
 
-const InventoryTable = () => {
+const InventoryTable = ({ inventories, onSave, onDelete }: InventoryTableProps) => {
+    const navigate = useNavigate();
     const [data, setData] = useState<Product[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<{ key: keyof Product; order: 'asc' | 'desc' | null }>({
-        key: 'productCode',
+        key: 'product_id',
         order: null,
     });
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
     const itemsPerPage = 10;
 
     useEffect(() => {
-        fetch('/data/sampleData.json')
-            .then((res) => res.json())
-            .then((jsonData) => setData(jsonData))
-            .catch((err) => console.error('데이터 로드 오류:', err));
-    }, []);
+        if (!Array.isArray(inventories)) return;
+        const rows = inventories.map((item) => {
+            // pick the primary variant (or however you want to choose)
+            const v = item.variants && item.variants[0];
+
+            return {
+                product_id: item.product_id,
+                categoryCode: item.category ?? 'N/A',
+                name: item.name,
+                option: v?.option || '',
+                price: v ? String(v.price) : '0',
+                stock: v?.stock ?? 0,
+                // if you have orderCount/returnCount coming from somewhere, plug them in here…
+                orderCount: item.orderCount ?? 0,
+                returnCount: item.returnCount ?? 0,
+                salesCount: item.salesCount ?? 0,
+                totalSales: item.totalSales ?? '0원',
+                // preserve the IDs so edits/deletes still work:
+                id: item.id,
+                variant_id: v?.id,
+            };
+        });
+
+        setData(rows);
+    }, [inventories]);
 
     // 정렬 함수
     const handleSort = (key: keyof Product) => {
@@ -111,8 +128,8 @@ const InventoryTable = () => {
                         <tr>
                             <SortableHeader
                                 label="상품코드"
-                                sortKey="productCode"
-                                sortOrder={sortConfig.key === 'productCode' ? sortConfig.order : null}
+                                sortKey="product_id"
+                                sortOrder={sortConfig.key === 'product_id' ? sortConfig.order : null}
                                 onSort={handleSort}
                             />
                             <SortableHeader
@@ -154,7 +171,7 @@ const InventoryTable = () => {
                     <tbody>
                         {paginatedData.map((product, index) => (
                             <tr key={index} className="bg-white border-b border-gray-200">
-                                <td className="px-4 py-2">{product.productCode}</td>
+                                <td className="px-4 py-2">{product.product_id}</td>
                                 <td className="px-4 py-2">{product.categoryCode}</td>
                                 <td className="px-4 py-2">{product.name}</td>
                                 <td className="px-4 py-2">{product.option}</td>
@@ -166,11 +183,29 @@ const InventoryTable = () => {
                                 <td className="px-4 py-2 flex space-x-2">
                                     <MdOutlineEdit
                                         className="text-indigo-500 cursor-pointer"
-                                        onClick={() => alert('수정 클릭')}
+                                        onClick={() => {
+                                            const variant = product.variants?.[0];
+
+                                            const mergedProduct = {
+                                                ...product,
+                                                variant_id: variant?.id ?? undefined,
+                                                option: variant?.option ?? '',
+                                                price: variant?.price ?? '',
+                                                stock: variant?.stock ?? 0,
+                                                cost_price: variant?.cost_price ?? '',
+                                            };
+
+                                            setSelectedProduct(mergedProduct);
+                                            navigate(`?edit=${product.product_id}`);
+                                        }}
                                     />
                                     <MdOutlineHistory
                                         className="text-indigo-500 cursor-pointer"
                                         onClick={() => alert('조회 클릭')}
+                                    />
+                                    <MdOutlineDelete
+                                        className="text-red-500 cursor-pointer"
+                                        onClick={() => onDelete(product.id)}
                                     />
                                 </td>
                             </tr>
