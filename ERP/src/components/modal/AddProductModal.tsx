@@ -4,7 +4,7 @@ import TextInput from '../input/TextInput';
 import SelectInput from '../input/SelectInput';
 import { FaBoxArchive, FaClipboardList, FaFileCircleCheck } from 'react-icons/fa6';
 import { BsCoin } from 'react-icons/bs';
-import { createInventoryItem, createProductVariant } from '../../api/inventory';
+import { createInventoryItem } from '../../api/inventory';
 
 interface AddProductModalProps {
     isOpen: boolean;
@@ -50,28 +50,22 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
             ? Math.max(0, 0 - adjustQty)
             : adjustQty;
 
-        // 상품 정보 생성
+        // 상품 정보 생성 - 단일 API 호출로 변경
         const itemPayload = {
             product_id: form.product_id,
             name: form.name,
-        };
-
-        const variantPayload = {
             option: form.option || '기본 옵션',
-            variant_code: `${form.product_id}-001`,
-            stock: adjustedStock,
             price: Number(form.price),
-            cost_price: Number(form.cost_price),
+            stock: adjustedStock,
+            min_stock: 20, // 기본값 설정
         };
 
         try {
             const itemRes = await createInventoryItem(itemPayload);
-            const variantRes = await createProductVariant(itemRes.id, variantPayload);
             const newProduct = {
                 ...form,
                 id: itemRes.id,
                 stock: adjustedStock,
-                variant_id: variantRes.id,
             };
 
             onSave(newProduct);
@@ -84,7 +78,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center">
             <div className="w-[900px] max-h-[90vh] bg-white rounded-lg shadow-lg overflow-auto">
                 <div className="px-6 py-4 border-b border-gray-300 flex justify-between items-center">
                     <div className="flex items-center gap-2">

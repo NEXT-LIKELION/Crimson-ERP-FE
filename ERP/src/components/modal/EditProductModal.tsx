@@ -58,7 +58,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
     if (!isOpen || !product) return null;
 
     return (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center">
             <div className="w-[900px] max-h-[90vh] bg-white rounded-lg shadow-lg overflow-auto">
                 <div className="px-6 py-4 border-b border-gray-300 flex justify-between items-center">
                     <div className="flex items-center gap-2">
