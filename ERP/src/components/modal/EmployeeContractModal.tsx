@@ -1,13 +1,36 @@
 // src/components/modals/EmployeeContractModal.tsx
 import React from 'react';
-import { FiX, FiUser, FiCalendar, FiPrinter, FiDownload } from 'react-icons/fi';
-import { Employee } from '../../api/hr';
+import { FiX, FiUser, FiCalendar, FiPrinter, FiArrowLeft } from 'react-icons/fi';
+import { MappedEmployee } from '../../api/hr';
 
 interface EmployeeContractModalProps {
-    employee: Employee;
+    employee: MappedEmployee;
     onClose: () => void;
     onViewInfo: () => void;
 }
+
+// 날짜 형식 변환 함수
+const formatDateToKorean = (dateString: string): string => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}년 ${month}월 ${day}일`;
+};
+
+// 계약 종료일 계산 (입사일로부터 1년 후)
+const getContractEndDate = (hireDate: string): string => {
+    if (!hireDate) return '';
+    const date = new Date(hireDate);
+    if (isNaN(date.getTime())) return '';
+
+    date.setFullYear(date.getFullYear() + 1);
+    return formatDateToKorean(date.toISOString().split('T')[0]);
+};
 
 const EmployeeContractModal: React.FC<EmployeeContractModalProps> = ({ employee, onClose, onViewInfo }) => {
     const handlePrint = () => {
@@ -82,8 +105,8 @@ const EmployeeContractModal: React.FC<EmployeeContractModalProps> = ({ employee,
 
                             <div class="contract-section">
                                 <div class="contract-section-title">3. 계약기간</div>
-                                <p>시작일: ${employee.hire_date}</p>
-                                <p>종료일: ${new Date(new Date(employee.hire_date).setFullYear(new Date(employee.hire_date).getFullYear() + 1)).toISOString().split('T')[0]}</p>
+                                <p>시작일: ${formatDateToKorean(employee.hire_date)}</p>
+                                <p>종료일: ${getContractEndDate(employee.hire_date)}</p>
                             </div>
                         </div>
 
@@ -142,7 +165,9 @@ const EmployeeContractModal: React.FC<EmployeeContractModalProps> = ({ employee,
                                     <div className="flex items-center">
                                         <FiCalendar className="w-6 h-6 mr-2 text-gray-500" />
                                         <span className="text-sm font-medium text-gray-700">입사일:</span>
-                                        <span className="text-sm ml-1 text-gray-700">{employee.hire_date}</span>
+                                        <span className="text-sm ml-1 text-gray-700">
+                                            {formatDateToKorean(employee.hire_date)}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -163,38 +188,34 @@ const EmployeeContractModal: React.FC<EmployeeContractModalProps> = ({ employee,
                             <div>
                                 <h3 className="text-lg font-medium text-gray-900 mb-4">3. 계약기간</h3>
                                 <div className="space-y-2">
-                                    <p className="text-sm text-gray-700">시작일: {employee.hire_date}</p>
                                     <p className="text-sm text-gray-700">
-                                        종료일:{' '}
-                                        {
-                                            new Date(
-                                                new Date(employee.hire_date).setFullYear(
-                                                    new Date(employee.hire_date).getFullYear() + 1
-                                                )
-                                            )
-                                                .toISOString()
-                                                .split('T')[0]
-                                        }
+                                        시작일: {formatDateToKorean(employee.hire_date)}
+                                    </p>
+                                    <p className="text-sm text-gray-700">
+                                        종료일: {getContractEndDate(employee.hire_date)}
                                     </p>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    {/* 액션 버튼 */}
-                    <div className="flex justify-end space-x-3 mt-6">
-                        <button
-                            onClick={handlePrint}
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 flex items-center"
-                        >
-                            <FiPrinter className="w-4 h-4 mr-2" />
-                            인쇄
-                        </button>
+                {/* 하단 액션 버튼 */}
+                <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
+                    <div className="flex justify-between items-center">
                         <button
                             onClick={onViewInfo}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                            className="px-5 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all duration-200 text-sm font-medium shadow-sm flex items-center"
                         >
+                            <FiArrowLeft className="w-4 h-4 mr-2" />
                             직원 정보로 돌아가기
+                        </button>
+                        <button
+                            onClick={handlePrint}
+                            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl flex items-center"
+                        >
+                            <FiPrinter className="w-4 h-4 mr-2" />
+                            계약서 인쇄
                         </button>
                     </div>
                 </div>

@@ -18,7 +18,14 @@ export const useAuthStore = create<AuthState>()( // persist 통해서 로그인 
         (set) => ({
             user: null,
             login: (userData) => set({ user: userData }),
-            logout: () => set({ user: null }),
+            logout: () => {
+                // localStorage에서 토큰 관련 데이터 삭제
+                localStorage.removeItem("token");
+                localStorage.removeItem("refresh");
+                localStorage.removeItem("auth-storage");
+                
+                set({ user: null });
+            },
         }),
         { name: "auth-storage" } // Zustand persist 스토리지 키
     )

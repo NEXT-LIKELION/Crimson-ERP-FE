@@ -13,15 +13,29 @@ export const createEmployee = (data: EmployeeCreateData) => api.post('/hr/employ
 export const updateEmployee = (employeeId: number, data: EmployeeUpdateData) =>
     api.put(`/hr/employees/${employeeId}/`, data);
 
-// 직원 퇴사 처리
+// 직원 퇴사 처리 (is_active를 false로 설정)
 export const terminateEmployee = (employeeId: number) =>
-    api.patch(`/hr/employees/${employeeId}/`, { status: 'terminated' });
+    api.patch(`/hr/employees/${employeeId}/`, { is_active: false });
 
 // 대시보드 데이터 조회
 export const fetchDashboardData = () => api.get('/');
 
-// 타입 정의
+// 백엔드 API 응답에 맞는 Employee 타입
 export interface Employee {
+    id: number;
+    username: string;
+    email: string;
+    contact: string;
+    date_joined: string;
+    role: string;
+    status: 'active' | 'terminated';
+    is_active: boolean;
+    is_staff: boolean;
+    is_superuser: boolean;
+}
+
+// 프론트엔드에서 사용할 매핑된 Employee 타입
+export interface MappedEmployee {
     id: number;
     name: string;
     position: string;
@@ -34,12 +48,14 @@ export interface Employee {
     updated_at: string;
 }
 
+// 백엔드 API에 맞는 생성 데이터 타입
 export interface EmployeeCreateData {
-    name: string;
-    position: string;
-    department: string;
+    username: string;
+    role: string;
     email: string;
-    phone: string;
+    contact: string;
+    password: string;
+    department?: string;
 }
 
 export interface EmployeeUpdateData extends Partial<EmployeeCreateData> {
