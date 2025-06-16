@@ -126,20 +126,16 @@ const OrdersPage: React.FC = () => {
             );
         }
 
-        // 공급업체 필터링 (임시로 비활성화)
-        // if (searchFilters.supplier) {
-        //     result = result.filter((order) =>
-        //         supplierMapping[order.supplier_id as keyof typeof supplierMapping]
-        //             ?.toLowerCase()
-        //             .includes(searchFilters.supplier.toLowerCase())
-        //     );
-        // }
+        // 공급업체 id로 필터링
+        if (searchFilters.supplier) {
+            result = result.filter((order) => String(order.supplier_id) === searchFilters.supplier);
+        }
 
         // 상태 필터링
         const statusMap: Record<string, OrderStatus> = {
             '승인 대기': 'PENDING',
             승인됨: 'APPROVED',
-            '입고 완료': 'CANCELLED',
+            취소됨: 'CANCELLED',
         };
 
         if (searchFilters.status !== '모든 상태') {
@@ -422,7 +418,7 @@ const OrdersPage: React.FC = () => {
                         </label>
                         <SelectInput
                             defaultText="모든 상태"
-                            options={['모든 상태', '승인 대기', '승인됨', '입고 완료']}
+                            options={['모든 상태', '승인 대기', '승인됨', '취소됨']}
                             onChange={(value) => handleFilterChange('status', value)}
                             extra={{
                                 id: 'status-filter',
