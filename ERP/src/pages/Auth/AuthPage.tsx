@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLogin } from '../../hooks/queries/useLogin';
@@ -328,6 +329,7 @@ const AuthPage = () => {
             </div>
         </div>
     );
+
 };
 
 export default AuthPage;

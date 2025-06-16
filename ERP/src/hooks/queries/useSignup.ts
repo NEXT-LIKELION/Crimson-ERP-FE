@@ -1,3 +1,4 @@
+
 import { useMutation } from '@tanstack/react-query';
 import { signup } from '../../api/auth';
 import { useNavigate } from 'react-router-dom';
@@ -95,3 +96,4 @@ export const useSignup = (onSuccess?: () => void, onError?: (msg: string) => voi
         },
     });
 };
+

@@ -7,6 +7,7 @@ export const login = (payload: { username: string; password: string }) => api.po
 export const signup = (payload: { username: string; password: string; email?: string }) =>
     api.post('/authentication/signup/', payload);
 
+
 // 로그아웃
 export const logout = () => {
   const refreshToken = localStorage.getItem("refresh");
@@ -20,3 +21,4 @@ export const logout = () => {
     refresh_token: refreshToken
   });
 };
+
