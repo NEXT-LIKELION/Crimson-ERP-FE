@@ -13,8 +13,10 @@ import AddProductModal from '../../components/modal/AddProductModal';
 const InventoryPage = () => {
     const { data, isLoading, error, refetch } = useInventories();
     const [searchParams, setSearchParams] = useSearchParams();
-
     const [isAddModalOpen, setAddModalOpen] = useState(false);
+    const [productName, setProductName] = useState('');
+    const [status, setStatus] = useState('');
+    const [filters, setFilters] = useState({ productName: '', status: '' });
 
     const editId = searchParams.get('edit');
     const selectedProduct = data?.find((p: any) => p.product_id === editId);
@@ -59,6 +61,7 @@ const InventoryPage = () => {
             alert('삭제 중 오류가 발생했습니다.');
         }
     };
+
     return (
         <div className="p-6">
             {/* 상단 헤더 */}
@@ -76,11 +79,31 @@ const InventoryPage = () => {
 
             {/* 검색 필드 */}
             <div className="mb-6">
-                <InputField />
+                <InputField
+                    productName={productName}
+                    onProductNameChange={setProductName}
+                    status={status}
+                    onStatusChange={setStatus}
+                    onSearch={() => {
+                        setFilters({ productName, status });
+                        refetch(); // or apply in-memory filter
+                    }}
+                />
             </div>
 
             {/* 재고 테이블 */}
-            <InventoryTable inventories={data ?? []} onSave={handleUpdateSave} onDelete={handleDelete} />
+            <InventoryTable
+                inventories={
+                    data?.filter(
+                        (item) =>
+                            (!filters.productName ||
+                                item.name.toLowerCase().includes(filters.productName.toLowerCase())) &&
+                            (!filters.status || item.status === filters.status)
+                    ) ?? []
+                }
+                onSave={handleUpdateSave}
+                onDelete={handleDelete}
+            />
             {selectedProduct && (
                 <EditProductModal
                     isOpen={!!editId}
