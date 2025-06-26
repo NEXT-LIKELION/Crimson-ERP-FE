@@ -9,6 +9,8 @@ export interface ProductVariant {
     cost_price: number;
     created_at?: string;
     updated_at?: string;
+    order_count?: number;
+    return_count?: number;
 }
 
 export interface Product {
