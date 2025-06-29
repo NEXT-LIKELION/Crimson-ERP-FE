@@ -33,6 +33,13 @@ const getContractEndDate = (hireDate: string): string => {
 };
 
 const EmployeeContractModal: React.FC<EmployeeContractModalProps> = ({ employee, onClose, onViewInfo }) => {
+    // 배경 클릭 시 모달 닫기
+    const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (e.target === e.currentTarget) {
+            onClose();
+        }
+    };
+
     const handlePrint = () => {
         const printWindow = window.open('', '_blank');
         if (printWindow) {
@@ -127,8 +134,15 @@ const EmployeeContractModal: React.FC<EmployeeContractModalProps> = ({ employee,
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-auto">
-            <div className="w-[896px] max-h-[90vh] bg-white rounded-lg shadow-xl flex flex-col overflow-auto">
+        <div
+            className="fixed inset-0 flex items-center justify-center z-50 overflow-auto"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+            onClick={handleBackdropClick}
+        >
+            <div
+                className="w-[896px] max-h-[90vh] bg-white rounded-lg shadow-xl flex flex-col overflow-auto"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* 헤더 */}
                 <div className="px-4 py-4 border-b border-gray-200 flex justify-between items-center">
                     <h2 className="text-lg font-medium text-gray-900">

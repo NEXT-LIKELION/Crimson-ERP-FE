@@ -1,8 +1,8 @@
-
 import { useMutation } from '@tanstack/react-query';
 import { signup } from '../../api/auth';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { setCookie } from '../../utils/cookies';
 
 // 영어 에러 메시지 → 한국어 매핑
 const errorTranslations: Record<string, string> = {
@@ -42,10 +42,14 @@ export const useSignup = (onSuccess?: () => void, onError?: (msg: string) => voi
     return useMutation({
         mutationFn: signup,
         onSuccess: (response) => {
-            // 토큰 저장
+            // 토큰 저장 (쿠키 사용)
             const { access_token, refresh_token } = response.data;
-            localStorage.setItem('token', access_token);
-            localStorage.setItem('refresh', refresh_token);
+            setCookie('accessToken', access_token, 7);
+            setCookie('refreshToken', refresh_token, 30);
+
+            // 기존 localStorage 제거 (보안)
+            localStorage.removeItem('token');
+            localStorage.removeItem('refresh');
 
             // 사용자 정보 저장 (기본값으로 설정)
             const userData = {
@@ -96,4 +100,3 @@ export const useSignup = (onSuccess?: () => void, onError?: (msg: string) => voi
         },
     });
 };
-

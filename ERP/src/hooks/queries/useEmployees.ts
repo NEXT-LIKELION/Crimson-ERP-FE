@@ -2,11 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     fetchEmployees,
     fetchEmployee,
-    createEmployee,
     updateEmployee,
     terminateEmployee,
     type Employee,
-    type EmployeeCreateData,
     type EmployeeUpdateData,
 } from '../../api/hr';
 
@@ -27,18 +25,6 @@ export const useEmployee = (employeeId: number) =>
         staleTime: 1000 * 30, // 30초
         gcTime: 1000 * 60 * 5, // 5분
     });
-
-// 직원 추가 뮤테이션 훅
-export const useCreateEmployee = () => {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: createEmployee,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['employees'] });
-        },
-    });
-};
 
 // 직원 정보 수정 뮤테이션 훅
 export const useUpdateEmployee = () => {

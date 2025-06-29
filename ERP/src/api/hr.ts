@@ -6,9 +6,6 @@ export const fetchEmployees = () => api.get('/hr/employees/');
 // 직원 상세 조회
 export const fetchEmployee = (employeeId: number) => api.get(`/hr/employees/${employeeId}/`);
 
-// 직원 추가
-export const createEmployee = (data: EmployeeCreateData) => api.post('/hr/employees/', data);
-
 // 직원 정보 수정
 export const updateEmployee = (employeeId: number, data: EmployeeUpdateData) =>
     api.put(`/hr/employees/${employeeId}/`, data);
@@ -48,17 +45,10 @@ export interface MappedEmployee {
     updated_at: string;
 }
 
-// 백엔드 API에 맞는 생성 데이터 타입
-export interface EmployeeCreateData {
-    username: string;
-    role: string;
-    email: string;
-    contact: string;
-    password: string;
-    department?: string;
-}
-
-export interface EmployeeUpdateData extends Partial<EmployeeCreateData> {
+export interface EmployeeUpdateData {
+    role?: string;
+    email?: string;
+    contact?: string;
     status?: 'active' | 'terminated';
 }
 
