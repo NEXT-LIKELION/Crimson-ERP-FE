@@ -71,28 +71,26 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                 throw new Error('필수 주문 정보가 누락되었습니다.');
             }
 
-            // OrderDetail 형식으로 변환
+            // OrderDetail 형식으로 변환 (실제 응답에 있는 정보만 사용)
             const orderDetail: OrderDetail = {
                 id: orderData.id,
-                orderNumber: orderData.variant?.name || '주문번호 없음',
-                supplier: orderData.supplier?.name || '공급업체 정보 없음',
-                orderDate: orderData.order_date || '발주일자 없음',
-                deliveryDate: orderData.delivery_date || '납품일자 없음',
-                totalAmount: orderData.total_amount || 0,
-                manager: orderData.manager || '담당자 정보 없음',
-                hasPackaging: orderData.has_packaging || false,
-                items:
-                    orderData.items?.map((item: any) => ({
-                        id: item.id,
-                        name: item.name || '품목명 없음',
-                        spec: item.spec || '규격 없음',
-                        unit: item.unit || 'EA',
-                        quantity: item.quantity || 0,
-                        price: item.price || 0,
-                        amount: item.amount || 0,
-                        note: item.note,
-                    })) || [],
-                notes: orderData.notes || '',
+                orderNumber: orderData.variant_code,
+                supplier: String(orderData.supplier_id),
+                orderDate: orderData.order_date,
+                totalAmount: (orderData.price || 0) * (orderData.quantity || 0),
+                items: [
+                    {
+                        id: orderData.id,
+                        name: orderData.product_name,
+                        spec: orderData.option,
+                        unit: 'EA', // 단위 정보가 없으므로 기본값
+                        quantity: orderData.quantity,
+                        price: orderData.price,
+                        amount: (orderData.price || 0) * (orderData.quantity || 0),
+                        note: orderData.note,
+                    },
+                ],
+                notes: orderData.note,
             };
 
             console.log('Transformed order detail:', orderDetail);

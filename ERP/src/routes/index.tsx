@@ -1,25 +1,33 @@
 // src/routes/index.tsx
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import PrivateRoute from "./PrivateRoute";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import PrivateRoute from './PrivateRoute';
 
-import InventoryPage from "../pages/Inventory/InventoryPage";
-import OrdersPage from "../pages/Orders/OrdersPage";
-import AlertsPage from "../pages/Alerts/AlertsPage";
-import HRPage from "../pages/HR/HRPage";
-import AuthPage from "../pages/Auth/AuthPage";
-import DashboardPage from "../pages/Dashboard/DashboardPage";
-import NotFound from "../pages/Notfound";
-import Layout from "../layout";
+import InventoryPage from '../pages/Inventory/InventoryPage';
+import OrdersPage from '../pages/Orders/OrdersPage';
+import AlertsPage from '../pages/Alerts/AlertsPage';
+import HRPage from '../pages/HR/HRPage';
+import AuthPage from '../pages/Auth/AuthPage';
+import DashboardPage from '../pages/Dashboard/DashboardPage';
+import NotFound from '../pages/Notfound';
+import Layout from '../layout';
+import SupplierPage from '../pages/Supplier/SupplierPage';
 
 const AppRoutes = () => {
     return (
         <Layout>
             <Routes>
-                {/* 메인 대시보드 */}
-                <Route path="/" element={<DashboardPage />} />
-
                 {/* 로그인 페이지 (AuthPage) */}
                 <Route path="/auth" element={<AuthPage />} />
+
+                {/* 메인 대시보드 (로그인해야만 접근 가능) */}
+                <Route
+                    path="/"
+                    element={
+                        <PrivateRoute>
+                            <DashboardPage />
+                        </PrivateRoute>
+                    }
+                />
 
                 {/* 재고 페이지 (로그인해야만 접근 가능) */}
                 <Route
@@ -57,6 +65,16 @@ const AppRoutes = () => {
                     element={
                         <PrivateRoute>
                             <HRPage />
+                        </PrivateRoute>
+                    }
+                />
+
+                {/* 공급업체 페이지 (로그인해야만 접근 가능) */}
+                <Route
+                    path="/supplier"
+                    element={
+                        <PrivateRoute>
+                            <SupplierPage />
                         </PrivateRoute>
                     }
                 />

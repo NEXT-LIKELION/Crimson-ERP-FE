@@ -1,4 +1,3 @@
-
 import { useMutation } from '@tanstack/react-query';
 import { signup } from '../../api/auth';
 import { useNavigate } from 'react-router-dom';
@@ -42,11 +41,6 @@ export const useSignup = (onSuccess?: () => void, onError?: (msg: string) => voi
     return useMutation({
         mutationFn: signup,
         onSuccess: (response) => {
-            // 토큰 저장
-            const { access_token, refresh_token } = response.data;
-            localStorage.setItem('token', access_token);
-            localStorage.setItem('refresh', refresh_token);
-
             // 사용자 정보 저장 (기본값으로 설정)
             const userData = {
                 id: 1,
@@ -96,4 +90,3 @@ export const useSignup = (onSuccess?: () => void, onError?: (msg: string) => voi
         },
     });
 };
-
