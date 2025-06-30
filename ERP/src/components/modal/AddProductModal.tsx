@@ -4,7 +4,7 @@ import TextInput from '../input/TextInput';
 import SelectInput from '../input/SelectInput';
 import { FaBoxArchive, FaClipboardList, FaFileCircleCheck } from 'react-icons/fa6';
 import { BsCoin } from 'react-icons/bs';
-import { createInventoryItem } from '../../api/inventory';
+import { createInventoryVariant, createInventoryItem } from '../../api/inventory';
 
 interface AddProductModalProps {
     isOpen: boolean;
@@ -50,29 +50,63 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
             ? Math.max(0, 0 - adjustQty)
             : adjustQty;
 
-        // 상품 정보 생성 - 단일 API 호출로 변경
-        const itemPayload = {
-            product_id: form.product_id,
-            name: form.name,
-            option: form.option || '기본 옵션',
-            price: Number(form.price),
-            stock: adjustedStock,
-            min_stock: 20, // 기본값 설정
-        };
-
         try {
-            const itemRes = await createInventoryItem(itemPayload);
-            const newProduct = {
-                ...form,
-                id: itemRes.id,
-                stock: adjustedStock,
+            // 1단계: 상품 기본 정보 생성
+            const productPayload = {
+                product_id: form.product_id,
+                name: form.name,
+                description: form.description || '',
+                supplier: form.supplier || '',
+                memo: form.memo || '',
+                min_stock: Number(form.min_stock) || 20,
+                status: form.status || '판매중',
             };
 
-            onSave(newProduct);
-            onClose();
-        } catch (err: any) {
-            console.error('상품 등록 실패:', err);
-            const errorMessage = err.response?.data?.message || err.message || '상품 등록 중 오류가 발생했습니다.';
+            console.log('AddProductModal - 1단계: 상품 생성 시작');
+            console.log('AddProductModal - productPayload:', productPayload);
+
+            const productRes = await createInventoryItem(productPayload);
+            console.log('AddProductModal - 1단계: 상품 생성 완료', productRes);
+
+            // 2단계: variant 생성 (1단계 성공 후에만 실행)
+            try {
+                const variantId = `${form.product_id}-${form.option || '01'}`;
+                const variantPayload = {
+                    product_id: form.product_id,
+                    option: form.option || '기본 옵션',
+                    price: Number(form.price),
+                    cost_price: Number(form.cost_price),
+                    stock: adjustedStock,
+                };
+
+                console.log('AddProductModal - 2단계: variant 생성 시작');
+                console.log('AddProductModal - variantId:', variantId);
+                console.log('AddProductModal - variantPayload:', variantPayload);
+
+                const variantRes = await createInventoryVariant(variantId, variantPayload);
+                console.log('AddProductModal - 2단계: variant 생성 완료', variantRes);
+
+                const newProduct = {
+                    ...form,
+                    id: productRes.id,
+                    variant_id: variantId,
+                    stock: adjustedStock,
+                };
+
+                onSave(newProduct);
+                onClose();
+            } catch (variantError: any) {
+                console.error('Variant 생성 실패:', variantError);
+                const errorMessage =
+                    variantError.response?.data?.message ||
+                    variantError.message ||
+                    'Variant 생성 중 오류가 발생했습니다.';
+                setErrors([`상품은 생성되었지만 Variant 생성에 실패했습니다: ${errorMessage}`]);
+            }
+        } catch (productError: any) {
+            console.error('상품 등록 실패:', productError);
+            const errorMessage =
+                productError.response?.data?.message || productError.message || '상품 등록 중 오류가 발생했습니다.';
             setErrors([errorMessage]);
         }
     };

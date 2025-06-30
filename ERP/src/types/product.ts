@@ -30,6 +30,7 @@ export interface Product {
     option?: string;
     cost_price?: string | number;
     variant_id?: number;
+    variant_code?: string;
     variants?: ProductVariant[];
     created_at?: string;
 

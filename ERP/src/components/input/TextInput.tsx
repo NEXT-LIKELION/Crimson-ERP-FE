@@ -9,6 +9,7 @@ interface TextInputProps {
     className?: string;
     error?: boolean;
     onChange?: (value: string) => void;
+    onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
     extra?: Record<string, unknown>;
     id?: string;
 }
@@ -22,6 +23,7 @@ const TextInput: React.FC<TextInputProps> = ({
     error = false,
     className,
     onChange,
+    onKeyDown,
 }) => {
     const [internalValue, setInternalValue] = useState<string>('');
     const isControlled = value !== undefined;
@@ -42,6 +44,7 @@ const TextInput: React.FC<TextInputProps> = ({
                 placeholder={placeholder}
                 disabled={disabled}
                 onChange={handleChange}
+                onKeyDown={onKeyDown}
                 className={`
         h-9 w-52 rounded-md
         text-sm font-normal

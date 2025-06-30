@@ -3,13 +3,13 @@ import StatusBadge from './StatusBadge';
 
 interface AlertCardProps {
     productName: string;
-    productCode: string;
+    product_id: string;
     stock: number;
     avgSales: number;
     orderDeadline: string;
 }
 
-const AlertCard: React.FC<AlertCardProps> = ({ productName, productCode, stock, avgSales, orderDeadline }) => {
+const AlertCard: React.FC<AlertCardProps> = ({ productName, product_id, stock, avgSales, orderDeadline }) => {
     // 숫자만 추출해서 파싱
     const deadlineNumber = parseInt(orderDeadline.replace(/[^0-9]/g, ''), 10);
 
@@ -43,7 +43,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ productName, productCode, stock, 
             <div className="p-4 space-y-2">
                 <p className="text-sm text-gray-500 flex items-center">
                     <img src="/images/productcode.svg" className="w-4 h-4 mr-1" />
-                    제품 코드: {productCode}
+                    제품 코드: {product_id}
                 </p>
                 <p className="text-sm text-gray-500 flex items-center">
                     <img src="/images/stock.svg" className="w-4 h-4 mr-1" />
