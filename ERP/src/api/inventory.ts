@@ -9,7 +9,7 @@ export const updateInventoryVariant = (variantId: string, data: any) => {
     console.log('updateInventoryVariant - variantId:', variantId);
     console.log('updateInventoryVariant - data:', data);
     return api
-        .put(`/inventory/items/variants/${variantId}/`, data)
+        .patch(`/inventory/items/variants/${variantId}/`, data)
         .then((response) => {
             console.log('updateInventoryVariant - response:', response.data);
             return response;

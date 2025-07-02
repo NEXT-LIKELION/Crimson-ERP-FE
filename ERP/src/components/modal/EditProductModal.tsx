@@ -20,11 +20,17 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
 
     useEffect(() => {
         if (isOpen && product) {
+            console.log('📝 EditProductModal - 받은 product:', product);
+            console.log('📝 EditProductModal - cost_price:', product.cost_price);
+            console.log('📝 EditProductModal - min_stock:', product.min_stock);
+
             setForm({ ...product });
             setAdjustQty(0);
             setAdjustType('입고 (증가)');
             setAdjustReason('신규 입고');
             setErrors([]);
+
+            console.log('📝 EditProductModal - form 초기화 완료:', { ...product });
         }
     }, [isOpen, product]);
 
@@ -48,8 +54,13 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
 
         const updated = {
             ...form,
+            product_id: form.product_id,
             stock: adjustedStock,
         };
+
+        console.log('📝 EditProductModal - 전송할 데이터:', updated);
+        console.log('📝 EditProductModal - cost_price 포함 여부:', 'cost_price' in updated);
+        console.log('📝 EditProductModal - min_stock 포함 여부:', 'min_stock' in updated);
 
         onSave(updated);
         onClose();

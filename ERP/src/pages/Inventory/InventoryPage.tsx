@@ -28,7 +28,14 @@ const InventoryPage = () => {
         maxSales: '',
     });
 
+    // 데이터 구조 확인을 위한 로그 추가
+    console.log('📊 InventoryPage - useInventories data:', data);
+    console.log('📊 InventoryPage - data type:', typeof data);
+    console.log('📊 InventoryPage - data length:', data?.length);
+
     const editId = searchParams.get('edit');
+    console.log('📊 InventoryPage - editId:', editId);
+
     // Find the product from the flattened data structure that InventoryTable creates
     const selectedProduct = useMemo(() => {
         if (!data || !editId) return null;
@@ -53,6 +60,7 @@ const InventoryPage = () => {
                         variant.order_count - variant.return_count > 0
                             ? `${(variant.order_count - variant.return_count) * variant.price}원`
                             : '0원',
+                    product_id: item.product_id, // 반드시 포함
                 }));
             })
             .find((p) => p.variant_id === String(editId));
@@ -78,7 +86,11 @@ const InventoryPage = () => {
 
     const handleUpdateSave = async (updatedProduct: Product) => {
         try {
-            console.log('handleUpdateSave - updatedProduct:', updatedProduct);
+            console.log('🔄 handleUpdateSave - updatedProduct:', updatedProduct);
+            console.log('🔄 handleUpdateSave - cost_price:', updatedProduct.cost_price);
+            console.log('🔄 handleUpdateSave - min_stock:', updatedProduct.min_stock);
+            console.log('🔄 handleUpdateSave - variant_id:', updatedProduct.variant_id);
+
             await updateInventoryVariant(String(updatedProduct.variant_id), updatedProduct);
             alert('상품이 성공적으로 수정되었습니다.');
 

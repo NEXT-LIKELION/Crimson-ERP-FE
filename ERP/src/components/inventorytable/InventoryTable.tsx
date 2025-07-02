@@ -73,7 +73,7 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
                     price: variant.price,
                     stock: variant.stock,
                     cost_price: variant.cost_price,
-                    min_stock: item.min_stock,
+                    min_stock: variant.min_stock !== undefined ? variant.min_stock : item.min_stock,
                     variant_id: variant.variant_code || '',
                     orderCount: variant.order_count ?? 0,
                     returnCount: variant.return_count ?? 0,
@@ -85,13 +85,14 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
                             ? `${(variant.order_count - variant.return_count) * variant.price}원`
                             : '0원',
                 };
-                console.log('Row data:', {
-                    product_id: row.product_id,
-                    variant_id: row.variant_id,
-                    cost_price: row.cost_price,
-                    min_stock: row.min_stock,
-                    item_min_stock: item.min_stock,
-                });
+                console.log(
+                    'row 생성 - product_id:',
+                    item.product_id,
+                    'variant_code:',
+                    variant.variant_code,
+                    'min_stock:',
+                    row.min_stock
+                );
                 return row;
             });
         });
@@ -236,7 +237,14 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
                     </thead>
                     <tbody>
                         {paginatedData.map((product, index) => (
-                            <tr key={index} className="bg-white border-b border-gray-200">
+                            <tr
+                                key={index}
+                                className={`bg-white border-b border-gray-200 ${
+                                    product.min_stock !== undefined && product.stock < product.min_stock
+                                        ? 'bg-red-50'
+                                        : ''
+                                }`}
+                            >
                                 <td className="px-4 py-2">{product.product_id}</td>
                                 <td className="px-4 py-2">{product.variant_id}</td>
                                 <td className="px-4 py-2">{product.name}</td>

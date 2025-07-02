@@ -7,6 +7,7 @@ export interface ProductVariant {
     stock: number;
     price: number;
     cost_price: number;
+    min_stock?: number;
     created_at?: string;
     updated_at?: string;
     order_count?: number;
