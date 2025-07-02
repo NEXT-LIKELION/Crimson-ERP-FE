@@ -239,10 +239,8 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
                         {paginatedData.map((product, index) => (
                             <tr
                                 key={index}
-                                className={`bg-white border-b border-gray-200 ${
-                                    product.min_stock !== undefined && product.stock < product.min_stock
-                                        ? 'bg-red-50'
-                                        : ''
+                                className={`border-b border-gray-200 ${
+                                    Number(product.stock) < Number(product.min_stock) ? 'bg-red-50' : 'bg-white'
                                 }`}
                             >
                                 <td className="px-4 py-2">{product.product_id}</td>

@@ -28,14 +28,7 @@ const InventoryPage = () => {
         maxSales: '',
     });
 
-    // 데이터 구조 확인을 위한 로그 추가
-    console.log('📊 InventoryPage - useInventories data:', data);
-    console.log('📊 InventoryPage - data type:', typeof data);
-    console.log('📊 InventoryPage - data length:', data?.length);
-
     const editId = searchParams.get('edit');
-    console.log('📊 InventoryPage - editId:', editId);
-
     // Find the product from the flattened data structure that InventoryTable creates
     const selectedProduct = useMemo(() => {
         if (!data || !editId) return null;
@@ -48,7 +41,7 @@ const InventoryPage = () => {
                     price: variant.price,
                     stock: variant.stock,
                     cost_price: variant.cost_price,
-                    min_stock: item.min_stock,
+                    min_stock: variant.min_stock !== undefined ? variant.min_stock : item.min_stock,
                     variant_id: variant.variant_code as string,
                     variant_code: variant.variant_code,
                     orderCount: variant.order_count ?? 0,
