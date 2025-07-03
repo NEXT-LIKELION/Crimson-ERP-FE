@@ -1,10 +1,10 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface User {
     id: number;
     username: string;
-    role: "대표" | "일반 사용자";
+    role: string;
 }
 
 interface AuthState {
@@ -13,20 +13,30 @@ interface AuthState {
     logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>()( // persist 통해서 로그인 state localStorage에 저장
+const customSessionStorage = {
+    getItem: (name: string) => {
+        const value = sessionStorage.getItem(name);
+        return value ? JSON.parse(value) : null;
+    },
+    setItem: (name: string, value: any) => {
+        sessionStorage.setItem(name, JSON.stringify(value));
+    },
+    removeItem: (name: string) => {
+        sessionStorage.removeItem(name);
+    },
+};
+
+export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({
             user: null,
             login: (userData) => set({ user: userData }),
-            logout: () => {
-                // localStorage에서 토큰 관련 데이터 삭제
-                localStorage.removeItem("token");
-                localStorage.removeItem("refresh");
-                localStorage.removeItem("auth-storage");
-                
-                set({ user: null });
-            },
+            logout: () => set({ user: null }),
         }),
-        { name: "auth-storage" } // Zustand persist 스토리지 키
+        {
+            name: 'auth-user',
+            storage: customSessionStorage,
+            partialize: (state) => ({ user: state.user, login: state.login, logout: state.logout }),
+        }
     )
 );
