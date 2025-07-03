@@ -1,20 +1,14 @@
 // src/pages/HR/HRPage.tsx
 import React, { useState, useEffect } from 'react';
 import { FiSearch, FiUser, FiUsers, FiCalendar, FiTrash2, FiEye } from 'react-icons/fi';
-import GreenButton from '../../components/button/GreenButton';
 import StatusBadge from '../../components/common/StatusBadge';
 import SearchInput from '../../components/input/SearchInput';
 import SelectInput from '../../components/input/SelectInput';
 import EmployeeDetailsModal from '../../components/modal/EmployeeDetailsModal';
 import EmployeeContractModal from '../../components/modal/EmployeeContractModal';
-import NewEmployeeModal from '../../components/modal/NewEmployeeModal';
-import {
-    useEmployees,
-    useCreateEmployee,
-    useUpdateEmployee,
-    useTerminateEmployee,
-} from '../../hooks/queries/useEmployees';
+import { useEmployees, useUpdateEmployee, useTerminateEmployee } from '../../hooks/queries/useEmployees';
 import { Employee, MappedEmployee } from '../../api/hr';
+import { useAuthStore } from '../../store/authStore';
 
 // 직원 상태 타입
 type EmployeeStatus = 'active' | 'vacation' | 'leave' | 'terminated';
@@ -91,9 +85,12 @@ const mapEmployeeData = (emp: Employee): MappedEmployee => ({
 });
 
 const HRPage: React.FC = () => {
+    // 현재 로그인한 사용자 정보
+    const currentUser = useAuthStore((state) => state.user);
+    const isAdmin = currentUser?.role === '대표';
+
     // API 훅 사용
     const { data: employeesData, isLoading, error } = useEmployees();
-    const createEmployee = useCreateEmployee();
     const updateEmployee = useUpdateEmployee();
     const terminateEmployee = useTerminateEmployee();
 
@@ -111,7 +108,6 @@ const HRPage: React.FC = () => {
     const [selectedEmployee, setSelectedEmployee] = useState<MappedEmployee | null>(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [showContractModal, setShowContractModal] = useState(false);
-    const [showNewEmployeeModal, setShowNewEmployeeModal] = useState(false);
 
     // API 데이터 로드
     useEffect(() => {
@@ -141,6 +137,12 @@ const HRPage: React.FC = () => {
 
     // 직원 정보 업데이트
     const handleUpdateEmployee = async (updatedEmployee: MappedEmployee) => {
+        // 관리자 권한 확인
+        if (!isAdmin) {
+            alert('직원 정보를 수정할 권한이 없습니다.');
+            return;
+        }
+
         try {
             // 백엔드 API에 맞게 필드명 변경 (username은 수정 불가능하므로 제외)
             const updateData = {
@@ -171,6 +173,9 @@ const HRPage: React.FC = () => {
 
     // 직원 카드 컴포넌트
     const EmployeeCard: React.FC<{ employee: MappedEmployee }> = ({ employee }) => {
+        const isTerminated = employee.status === 'terminated';
+        const isCurrentUser = currentUser?.username === employee.name; // 현재 로그인한 사용자와 같은지 확인
+
         // 상태에 따른 StatusBadge 컴포넌트 설정
         const getStatusBadge = (status: EmployeeStatus) => {
             switch (status) {
@@ -195,6 +200,12 @@ const HRPage: React.FC = () => {
 
         // 직원 퇴사 처리
         const handleTerminateEmployee = async () => {
+            // 관리자 권한 확인
+            if (!isAdmin) {
+                alert('직원을 퇴사 처리할 권한이 없습니다.');
+                return;
+            }
+
             if (window.confirm(`${employee.name} 직원을 퇴사 처리하시겠습니까?`)) {
                 try {
                     await terminateEmployee.mutateAsync(employee.id);
@@ -219,13 +230,22 @@ const HRPage: React.FC = () => {
             }
         };
 
+        // 퇴사한 직원인 경우 카드 전체를 흐리게 처리
+        const cardOpacity = isTerminated ? 'opacity-60' : 'opacity-100';
+        const textOpacity = isTerminated ? 'text-gray-400' : 'text-gray-900';
+        const subTextOpacity = isTerminated ? 'text-gray-300' : 'text-gray-600';
+
         return (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div
+                className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 ${cardOpacity} ${isTerminated ? 'bg-gray-50' : ''}`}
+            >
                 {/* 카드 상단 영역 */}
                 <div className="p-6">
                     <div className="flex items-start space-x-4">
                         {/* 프로필 이모지 */}
-                        <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex-shrink-0 flex items-center justify-center text-3xl shadow-sm">
+                        <div
+                            className={`w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex-shrink-0 flex items-center justify-center text-3xl shadow-sm ${isTerminated ? 'grayscale' : ''}`}
+                        >
                             {getRandomEmoji(employee.id)}
                         </div>
 
@@ -233,20 +253,24 @@ const HRPage: React.FC = () => {
                         <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between mb-2">
                                 <div>
-                                    <h3 className="text-lg font-semibold text-gray-900 truncate">{employee.name}</h3>
-                                    <p className="text-sm text-gray-500">사번 #{employee.id}</p>
+                                    <h3
+                                        className={`text-lg font-semibold truncate ${textOpacity} ${isTerminated ? 'line-through' : ''}`}
+                                    >
+                                        {employee.name}
+                                    </h3>
+                                    <p className={`text-sm ${subTextOpacity}`}>사번 #{employee.id}</p>
                                 </div>
                                 {getStatusBadge(employee.status as EmployeeStatus)}
                             </div>
 
                             <div className="space-y-1">
-                                <div className="flex items-center text-sm text-gray-600">
+                                <div className={`flex items-center text-sm ${subTextOpacity}`}>
                                     <FiUser className="w-4 h-4 mr-2 text-gray-400" />
                                     <span>{employee.position}</span>
                                     <span className="mx-2">•</span>
                                     <span>{employee.department}</span>
                                 </div>
-                                <div className="flex items-center text-sm text-gray-600">
+                                <div className={`flex items-center text-sm ${subTextOpacity}`}>
                                     <FiCalendar className="w-4 h-4 mr-2 text-gray-400" />
                                     <span>{formatDateToKorean(employee.hire_date)}</span>
                                 </div>
@@ -265,7 +289,8 @@ const HRPage: React.FC = () => {
                             <FiEye className="w-4 h-4 mr-1" />
                             상세보기
                         </button>
-                        {employee.status === 'active' && (
+                        {/* 퇴사 버튼: 관리자만 보이고, 재직중이고, 본인이 아닌 경우에만 표시 */}
+                        {isAdmin && employee.status === 'active' && !isCurrentUser && (
                             <button
                                 className="px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center text-sm font-medium hover:bg-red-100 hover:border-red-300 transition-all duration-200 shadow-sm"
                                 onClick={handleTerminateEmployee}
@@ -292,51 +317,10 @@ const HRPage: React.FC = () => {
         { value: 'terminated', label: '퇴사' },
     ];
 
-    // 새 직원 등록
-    const handleAddEmployee = async (employeeData: any) => {
-        try {
-            // 백엔드 API에 맞게 필드명 변경
-            const apiData = {
-                username: employeeData.username,
-                role: employeeData.role,
-                email: employeeData.email,
-                contact: employeeData.contact,
-                password: employeeData.password,
-            };
-
-            console.log('보내는 데이터:', JSON.stringify(apiData, null, 2));
-            console.log('요청 URL:', '/hr/employees/');
-            await createEmployee.mutateAsync(apiData);
-            setShowNewEmployeeModal(false);
-            alert('새 직원이 등록되었습니다.');
-        } catch (error: any) {
-            console.error('직원 등록 실패 전체 에러:', error);
-            console.error('응답 데이터:', JSON.stringify(error.response?.data, null, 2));
-            console.error('상태 코드:', error.response?.status);
-            console.error('요청 URL:', error.config?.url);
-            console.error('요청 메서드:', error.config?.method);
-            console.error('전체 응답:', error.response);
-
-            let errorMessage = '직원 등록에 실패했습니다.';
-            if (error.response?.data?.message) {
-                errorMessage += ` 오류: ${error.response.data.message}`;
-            } else if (error.response?.data) {
-                errorMessage += ` 상세: ${JSON.stringify(error.response.data)}`;
-            }
-
-            alert(errorMessage);
-        }
-    };
-
     // 모달 제어 함수
-    const handleOpenNewEmployeeModal = () => {
-        setShowNewEmployeeModal(true);
-    };
-
     const handleCloseModals = () => {
         setShowDetailsModal(false);
         setShowContractModal(false);
-        setShowNewEmployeeModal(false);
         setSelectedEmployee(null);
     };
 
@@ -393,8 +377,8 @@ const HRPage: React.FC = () => {
                             <div>
                                 <h1 className="text-2xl font-bold text-gray-900">HR 관리</h1>
                                 <p className="text-gray-600 mt-1">
-                                    총 <span className="font-semibold text-rose-600">{employees.length}명</span>의
-                                    직원이 등록되어 있습니다
+                                    총 <span className="font-semibold text-rose-600">{employees.length}명</span>의 직원
+                                    정보를 관리하고 있습니다
                                 </p>
                             </div>
                         </div>
@@ -409,7 +393,6 @@ const HRPage: React.FC = () => {
                                     퇴사: {employees.filter((emp) => emp.status === 'terminated').length}명
                                 </div>
                             </div>
-                            <GreenButton text="새 직원 등록" icon={<FiUser />} onClick={handleOpenNewEmployeeModal} />
                         </div>
                     </div>
                 </div>
@@ -509,20 +492,13 @@ const HRPage: React.FC = () => {
                             <FiUsers className="w-10 h-10 text-gray-400" />
                         </div>
                         <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                            {employees.length === 0 ? '등록된 직원이 없습니다' : '검색 결과가 없습니다'}
+                            {employees.length === 0 ? '직원 정보가 없습니다' : '검색 결과가 없습니다'}
                         </h3>
                         <p className="text-gray-600 mb-6">
                             {employees.length === 0
-                                ? '새 직원을 등록하여 시작해보세요.'
+                                ? '직원 정보를 불러올 수 없습니다.'
                                 : '다른 검색 조건으로 시도해보세요.'}
                         </p>
-                        {employees.length === 0 && (
-                            <GreenButton
-                                text="첫 직원 등록하기"
-                                icon={<FiUser />}
-                                onClick={handleOpenNewEmployeeModal}
-                            />
-                        )}
                     </div>
                 )}
             </div>
@@ -534,20 +510,18 @@ const HRPage: React.FC = () => {
                     onClose={handleCloseModals}
                     onViewContract={handleViewContractTab}
                     onUpdateEmployee={handleUpdateEmployee}
+                    isAdmin={isAdmin}
                 />
             )}
 
-            {/* 근로계약서 모달 */}
-            {showContractModal && selectedEmployee && (
+            {/* 근로계약서 모달 - 관리자만 접근 가능 */}
+            {showContractModal && selectedEmployee && isAdmin && (
                 <EmployeeContractModal
                     employee={selectedEmployee}
                     onClose={handleCloseModals}
                     onViewInfo={handleViewInfoTab}
                 />
             )}
-
-            {/* 새 직원 등록 모달 */}
-            {showNewEmployeeModal && <NewEmployeeModal onClose={handleCloseModals} onSubmit={handleAddEmployee} />}
         </div>
     );
 };

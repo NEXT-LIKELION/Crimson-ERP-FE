@@ -26,7 +26,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                             <div className="flex items-center">
                                 <div className="w-8 h-8 bg-gray-200 rounded-full" />
                                 <span className="pl-2 text-base text-black font-normal leading-normal">
-                                    {user ? `${user.username} ${user.role}님` : '사용자'}
+                                    {user ? `${user.username}님` : '사용자'}
+
                                 </span>
                             </div>
                         </header>
