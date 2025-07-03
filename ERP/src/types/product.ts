@@ -7,6 +7,7 @@ export interface ProductVariant {
     stock: number;
     price: number;
     cost_price: number;
+    min_stock?: number;
     created_at?: string;
     updated_at?: string;
     order_count?: number;
@@ -30,6 +31,7 @@ export interface Product {
     option?: string;
     cost_price?: string | number;
     variant_id?: number;
+    variant_code?: string;
     variants?: ProductVariant[];
     created_at?: string;
 
