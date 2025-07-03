@@ -47,9 +47,6 @@ export const useSignup = (onSuccess?: () => void, onError?: (msg: string) => voi
             setCookie('accessToken', access_token, 7);
             setCookie('refreshToken', refresh_token, 30);
 
-            // 기존 localStorage 제거 (보안)
-            localStorage.removeItem('token');
-            localStorage.removeItem('refresh');
 
             // 사용자 정보 저장 (기본값으로 설정)
             const userData = {

@@ -14,9 +14,7 @@ export const useLogout = () => {
         onSuccess: () => {
             // 쿠키와 localStorage 모두 삭제
             clearAuthCookies();
-            localStorage.removeItem('token');
-            localStorage.removeItem('refresh');
-            localStorage.removeItem('auth-storage');
+
 
             logoutStore();
             navigate('/auth');
@@ -28,8 +26,6 @@ export const useLogout = () => {
             console.error('로그아웃 요청 URL:', err.config?.url);
 
             clearAuthCookies();
-            localStorage.removeItem('token');
-            localStorage.removeItem('refresh');
             localStorage.removeItem('auth-storage');
 
             logoutStore();

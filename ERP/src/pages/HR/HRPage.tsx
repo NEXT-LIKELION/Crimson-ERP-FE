@@ -244,7 +244,7 @@ const HRPage: React.FC = () => {
                     <div className="flex items-start space-x-4">
                         {/* 프로필 이모지 */}
                         <div
-                            className={`w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex-shrink-0 flex items-center justify-center text-3xl shadow-sm ${isTerminated ? 'grayscale' : ''}`}
+                            className={`pointer-events-none w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center text-5xl ${isTerminated ? 'grayscale' : ''}`}
                         >
                             {getRandomEmoji(employee.id)}
                         </div>
@@ -254,11 +254,11 @@ const HRPage: React.FC = () => {
                             <div className="flex items-start justify-between mb-2">
                                 <div>
                                     <h3
-                                        className={`text-lg font-semibold truncate ${textOpacity} ${isTerminated ? 'line-through' : ''}`}
+                                        className={`mb-10 text-lg font-semibold truncate ${textOpacity} ${isTerminated ? 'line-through' : ''}`}
                                     >
                                         {employee.name}
                                     </h3>
-                                    <p className={`text-sm ${subTextOpacity}`}>사번 #{employee.id}</p>
+                                    {/* <p className={`text-sm ${subTextOpacity}`} >사번 #{employee.id}</p> */}
                                 </div>
                                 {getStatusBadge(employee.status as EmployeeStatus)}
                             </div>

@@ -35,9 +35,6 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             // 토큰이 만료되었거나 유효하지 않음
             clearAuthCookies();
-            // localStorage도 정리 (기존 코드와의 호환성)
-            localStorage.removeItem('token');
-            localStorage.removeItem('refresh');
             localStorage.removeItem('auth-storage');
 
             // 로그인 페이지로 리다이렉트
