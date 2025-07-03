@@ -37,6 +37,7 @@ export const useAuthStore = create<AuthState>()(
         {
             name: 'auth-storage', // Zustand persist 스토리지 키
             partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+
         }
     )
 );

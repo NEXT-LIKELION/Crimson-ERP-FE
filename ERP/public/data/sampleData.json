@@ -1,6 +1,6 @@
 [
     {
-        "productCode": "P0023",
+        "product_id": "P0023",
         "categoryCode": "G0001",
         "name": "텀블러(블랙)",
         "option": "300ml",
@@ -12,7 +12,7 @@
         "totalSales": "1,725,000원"
     },
     {
-        "productCode": "P0024",
+        "product_id": "P0024",
         "categoryCode": "G0001",
         "name": "텀블러(화이트)",
         "option": "300ml",
@@ -24,7 +24,7 @@
         "totalSales": "1,395,000원"
     },
     {
-        "productCode": "P0025",
+        "product_id": "P0025",
         "categoryCode": "G0002",
         "name": "머그컵(레드)",
         "option": "400ml",
@@ -36,7 +36,7 @@
         "totalSales": "924,000원"
     },
     {
-        "productCode": "P0026",
+        "product_id": "P0026",
         "categoryCode": "G0002",
         "name": "머그컵(블루)",
         "option": "400ml",
@@ -48,7 +48,7 @@
         "totalSales": "708,000원"
     },
     {
-        "productCode": "P0027",
+        "product_id": "P0027",
         "categoryCode": "G0003",
         "name": "스테인리스 보틀",
         "option": "500ml",
@@ -60,7 +60,7 @@
         "totalSales": "2,920,000원"
     },
     {
-        "productCode": "P0028",
+        "product_id": "P0028",
         "categoryCode": "G0003",
         "name": "스테인리스 보틀",
         "option": "750ml",
@@ -72,7 +72,7 @@
         "totalSales": "3,100,000원"
     },
     {
-        "productCode": "P0029",
+        "product_id": "P0029",
         "categoryCode": "G0004",
         "name": "보온병(그레이)",
         "option": "1L",
@@ -84,7 +84,7 @@
         "totalSales": "5,760,000원"
     },
     {
-        "productCode": "P0030",
+        "product_id": "P0030",
         "categoryCode": "G0004",
         "name": "보온병(화이트)",
         "option": "1L",
@@ -96,7 +96,7 @@
         "totalSales": "5,250,000원"
     },
     {
-        "productCode": "P0031",
+        "product_id": "P0031",
         "categoryCode": "G0005",
         "name": "캠핑컵(스테인리스)",
         "option": "350ml",
@@ -108,7 +108,7 @@
         "totalSales": "1,070,000원"
     },
     {
-        "productCode": "P0032",
+        "product_id": "P0032",
         "categoryCode": "G0005",
         "name": "캠핑컵(플라스틱)",
         "option": "350ml",

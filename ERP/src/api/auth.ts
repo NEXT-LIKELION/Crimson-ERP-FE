@@ -27,4 +27,5 @@ export const logout = () => {
     return api.post('/authentication/logout/', {
         refresh_token: refreshToken,
     });
+
 };
