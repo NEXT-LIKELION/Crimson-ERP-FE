@@ -13,12 +13,9 @@ export const useLogin = (onSuccessCallback?: () => void) =>
             setCookie('accessToken', access, 7);
             setCookie('refreshToken', refresh, 30); // refresh 토큰은 더 길게
 
-
-            console.log('✅ 로그인 성공');
             if (onSuccessCallback) onSuccessCallback();
         },
         onError: (err: any) => {
-            // ❌ alert 제거, 대신 에러는 그대로 상위로 throw됨
             throw err;
         },
     });

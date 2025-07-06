@@ -56,3 +56,5 @@ export const deleteInventoryItem = async (productId: number) => {
     const res = await api.delete(`/inventory/items/${productId}/`);
     return res.data;
 };
+
+export const fetchVariantsByProductId = (productId: number) => api.get(`/inventory/items/${productId}/`);

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLogin } from '../../hooks/queries/useLogin';
@@ -17,6 +16,8 @@ const AuthPage = () => {
     const [signupEmail, setSignupEmail] = useState('');
     const [signupPassword, setSignupPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [signupFullName, setSignupFullName] = useState('');
+    const [signupContact, setSignupContact] = useState('');
 
     const [errorMessage, setErrorMessage] = useState('');
     const navigate = useNavigate();
@@ -87,13 +88,15 @@ const AuthPage = () => {
         }
 
         // 필수 필드 검증
-        if (!signupUsername || !signupEmail || !signupPassword) {
+        if (!signupUsername || !signupFullName || !signupContact || !signupEmail || !signupPassword) {
             setErrorMessage('모든 필수 항목을 입력해주세요.');
             return;
         }
 
         signupMutation.mutate({
             username: signupUsername,
+            full_name: signupFullName,
+            contact: signupContact,
             email: signupEmail,
             password: signupPassword,
         });
@@ -219,6 +222,40 @@ const AuthPage = () => {
 
                                 <div>
                                     <label
+                                        htmlFor="signupFullName"
+                                        className="block text-sm font-medium text-gray-700 mb-2"
+                                    >
+                                        이름
+                                    </label>
+                                    <input
+                                        id="signupFullName"
+                                        type="text"
+                                        placeholder="이름을 입력하세요"
+                                        value={signupFullName}
+                                        onChange={(e) => setSignupFullName(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-colors bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-500"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label
+                                        htmlFor="signupContact"
+                                        className="block text-sm font-medium text-gray-700 mb-2"
+                                    >
+                                        연락처
+                                    </label>
+                                    <input
+                                        id="signupContact"
+                                        type="text"
+                                        placeholder="연락처를 입력하세요"
+                                        value={signupContact}
+                                        onChange={(e) => setSignupContact(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-colors bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-500"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label
                                         htmlFor="signupEmail"
                                         className="block text-sm font-medium text-gray-700 mb-2"
                                     >
@@ -282,6 +319,8 @@ const AuthPage = () => {
                                 disabled={
                                     signupMutation.isPending ||
                                     !signupUsername ||
+                                    !signupFullName ||
+                                    !signupContact ||
                                     !signupEmail ||
                                     !signupPassword ||
                                     !confirmPassword ||
@@ -329,7 +368,6 @@ const AuthPage = () => {
             </div>
         </div>
     );
-
 };
 
 export default AuthPage;

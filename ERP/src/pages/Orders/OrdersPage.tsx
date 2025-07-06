@@ -110,7 +110,6 @@ const OrdersPage: React.FC = () => {
             return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
         } catch (error) {
             console.error('Date formatting error:', error);
-            return '날짜 없음';
         }
     }, []);
 
@@ -119,10 +118,9 @@ const OrdersPage: React.FC = () => {
         console.log('Filtering orders:', { orders, searchFilters }); // 디버깅 로그
         let result = [...orders];
 
-        // 상품명(발주번호) 필터링
         if (searchFilters.orderId) {
             result = result.filter((order) =>
-                order.product_name?.toLowerCase().includes(searchFilters.orderId.toLowerCase())
+                order.product_names?.some((name: string) => name.toLowerCase().includes(searchFilters.orderId.toLowerCase()))
             );
         }
 
@@ -226,7 +224,7 @@ const OrdersPage: React.FC = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>발주서 - ${order.productName}</title>
+        <title>발주서 - ${order.product_names ? order.product_names.join(', ') : '-'}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
           .header { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px; }
@@ -252,14 +250,14 @@ const OrdersPage: React.FC = () => {
             <p><strong>주소:</strong> 서울특별시 성북구 안암로145, 고려대학교 100주년삼성기념관 103호 크림슨 스토어</p>
           </div>
           <div class="info-column">
-            <p><strong>발주물품:</strong> ${order.productName}</p>
+            <p><strong>발주물품:</strong> ${order.product_names ? order.product_names.join(', ') : '-'}</p>
             <p><strong>발주일자:</strong> ${order.order_date}</p>
-            <p><strong>공급업체:</strong> ${order.supplier_id}</p>
+            <p><strong>공급업체:</strong> ${order.supplier}</p>
             <p><strong>담당자:</strong> ${order.manager}</p>
           </div>
         </div>
         <p>아래와 같이 발주하오니 기일 내 필히 납품하여 주시기 바랍니다.</p>
-        <p><strong>총 금액:</strong> {(order.totalAmount ?? 0).toLocaleString()}원</p>
+        <p><strong>총 금액:</strong> {(order.total_price ?? 0).toLocaleString()}원</p>
         <p><strong>상태:</strong> ${
             order.status === 'PENDING' ? '승인 대기' : order.status === 'APPROVED' ? '승인됨' : '취소됨'
         }</p>
@@ -525,28 +523,30 @@ const OrdersPage: React.FC = () => {
                                             } hover:bg-gray-50 transition-colors`}
                                         >
                                             <td className="px-4 py-4 text-sm font-medium text-gray-900 text-center">
-                                                {order.product_name}
+                                                {order.product_names ? order.product_names.join(', ') : '-'}
                                             </td>
                                             <td className="px-4 py-4 text-sm text-gray-500 text-center">
-                                                {order.supplier_id}
+                                                {order.supplier}
                                             </td>
                                             <td className="px-4 py-4 text-sm text-gray-500 text-center">
                                                 {order.order_date}
                                             </td>
                                             <td className="px-4 py-4 text-sm font-medium text-gray-900 text-center">
-                                                {formatCurrency(order.price * order.quantity)}
+                                                {formatCurrency(order.total_price)}
                                             </td>
                                             <td className="px-4 py-3.5 text-center">
                                                 {renderStatusBadge(order.status)}
                                             </td>
                                             <td className="px-4 py-4 text-sm text-gray-500 text-center">
-                                                {order.manager ? order.manager : '유시진'}
+                                                {order.manager}
                                             </td>
                                             <td className="px-7 py-3.5 text-center">
                                                 <button
                                                     onClick={() => handleOpenOrderDetail(order.id)}
                                                     className="px-3 py-1 bg-indigo-600 rounded-md text-xs font-medium text-white hover:bg-indigo-700 transition-colors"
-                                                    aria-label={`${order.productName} 상세보기`}
+                                                    aria-label={`${
+                                                        order.product_names ? order.product_names.join(', ') : '-'
+                                                    } 상세보기`}
                                                 >
                                                     상세보기
                                                 </button>
@@ -555,7 +555,9 @@ const OrdersPage: React.FC = () => {
                                                 <button
                                                     onClick={() => handlePrintOrder(order)}
                                                     className="p-2 rounded text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors"
-                                                    aria-label={`${order.productName} 인쇄`}
+                                                    aria-label={`${
+                                                        order.product_names ? order.product_names.join(', ') : '-'
+                                                    } 인쇄`}
                                                 >
                                                     <FiPrinter className="w-4 h-4" />
                                                 </button>
@@ -566,7 +568,11 @@ const OrdersPage: React.FC = () => {
                                                         <button
                                                             onClick={() => handleApproveOrder(order.id)}
                                                             className="px-3 py-1 bg-green-600 rounded text-xs font-medium text-white flex items-center justify-center hover:bg-green-700 transition-colors"
-                                                            aria-label={`${order.productName} 승인`}
+                                                            aria-label={`${
+                                                                order.product_names
+                                                                    ? order.product_names.join(', ')
+                                                                    : '-'
+                                                            } 승인`}
                                                         >
                                                             <span className="w-3 h-3 mr-1 relative">
                                                                 <span className="absolute inset-0 bg-white rounded-full transform scale-75"></span>

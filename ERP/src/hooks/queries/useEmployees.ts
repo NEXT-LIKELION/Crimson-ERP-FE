@@ -4,8 +4,8 @@ import {
     fetchEmployee,
     updateEmployee,
     terminateEmployee,
-    type Employee,
-    type EmployeeUpdateData,
+    Employee,
+    EmployeeUpdateData,
 } from '../../api/hr';
 
 // 직원 목록 조회 훅

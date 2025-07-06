@@ -5,6 +5,7 @@ import { MdOutlineDownload, MdFilterList, MdOutlineEdit } from 'react-icons/md';
 import { useSuppliers, useCreateSupplier, useSupplierById, useUpdateSupplier } from '../../hooks/queries/useSuppliers';
 import AddSupplierModal from '../../components/modal/AddSupplierModal';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
+import axios from '../../api/axios';
 
 interface Supplier {
     id: number;
@@ -165,8 +166,46 @@ const SupplierDetailModal = ({
     supplierId: number | null;
 }) => {
     const { data, isLoading, error } = useSupplierById(supplierId ?? 0);
+    const [variantEdits, setVariantEdits] = useState<Record<number, { cost_price: number; is_primary: boolean }>>({});
+    const [savingId, setSavingId] = useState<number | null>(null);
     if (!isOpen || !supplierId) return null;
     const supplier = data?.data;
+
+    // variant 수정값 핸들러
+    const handleEditChange = (id: number, field: 'cost_price' | 'is_primary', value: any) => {
+        setVariantEdits((prev) => {
+            const variant = supplier.variants.find((v: any) => v.id === id);
+            const current = prev[id] ?? {
+                cost_price: variant?.cost_price ?? 0,
+                is_primary: variant?.is_primary ?? false,
+            };
+            return {
+                ...prev,
+                [id]: {
+                    ...current,
+                    [field]: value,
+                },
+            };
+        });
+    };
+
+    // 저장 버튼 클릭 시 PATCH
+    const handleSave = async (variant: any) => {
+        const edit = variantEdits[variant.id] || { cost_price: variant.cost_price, is_primary: variant.is_primary };
+        setSavingId(variant.id);
+        try {
+            await axios.patch(`/supplier/variant/${variant.id}/`, {
+                cost_price: edit.cost_price,
+                is_primary: edit.is_primary,
+            });
+            alert('저장되었습니다.');
+        } catch (e) {
+            alert('저장 실패');
+        } finally {
+            setSavingId(null);
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-lg p-8 w-[800px] max-h-[90vh] overflow-y-auto">
@@ -199,18 +238,61 @@ const SupplierDetailModal = ({
                             <thead className="bg-gray-50 border-b border-gray-300">
                                 <tr>
                                     <th className="px-4 py-2 border-b text-center">ID</th>
-                                    <th className="px-4 py-2 border-b text-center">Variant Code</th>
+                                    <th className="px-4 py-2 border-b text-center">품목명</th>
                                     <th className="px-4 py-2 border-b text-center">옵션</th>
+                                    <th className="px-4 py-2 border-b text-center">재고</th>
+                                    <th className="px-4 py-2 border-b text-center">단가</th>
+                                    <th className="px-4 py-2 border-b text-center">대표여부</th>
+                                    <th className="px-4 py-2 border-b text-center">저장</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {(supplier.variants || []).map((v: any) => (
-                                    <tr key={v.id}>
-                                        <td className="px-4 py-2 border-b text-center">{v.id}</td>
-                                        <td className="px-4 py-2 border-b text-center">{v.variant_code}</td>
-                                        <td className="px-4 py-2 border-b text-center">{v.option}</td>
-                                    </tr>
-                                ))}
+                                {supplier.variants.map((variant: any) => {
+                                    const edit = variantEdits[variant.id] || {
+                                        cost_price: variant.cost_price,
+                                        is_primary: variant.is_primary,
+                                    };
+                                    return (
+                                        <tr key={variant.id}>
+                                            <td className="px-4 py-2 border-b text-center">{variant.id}</td>
+                                            <td className="px-4 py-2 border-b text-center">{variant.name}</td>
+                                            <td className="px-4 py-2 border-b text-center">{variant.option}</td>
+                                            <td className="px-4 py-2 border-b text-center">{variant.stock}</td>
+                                            <td className="px-4 py-2 border-b text-center">
+                                                <input
+                                                    type="number"
+                                                    className="border rounded px-2 py-1 w-24 text-right"
+                                                    value={edit.cost_price}
+                                                    onChange={(e) =>
+                                                        handleEditChange(
+                                                            variant.id,
+                                                            'cost_price',
+                                                            Number(e.target.value)
+                                                        )
+                                                    }
+                                                />
+                                            </td>
+                                            <td className="px-4 py-2 border-b text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={edit.is_primary}
+                                                    onChange={(e) =>
+                                                        handleEditChange(variant.id, 'is_primary', e.target.checked)
+                                                    }
+                                                />
+                                            </td>
+                                            <td className="px-4 py-2 border-b text-center">
+                                                <button
+                                                    className="bg-blue-500 text-white px-3 py-1 rounded disabled:opacity-50"
+                                                    onClick={() => handleSave(variant)}
+                                                    disabled={savingId === variant.id}
+                                                >
+                                                    {savingId === variant.id ? '저장중...' : '저장'}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </>

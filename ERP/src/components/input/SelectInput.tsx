@@ -10,9 +10,17 @@ interface SelectInputProps {
     extra?: Record<string, unknown>;
     id?: string;
     'aria-label'?: string;
+    disabled?: boolean;
 }
 
-const SelectInput: React.FC<SelectInputProps> = ({ label, value, defaultText = '선택', options, onChange }) => {
+const SelectInput: React.FC<SelectInputProps> = ({
+    label,
+    value,
+    defaultText = '선택',
+    options,
+    onChange,
+    disabled,
+}) => {
     const [selectedValue, setSelectedValue] = useState<string>(defaultText);
     const isControlled = value !== undefined;
     const selectValue = isControlled ? value : selectedValue;
@@ -30,6 +38,7 @@ const SelectInput: React.FC<SelectInputProps> = ({ label, value, defaultText = '
                 <select
                     value={selectValue}
                     onChange={handleChange}
+                    disabled={disabled}
                     className={`
                     h-9 w-full rounded-md
                     pl-4 pr-14 py-2

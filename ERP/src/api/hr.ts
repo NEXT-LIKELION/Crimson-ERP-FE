@@ -17,6 +17,10 @@ export const terminateEmployee = (employeeId: number) =>
 // 대시보드 데이터 조회
 export const fetchDashboardData = () => api.get('/');
 
+// 직원 승인/거절
+export const approveEmployee = (username: string, status: 'approved' | 'denied') =>
+    api.post('/authentication/approve', { username, status });
+
 // 백엔드 API 응답에 맞는 Employee 타입
 export interface Employee {
     id: number;
@@ -25,7 +29,7 @@ export interface Employee {
     contact: string;
     date_joined: string;
     role: string;
-    status: 'active' | 'terminated';
+    status: 'active' | 'terminated' | 'denied';
     is_active: boolean;
     is_staff: boolean;
     is_superuser: boolean;
@@ -39,7 +43,7 @@ export interface MappedEmployee {
     department: string;
     email: string;
     phone: string;
-    status: 'active' | 'terminated';
+    status: 'active' | 'terminated' | 'denied';
     hire_date: string;
     created_at: string;
     updated_at: string;
