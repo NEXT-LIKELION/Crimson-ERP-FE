@@ -82,7 +82,7 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
                         variant.return_count &&
                         variant.price &&
                         variant.order_count - variant.return_count > 0
-                            ? `${(variant.order_count - variant.return_count) * variant.price}원`
+                            ? `${((variant.order_count - variant.return_count) * variant.price).toLocaleString()}원`
                             : '0원',
                 };
                 console.log(
@@ -247,8 +247,8 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
                                 <td className="px-4 py-2">{product.variant_id}</td>
                                 <td className="px-4 py-2">{product.name}</td>
                                 <td className="px-4 py-2">{product.option}</td>
-                                <td className="px-4 py-2">{product.price}원</td>
-                                <td className="px-4 py-2">{product.cost_price}원</td>
+                                <td className="px-4 py-2">{Number(product.price).toLocaleString()}원</td>
+                                <td className="px-4 py-2">{Number(product.cost_price).toLocaleString()}원</td>
                                 <td className="px-4 py-2">
                                     {product.stock}EA ({product.min_stock !== undefined ? product.min_stock : '-'})
                                 </td>

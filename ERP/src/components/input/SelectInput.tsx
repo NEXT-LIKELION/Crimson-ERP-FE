@@ -34,7 +34,7 @@ const SelectInput: React.FC<SelectInputProps> = ({ label, value, defaultText = '
                     h-9 w-full rounded-md
                     pl-4 pr-14 py-2
                     text-sm font-normal
-                    bg-zinc-100 text-gray-700
+                    bg-white text-gray-700
                     border border-gray-300
                     focus:outline-none focus:border-indigo-600
                     appearance-none
