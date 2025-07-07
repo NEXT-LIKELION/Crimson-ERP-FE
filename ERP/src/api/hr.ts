@@ -6,9 +6,13 @@ export const fetchEmployees = () => api.get('/hr/employees/');
 // 직원 상세 조회
 export const fetchEmployee = (employeeId: number) => api.get(`/hr/employees/${employeeId}/`);
 
-// 직원 정보 수정
+// 직원 정보 수정 (PUT)
 export const updateEmployee = (employeeId: number, data: EmployeeUpdateData) =>
     api.put(`/hr/employees/${employeeId}/`, data);
+
+// 직원 정보 부분 수정 (PATCH)
+export const patchEmployee = (employeeId: number, data: EmployeePatchData) =>
+    api.patch(`/hr/employees/${employeeId}/`, data);
 
 // 직원 퇴사 처리 (is_active를 false로 설정)
 export const terminateEmployee = (employeeId: number) =>
@@ -22,13 +26,13 @@ export interface Employee {
     id: number;
     username: string;
     email: string;
-    contact: string;
-    date_joined: string;
     role: string;
-    status: 'active' | 'terminated';
+    contact: string;
+    status: string;
+    first_name: string;
     is_active: boolean;
-    is_staff: boolean;
-    is_superuser: boolean;
+    date_joined: string;
+    last_login?: string | null;
 }
 
 // 프론트엔드에서 사용할 매핑된 Employee 타입
@@ -50,6 +54,13 @@ export interface EmployeeUpdateData {
     email?: string;
     contact?: string;
     status?: 'active' | 'terminated';
+}
+
+// PATCH 엔드포인트용 데이터 타입
+export interface EmployeePatchData {
+    email?: string;
+    contact?: string;
+    is_active?: boolean;
 }
 
 export interface DashboardData {
