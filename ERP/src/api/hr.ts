@@ -19,7 +19,7 @@ export const fetchDashboardData = () => api.get('/');
 
 // 직원 승인/거절
 export const approveEmployee = (username: string, status: 'approved' | 'denied') =>
-    api.post('/authentication/approve', { username, status });
+    api.post('/authentication/approve/', { username, status });
 
 // 백엔드 API 응답에 맞는 Employee 타입
 export interface Employee {

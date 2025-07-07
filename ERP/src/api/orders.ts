@@ -13,8 +13,9 @@ export const createOrder = (payload: {
     note: string;
     vat_included: boolean;
     packaging_included: boolean;
+    manager_name: string;
     items: {
-        variant: number;
+        variant_code: string;
         quantity: number;
         unit_price: number;
         remark: string;

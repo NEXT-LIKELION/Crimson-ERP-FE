@@ -6,6 +6,7 @@ interface User {
     id: number;
     username: string;
     role: string; // 영문 role(MANAGER/STAFF)
+    first_name?: string;
 }
 
 interface AuthState {

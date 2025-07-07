@@ -421,18 +421,23 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             const sheet = workbook.sheet(0);
 
             // 3. 셀 값 매핑 (스타일/병합/수식 유지)
+            sheet.cell('I10').value(orderDetail.manager);
             sheet.cell('I11').value(supplierDetail.name);
             sheet.cell('W11').value(supplierDetail.contact);
             sheet.cell('I12').value(supplierDetail.manager);
             sheet.cell('W12').value(supplierDetail.email);
 
             sheet.cell('E16').value(orderDetail.order_date);
-            sheet.cell('Q16').value(orderDetail.expected_delivery_date);
+            sheet
+                .cell('Q16')
+                .value(
+                    orderDetail.expected_delivery_date ? `납품일자: ${orderDetail.expected_delivery_date}` : '납품일자:'
+                );
             sheet.cell('E17').value('고려대학교 100주년기념관(크림슨스토어)');
 
             const totalAmount = orderDetail.items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
             sheet.cell('G18').value(numberToKorean(totalAmount));
-            sheet.cell('Q18').value(`₩ ${totalAmount.toLocaleString()})`);
+            sheet.cell('Q18').value(`${totalAmount.toLocaleString()})`);
 
             // 부가세 체크박스 LinkedCell: 포함(AG18), 비포함(AH18)
             sheet
@@ -457,16 +462,16 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             // 4. 품목 테이블 (행 복제 및 데이터 입력)
             const startRow = 21;
             const templateRow = 22;
-            const itemColumns = ['C', 'H', 'K', 'N', 'Q', 'X', 'AD'];
+            const itemCount = orderDetail.items.length;
 
-            // 품목이 6개 초과면 행 복제
-            if (orderDetail.items.length > 6) {
-                for (let i = 6; i < orderDetail.items.length; i++) {
+            // 품목이 6개 초과면, 합계행 바로 위까지만 복제
+            if (itemCount > 6) {
+                for (let i = 6; i < itemCount; i++) {
                     sheet.row(templateRow).copyTo(sheet.row(startRow + i));
                 }
             }
 
-            // 품목 데이터 입력
+            // 품목 데이터 입력 (합계행은 건드리지 않음)
             orderDetail.items.forEach((item, idx) => {
                 const row = startRow + idx;
                 sheet.cell(`C${row}`).value(item.item_name);
@@ -478,12 +483,16 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                 sheet.cell(`AD${row}`).value(item.remark || '');
             });
 
-            // 합계 수식 자동 확장
-            const maxRow = startRow + orderDetail.items.length - 1;
-            const totalRow = maxRow + 1;
-            sheet.cell(`N${totalRow}`).formula(`SUM(N${startRow}:N${maxRow})`);
-            sheet.cell(`Q${totalRow}`).formula(`SUM(Q${startRow}:Q${maxRow})`);
-            sheet.cell(`X${totalRow}`).formula(`SUM(X${startRow}:X${maxRow})`);
+            // 불필요한 빈 행을 셀 값 초기화로 대체 (브라우저 환경 호환)
+            const templateRows = 6;
+            if (orderDetail.items.length < templateRows) {
+                for (let i = orderDetail.items.length; i < templateRows; i++) {
+                    const row = startRow + i;
+                    ['C', 'H', 'K', 'N', 'Q', 'X', 'AD'].forEach((col) => {
+                        sheet.cell(`${col}${row}`).value('');
+                    });
+                }
+            }
 
             // 5. 파일 저장
             const blob = await workbook.outputAsync();

@@ -41,14 +41,6 @@ const AuthPage = () => {
         loginMutation.mutate(
             { username: loginId, password: loginPassword },
             {
-                onSuccess: (res) => {
-                    const userData = res.data.user || {
-                        id: 1,
-                        username: loginId,
-                        role: '일반 사용자',
-                    };
-                    loginStore(userData);
-                },
                 onError: (err: any) => {
                     const msg = err?.response?.data?.message ?? '로그인 실패';
                     setErrorMessage(msg);

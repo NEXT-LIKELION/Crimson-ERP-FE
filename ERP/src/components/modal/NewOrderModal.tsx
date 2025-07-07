@@ -7,9 +7,9 @@ import RadioButton from '../common/RadioButton';
 import { useOrdersStore, Order } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
 import { fetchSuppliers } from '../../api/supplier';
-import { fetchSupplierById } from '../../api/supplier';
 import { fetchInventories, fetchVariantsByProductId } from '../../api/inventory';
 import { createOrder } from '../../api/orders';
+import { useEmployees } from '../../hooks/queries/useEmployees';
 
 interface NewOrderModalProps {
     isOpen: boolean;
@@ -18,7 +18,7 @@ interface NewOrderModalProps {
 }
 
 interface OrderItemPayload {
-    variant: number | null;
+    variant: string | null;
     quantity: number;
     unit_price: number;
     remark: string;
@@ -28,7 +28,9 @@ interface OrderItemPayload {
 const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const [suppliers, setSuppliers] = useState<any[]>([]);
     const [products, setProducts] = useState<any[]>([]);
-    const [supplier, setSupplier] = useState<number | null>(null);
+    const [supplier, setSupplier] = useState<number>(0);
+    const [supplierName, setSupplierName] = useState<string>('');
+    const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [orderDate, setOrderDate] = useState<Date | null>(new Date());
     const [deliveryDate, setDeliveryDate] = useState<Date | null>(null);
     const [items, setItems] = useState<OrderItemPayload[]>([
@@ -47,28 +49,27 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     const [hasPackaging, setHasPackaging] = useState<boolean>(true);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [formErrors, setFormErrors] = useState<string[]>([]);
-    const [itemVariants, setItemVariants] = useState<{ [key: number]: any[] }>({});
-    const [supplierVariants, setSupplierVariants] = useState<any[]>([]);
-    const [supplierProducts, setSupplierProducts] = useState<{ product_id: string; name: string }[]>([]);
-    const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
-    const [productVariants, setProductVariants] = useState<any[]>([]);
-    const [allProducts, setAllProducts] = useState<any[]>([]);
-    const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
+    const [variants, setVariants] = useState<any[]>([]);
+    const { data: employeesData } = useEmployees();
+    const employees = employeesData?.data || [];
+    const user = useAuthStore((state) => state.user);
 
     const { addOrder } = useOrdersStore();
-    const user = useAuthStore((state) => state.user);
 
     useEffect(() => {
         if (isOpen) {
             fetchSuppliers().then((res) => setSuppliers(res.data));
             fetchInventories().then((res) => setProducts(res.data));
-            fetchInventories().then((res) => setAllProducts(res.data));
             resetForm();
+            setSupplierName('');
+            setSelectedProductId(null);
         }
     }, [isOpen]);
 
     const resetForm = () => {
-        setSupplier(null);
+        setSupplier(0);
+        setSupplierName('');
+        setSelectedProductId(null);
         setOrderDate(new Date());
         const twoWeeksLater = new Date();
         twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
@@ -89,17 +90,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     };
 
     const handleAddItem = () => {
-        const newId = items.length > 0 ? Math.max(...items.map((item) => item.id)) + 1 : 1;
-        const newItem: OrderItemPayload = {
-            id: newId,
-            variant: null,
-            quantity: 0,
-            unit_price: 0,
-            amount: 0,
-            remark: '',
-            spec: '',
-        };
-        setItems([...items, newItem]);
+        setItems([...items, { variant: null, quantity: 1, unit_price: 0, remark: '', spec: '' }]);
     };
 
     const handleRemoveItem = (idx: number) => {
@@ -118,27 +109,21 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         return items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
     };
 
-    const formatDate = (date: Date | null): string => {
-        if (!date) return '';
-        return date.toISOString();
-    };
-
     const validateForm = (): boolean => {
         const errors: string[] = [];
-
         if (!supplier) {
             errors.push('공급업체를 선택해주세요.');
         }
-
         if (!orderDate) {
             errors.push('발주일자를 선택해주세요.');
         }
-
         if (!deliveryDate) {
             errors.push('예상 납품일을 선택해주세요.');
         }
-
         items.forEach((item, index) => {
+            if (!item.variant || !variantOptions.find((v: any) => v.option === item.variant)) {
+                errors.push(`${index + 1}번 항목의 품목(variant)을 선택해주세요.`);
+            }
             if (!item.spec) {
                 errors.push(`${index + 1}번 항목의 규격을 입력해주세요.`);
             }
@@ -149,46 +134,18 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 errors.push(`${index + 1}번 항목의 단가는 0보다 커야 합니다.`);
             }
         });
-
         if (!workInstructions.trim()) {
             errors.push('작업지시사항을 입력해주세요.');
         }
-
         setFormErrors(errors);
         return errors.length === 0;
     };
 
-    const handleSupplierChange = (name: string) => {
-        console.log('선택된 공급업체:', name);
-        setSelectedSupplier(name);
-        const found = suppliers.find((s) => s.name === name);
-        setSupplier(found ? found.id : null);
-        setSelectedProduct(null);
-        setProductVariants([]);
-        setItems([{ variant: null, quantity: 1, unit_price: 0, remark: '', spec: '' }]);
-        const filteredProducts = allProducts.filter((product) =>
-            product.variants.some((variant) => variant.suppliers.some((s: any) => s.name === name))
-        );
-        setSupplierProducts(filteredProducts.map((p: any) => ({ product_id: p.product_id, name: p.name })));
-    };
-
-    const handleProductChange = (name: string) => {
-        console.log('선택된 상품:', name);
-        setSelectedProduct(name);
-        setItems([{ variant: null, quantity: 1, unit_price: 0, remark: '', spec: '' }]);
-        const product = allProducts.find((p) => p.name === name);
-        if (!product) {
-            setProductVariants([]);
+    const handleSubmit = async () => {
+        if (!supplier) {
+            setFormErrors(['공급업체를 선택해주세요.']);
             return;
         }
-        console.log('해당 상품의 variants:', product.variants);
-        const filteredVariants = product.variants.filter((variant: any) =>
-            variant.suppliers.some((s: any) => s.name === selectedSupplier)
-        );
-        setProductVariants(filteredVariants);
-    };
-
-    const handleSubmit = async () => {
         if (!validateForm()) return;
         setIsSubmitting(true);
         try {
@@ -201,17 +158,21 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 note: '',
                 vat_included: includesTax,
                 packaging_included: hasPackaging,
-                items: items.map((item) => ({
-                    variant: item.variant,
-                    quantity: item.quantity,
-                    unit_price: item.unit_price,
-                    remark: item.remark,
-                    spec: item.spec,
-                })),
+                manager_name: user?.first_name || user?.username || '',
+                items: items.map((item) => {
+                    const variantObj = variantOptions.find((v: any) => v.option === item.variant);
+                    return {
+                        variant_code: variantObj ? variantObj.variant_code : undefined,
+                        quantity: item.quantity,
+                        unit_price: item.unit_price,
+                        remark: item.remark,
+                        spec: item.spec,
+                    };
+                }),
             };
-            await createOrder(payload);
+            const res = await createOrder(payload);
             alert('발주가 성공적으로 신청되었습니다.');
-            if (onSuccess) onSuccess(payload);
+            if (onSuccess) onSuccess(res.data);
             onClose();
         } catch (error) {
             setFormErrors(['발주 신청 중 오류가 발생했습니다. 다시 시도해주세요.']);
@@ -220,7 +181,68 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         }
     };
 
+    // 공급업체 선택 핸들러
+    const handleSupplierChange = (name: string) => {
+        setSupplierName(name);
+        const found = suppliers.find((s) => s.name === name);
+        setSupplier(found ? found.id : 0);
+    };
+
+    // 상품 드롭다운 value를 위한 배열
+    const productNames = products.map((p) => p.name);
+    const getProductNameById = (id: string | null) => {
+        if (!id) return '';
+        const found = products.find((p) => p.product_id === id);
+        return found ? found.name : '';
+    };
+    const handleProductChange = async (name: string) => {
+        console.log('상품 선택:', name);
+        const found = products.find((p) => p.name === name);
+        console.log('선택된 상품:', found);
+        setSelectedProductId(found ? found.product_id : null);
+        if (found) {
+            try {
+                const res = await fetchVariantsByProductId(found.product_id);
+                setVariants(res.data.variants || []);
+                console.log('variants API 응답:', res.data.variants);
+            } catch (e) {
+                setVariants([]);
+                console.error('variants API 호출 오류:', e);
+            }
+        } else {
+            setVariants([]);
+        }
+        // 상품이 바뀌면 품목(variant) 선택 초기화
+        setItems([
+            {
+                variant: null,
+                quantity: 1,
+                unit_price: 0,
+                remark: '',
+                spec: '',
+            },
+        ]);
+    };
+
+    // 선택된 상품의 variants
+    const variantOptions = variants;
+    console.log('variantOptions:', variantOptions);
+
+    const getVariantNameById = (id: number | null) => {
+        if (!id) return '';
+        const found = variantOptions.find((v: any) => v.id === id);
+        return found ? found.option : '';
+    };
+    const handleVariantChange = (idx: number, option: string) => {
+        console.log('품목(variant) 선택:', option);
+        handleItemChange(idx, 'variant', option);
+    };
+
     if (!isOpen) return null;
+
+    if (!employees.length) {
+        return <div>직원 목록을 불러오는 중...</div>;
+    }
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -255,8 +277,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                         </div>
                     )}
 
-                    {/* Supplier and Order Info */}
+                    {/* 공급업체 정보 + 발주 정보 레이아웃 복구 */}
                     <div className="flex justify-center items-start gap-6">
+                        {/* 왼쪽: 공급업체 정보 */}
                         <div className="w-96 space-y-4">
                             <div className="flex items-center">
                                 <FiShoppingBag className="w-6 h-6 text-gray-900 mr-2" />
@@ -268,22 +291,32 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                 </label>
                                 <SelectInput
                                     defaultText="공급업체 선택"
-                                    options={suppliers.map((s) => s.name)}
+                                    options={suppliers.map((s: any) => s.name)}
+                                    value={supplierName}
                                     onChange={handleSupplierChange}
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-700">
-                                    상품 선택 <span className="text-red-500">*</span>
-                                </label>
+                                <label className="block text-sm font-medium text-gray-700">상품 선택</label>
                                 <SelectInput
                                     defaultText="상품 선택"
-                                    options={supplierProducts.map((p) => p.name)}
+                                    options={productNames}
+                                    value={getProductNameById(selectedProductId)}
                                     onChange={handleProductChange}
-                                    disabled={!selectedSupplier}
+                                    disabled={products.length === 0}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-700">담당자</label>
+                                <SelectInput
+                                    defaultText="담당자 선택"
+                                    options={employees.map((e: any) => e.first_name || e.username)}
+                                    value={user?.first_name || user?.username || ''}
+                                    onChange={() => {}}
                                 />
                             </div>
                         </div>
+                        {/* 오른쪽: 발주 정보 */}
                         <div className="w-96 space-y-4">
                             <div className="flex items-center">
                                 <FiCalendar className="w-6 h-6 text-gray-900 mr-2" />
@@ -316,7 +349,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                             <button
                                 onClick={handleAddItem}
                                 className="px-3 py-1 bg-indigo-600 text-white rounded-md flex items-center text-sm font-medium"
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || !selectedProductId}
                             >
                                 <FiPlus className="w-3.5 h-3.5 mr-1" />
                                 항목 추가
@@ -329,7 +362,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                     <div className="h-8 flex">
                                         <div className="w-32 px-3 py-2 flex items-center">
                                             <span className="text-xs font-medium text-gray-500 uppercase">
-                                                품목명 <span className="text-red-500">*</span>
+                                                품목 <span className="text-red-500">*</span>
                                             </span>
                                         </div>
                                         <div className="w-32 px-3 py-2 flex items-center">
@@ -368,36 +401,11 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                         <div key={idx} className="h-14 flex border-t border-gray-200">
                                             <div className="w-32 px-3 py-3.5 flex items-center">
                                                 <SelectInput
-                                                    defaultText="품목명(Variant) 선택"
-                                                    options={productVariants.map((v) => v.option)}
-                                                    onChange={(option) => {
-                                                        let foundId = null;
-                                                        for (const product of allProducts) {
-                                                            const found = product.variants.find(
-                                                                (v) => v.option === String(option)
-                                                            );
-                                                            if (found) {
-                                                                foundId = found.id;
-                                                                break;
-                                                            }
-                                                        }
-                                                        console.log('선택된 옵션:', option, '→ id:', foundId);
-                                                        handleItemChange(idx, 'variant', foundId);
-                                                    }}
-                                                    value={
-                                                        item.variant
-                                                            ? (() => {
-                                                                  for (const product of allProducts) {
-                                                                      const found = product.variants.find(
-                                                                          (v) => v.id === item.variant
-                                                                      );
-                                                                      if (found) return found.option;
-                                                                  }
-                                                                  return '';
-                                                              })()
-                                                            : ''
-                                                    }
-                                                    disabled={!selectedProduct}
+                                                    defaultText="품목 선택"
+                                                    options={variantOptions.map((v: any) => v.option)}
+                                                    onChange={(option) => handleVariantChange(idx, option)}
+                                                    value={item.variant ?? ''}
+                                                    disabled={isSubmitting || !selectedProductId}
                                                 />
                                             </div>
                                             <div className="w-32 px-3 py-3.5 flex items-center">

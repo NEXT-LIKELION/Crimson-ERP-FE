@@ -1,15 +1,15 @@
 import api from './axios';
 
-export const fetchInventories = () => api.get('/inventory/items/');
+export const fetchInventories = () => api.get('/inventory/');
 export const updateInventoryItem = (productId: number, data: any) => {
-    return api.put(`/inventory/items/${productId}/`, data);
+    return api.put(`/inventory/${productId}/`, data);
 };
 
 export const updateInventoryVariant = (variantId: string, data: any) => {
     console.log('updateInventoryVariant - variantId:', variantId);
     console.log('updateInventoryVariant - data:', data);
     return api
-        .patch(`/inventory/items/variants/${variantId}/`, data)
+        .patch(`/inventory/variants/${variantId}/`, data)
         .then((response) => {
             console.log('updateInventoryVariant - response:', response.data);
             return response;
@@ -23,14 +23,14 @@ export const updateInventoryVariant = (variantId: string, data: any) => {
 export const createInventoryVariant = async (variantId: string, itemPayload: any) => {
     console.log('createInventoryVariant - variantId:', variantId);
     console.log('createInventoryVariant - itemPayload:', itemPayload);
-    const res = await api.post(`/inventory/items/variants/${variantId}/`, itemPayload);
+    const res = await api.post(`/inventory/variants/${variantId}/`, itemPayload);
     console.log('createInventoryVariant - response:', res.data);
     return res.data;
 }; // variant 생성
 
 export const createInventoryItem = async (itemPayload: any) => {
     console.log('createInventoryItem - itemPayload:', itemPayload);
-    const res = await api.post(`/inventory/items/`, itemPayload);
+    const res = await api.post(`/inventory/`, itemPayload);
     console.log('createInventoryItem - response:', res.data);
     return res.data;
 }; // 상품만 생성
@@ -42,7 +42,7 @@ export const createProductWithVariant = async (itemPayload: any) => {
 };
 
 export const checkProductIdExists = async (product_id: string) => {
-    const res = await api.get('/inventory/items/', {
+    const res = await api.get('/inventory/', {
         params: { product_id },
     });
     return res.data.length > 0; // (product_id) 중복 검사 -> 존재하면 true
@@ -53,8 +53,8 @@ export const checkProductIdExists = async (product_id: string) => {
  * @param productId  the InventoryItem.id to delete
  */
 export const deleteInventoryItem = async (productId: number) => {
-    const res = await api.delete(`/inventory/items/${productId}/`);
+    const res = await api.delete(`/inventory/${productId}/`);
     return res.data;
 };
 
-export const fetchVariantsByProductId = (productId: number) => api.get(`/inventory/items/${productId}/`);
+export const fetchVariantsByProductId = (productId: string) => api.get(`/inventory/items/${productId}/`);

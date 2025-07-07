@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { FiPrinter, FiPlus, FiSearch, FiLoader } from 'react-icons/fi';
+import { FiPrinter, FiPlus, FiSearch, FiLoader, FiRotateCcw } from 'react-icons/fi';
 import PrimaryButton from '../../components/button/PrimaryButton';
 import GreenButton from '../../components/button/GreenButton';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -11,6 +11,9 @@ import { Order, OrderStatus } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
 import { useOrder } from '../../hooks/queries/useOrder';
 import axios from '../../api/axios';
+import { deleteOrder, createOrder, fetchOrderById } from '../../api/orders';
+import { fetchInventories } from '../../api/inventory';
+import { fetchSuppliers } from '../../api/supplier';
 
 // 검색 필터 타입 정의
 interface SearchFilters {
@@ -28,33 +31,38 @@ const supplierMapping = {
     4: '서울프로모션',
 };
 
+// order_date를 YYYY-MM-DD로 변환
+function parseOrderDate(dateStr: string | undefined | null): string {
+    if (!dateStr) return '';
+    const match = dateStr.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+    if (match) {
+        const [, year, month, day] = match;
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    return dateStr; // 이미 포맷이 맞으면 그대로
+}
+
 const OrdersPage: React.FC = () => {
-    // 모달 상태
+    // 모든 Hook 선언을 최상단에 위치시킴
     const [isOrderDetailModalOpen, setIsOrderDetailModalOpen] = useState<boolean>(false);
     const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState<boolean>(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-
-    // 검색 입력값 상태 (입력창에 바로 반영)
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [deletedOrders, setDeletedOrders] = useState<any[]>([]);
     const [searchInputs, setSearchInputs] = useState<SearchFilters>({
         orderId: '',
         supplier: '',
         status: '모든 상태',
         dateRange: '전체 기간',
     });
-
-    // 검색 필터 상태
     const [searchFilters, setSearchFilters] = useState<SearchFilters>({
         orderId: '',
         supplier: '',
         status: '모든 상태',
         dateRange: '전체 기간',
     });
-
-    // 페이지네이션 상태
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [itemsPerPage, setItemsPerPage] = useState<number>(10);
-
-    // 디버깅을 위한 상태 추가
     const [debugInfo, setDebugInfo] = useState<{
         lastFetch: string;
         dataLength: number;
@@ -64,19 +72,12 @@ const OrdersPage: React.FC = () => {
         dataLength: 0,
         error: null,
     });
-
-    // API 훅 사용
     const { data, isLoading, isError, error, refetch } = useOrder();
-    const orders = useMemo(() => {
-        console.log('Orders data received:', data); // 디버깅 로그
-        return data?.data || [];
-    }, [data]);
-
-    // 사용자 권한 확인
     const user = useAuthStore((state) => state.user);
     const isManager = user?.role === '대표';
+    const [variantIdToCode, setVariantIdToCode] = useState<Record<number, string>>({});
+    const [supplierNameToId, setSupplierNameToId] = useState<Record<string, number>>({});
 
-    // 데이터 변경 감지 및 디버깅 정보 업데이트
     useEffect(() => {
         if (data) {
             setDebugInfo((prev) => ({
@@ -88,7 +89,6 @@ const OrdersPage: React.FC = () => {
         }
     }, [data]);
 
-    // 에러 발생 시 디버깅 정보 업데이트
     useEffect(() => {
         if (error) {
             console.error('Order fetch error:', error);
@@ -99,7 +99,36 @@ const OrdersPage: React.FC = () => {
         }
     }, [error]);
 
-    // 날짜 포맷팅 함수 추가
+    useEffect(() => {
+        if (data?.data) {
+            setOrders(data.data);
+        }
+    }, [data]);
+
+    useEffect(() => {
+        fetchInventories().then((res) => {
+            const mapping: Record<number, string> = {};
+            res.data.forEach((product: any) => {
+                (product.variants || []).forEach((variant: any) => {
+                    if (variant.id && variant.variant_code) {
+                        mapping[variant.id] = variant.variant_code;
+                    }
+                });
+            });
+            setVariantIdToCode(mapping);
+        });
+    }, []);
+
+    useEffect(() => {
+        fetchSuppliers().then((res) => {
+            const mapping: Record<string, number> = {};
+            res.data.forEach((supplier: any) => {
+                mapping[supplier.name] = supplier.id;
+            });
+            setSupplierNameToId(mapping);
+        });
+    }, []);
+
     const formatDate = useCallback((dateString: string) => {
         try {
             const date = new Date(dateString);
@@ -113,20 +142,21 @@ const OrdersPage: React.FC = () => {
         }
     }, []);
 
-    // 필터링된 주문 목록 (메모이제이션)
     const filteredOrders = useMemo(() => {
         console.log('Filtering orders:', { orders, searchFilters }); // 디버깅 로그
         let result = [...orders];
 
         if (searchFilters.orderId) {
             result = result.filter((order) =>
-                order.product_names?.some((name: string) => name.toLowerCase().includes(searchFilters.orderId.toLowerCase()))
+                order.product_names?.some((name: string) =>
+                    name.toLowerCase().includes(searchFilters.orderId.toLowerCase())
+                )
             );
         }
 
         // 공급업체 id로 필터링
         if (searchFilters.supplier) {
-            result = result.filter((order) => String(order.supplier_id) === searchFilters.supplier);
+            result = result.filter((order) => String(order.supplier) === searchFilters.supplier);
         }
 
         // 상태 필터링
@@ -170,26 +200,26 @@ const OrdersPage: React.FC = () => {
         }
 
         // 날짜 형식 변환
-        result = result.map((order) => ({
-            ...order,
-            order_date: formatDate(order.order_date),
-        }));
+        result = result.map(
+            (order) =>
+                ({
+                    ...order,
+                    order_date: order.order_date ? formatDate(order.order_date) : '',
+                } as Order)
+        );
 
         console.log('Filtered results:', result); // 디버깅 로그
         return result;
     }, [orders, searchFilters, formatDate]);
 
-    // 페이지네이션 로직
     const paginatedOrders = useMemo(() => {
         const indexOfLastItem = currentPage * itemsPerPage;
         const indexOfFirstItem = indexOfLastItem - itemsPerPage;
         return filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
     }, [filteredOrders, currentPage, itemsPerPage]);
 
-    // 총 페이지 수 계산
     const totalPages = useMemo(() => Math.ceil(filteredOrders.length / itemsPerPage), [filteredOrders, itemsPerPage]);
 
-    // 주문 승인 핸들러
     const handleApproveOrder = useCallback(
         async (orderId: number) => {
             try {
@@ -205,13 +235,11 @@ const OrdersPage: React.FC = () => {
         [refetch]
     );
 
-    // 주문 상세 모달 열기
     const handleOpenOrderDetail = useCallback((orderId: number) => {
         setSelectedOrderId(orderId);
         setIsOrderDetailModalOpen(true);
     }, []);
 
-    // 주문 인쇄 핸들러
     const handlePrintOrder = useCallback((order: Order) => {
         const printWindow = window.open('', '_blank');
         if (!printWindow) {
@@ -271,12 +299,10 @@ const OrdersPage: React.FC = () => {
         printWindow.document.close();
     }, []);
 
-    // 페이지 변경 핸들러
     const handlePageChange = useCallback((pageNumber: number) => {
         setCurrentPage(pageNumber);
     }, []);
 
-    // 필터 변경 핸들러
     const handleFilterChange = useCallback((key: keyof SearchFilters, value: string) => {
         setSearchFilters((prev) => ({
             ...prev,
@@ -285,28 +311,21 @@ const OrdersPage: React.FC = () => {
         setCurrentPage(1); // 필터 변경 시 첫 페이지로 리셋
     }, []);
 
-    // 검색 입력값 변경 핸들러
     const handleInputChange = (key: keyof SearchFilters, value: string) => {
         setSearchInputs((prev) => ({ ...prev, [key]: value }));
     };
 
-    // 검색 버튼 클릭 시에만 필터 적용
     const handleSearch = () => {
         setSearchFilters(searchInputs);
         setCurrentPage(1);
     };
 
-    // 새 주문 성공 핸들러
-    const handleNewOrderSuccess = useCallback(
-        async (newOrder: Order) => {
-            console.log('New order created:', newOrder); // 디버깅 로그
-            await refetch();
-            setIsNewOrderModalOpen(false);
-        },
-        [refetch]
-    );
+    const handleNewOrderSuccess = useCallback(async (newOrder: Order) => {
+        console.log('New order created:', newOrder); // 디버깅 로그
+        setOrders((prev) => [...prev, newOrder]);
+        setIsNewOrderModalOpen(false);
+    }, []);
 
-    // 상태 배지 렌더링
     const renderStatusBadge = useCallback((status: OrderStatus) => {
         switch (status) {
             case 'PENDING':
@@ -320,7 +339,6 @@ const OrdersPage: React.FC = () => {
         }
     }, []);
 
-    // 통화 포맷팅 함수 개선
     const formatCurrency = useCallback((amount: number | undefined) => {
         if (amount === undefined) {
             console.warn('Attempted to format undefined amount');
@@ -334,7 +352,67 @@ const OrdersPage: React.FC = () => {
         }
     }, []);
 
-    // 로딩 상태 UI 개선
+    const handleDeleteOrder = async (order: Order) => {
+        if (window.confirm('정말 삭제하시겠습니까?')) {
+            // 상세 데이터 fetch
+            const res = await fetchOrderById(order.id);
+            setDeletedOrders((prev) => [...prev, res.data]); // 여러 개 저장
+            await deleteOrder(order.id);
+            await refetch(); // 서버에서 최신 목록 다시 받아오기
+        }
+    };
+
+    const handleUndoDelete = async () => {
+        if (deletedOrders.length > 0) {
+            const lastDeletedOrder = deletedOrders[deletedOrders.length - 1];
+            let supplierId = lastDeletedOrder.supplier_id;
+            if (!supplierId) {
+                if (typeof lastDeletedOrder.supplier === 'number') {
+                    supplierId = lastDeletedOrder.supplier;
+                } else if (typeof lastDeletedOrder.supplier === 'string') {
+                    supplierId = supplierNameToId[lastDeletedOrder.supplier];
+                }
+            }
+            if (!supplierId || typeof supplierId !== 'number') {
+                alert('공급업체 id가 없어 복구할 수 없습니다.');
+                return;
+            }
+            const items = (lastDeletedOrder.items || []).map((item: any) => {
+                let code = item.variant_code;
+                if (!code && item.variant) {
+                    code = variantIdToCode[item.variant];
+                }
+                if (!code) {
+                    alert(`variant_code를 찾을 수 없습니다. (variant id: ${item.variant})`);
+                    throw new Error(`variant_code를 찾을 수 없습니다. (variant id: ${item.variant})`);
+                }
+                return {
+                    variant_code: code,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    remark: item.remark,
+                    spec: item.spec,
+                };
+            });
+            const payload = {
+                supplier: supplierId,
+                order_date: lastDeletedOrder.order_date,
+                expected_delivery_date: lastDeletedOrder.expected_delivery_date,
+                status: lastDeletedOrder.status,
+                instruction_note: lastDeletedOrder.instruction_note,
+                note: lastDeletedOrder.note,
+                vat_included: lastDeletedOrder.vat_included,
+                packaging_included: lastDeletedOrder.packaging_included,
+                manager_name: lastDeletedOrder.manager || user?.first_name || user?.username || '',
+                items,
+            };
+            await createOrder(payload);
+            await refetch();
+            setDeletedOrders((prev) => prev.slice(0, -1)); // 마지막 삭제 주문 pop
+        }
+    };
+
+    // 조건부 렌더링은 Hook 선언 이후에만 위치
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-full">
@@ -346,7 +424,6 @@ const OrdersPage: React.FC = () => {
         );
     }
 
-    // 에러 상태 UI 개선
     if (isError) {
         return (
             <div className="flex flex-col justify-center items-center h-full space-y-4">
@@ -373,12 +450,26 @@ const OrdersPage: React.FC = () => {
             {/* 페이지 헤더 */}
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-gray-900">발주 관리</h1>
-                <GreenButton
-                    text="새 발주 신청"
-                    icon={<FiPlus />}
-                    onClick={() => setIsNewOrderModalOpen(true)}
-                    aria-label="새 발주 신청"
-                />
+                <div className="flex gap-2 items-center">
+                    {deletedOrders.length > 0 && (
+                        <button
+                            onClick={handleUndoDelete}
+                            className={`inline-flex items-center justify-center h-10 px-4 py-2 rounded-md text-white text-sm font-medium leading-tight bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 transition-colors duration-200 ease-in-out`}
+                            style={{ fontFamily: 'inherit' }}
+                        >
+                            <span className="mr-2 w-4 h-4 flex items-center justify-center">
+                                <FiRotateCcw size={18} />
+                            </span>
+                            삭제 되돌리기
+                        </button>
+                    )}
+                    <GreenButton
+                        text="새 발주 신청"
+                        icon={<FiPlus />}
+                        onClick={() => setIsNewOrderModalOpen(true)}
+                        aria-label="새 발주 신청"
+                    />
+                </div>
             </div>
 
             {/* 검색 섹션 */}
@@ -501,14 +592,12 @@ const OrdersPage: React.FC = () => {
                                 >
                                     인쇄
                                 </th>
-                                {isManager && (
-                                    <th
-                                        scope="col"
-                                        className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center"
-                                    >
-                                        승인
-                                    </th>
-                                )}
+                                <th
+                                    scope="col"
+                                    className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center"
+                                >
+                                    삭제
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -562,42 +651,23 @@ const OrdersPage: React.FC = () => {
                                                     <FiPrinter className="w-4 h-4" />
                                                 </button>
                                             </td>
-                                            {isManager && (
-                                                <td className="px-6 py-3.5 text-center">
-                                                    {isPending ? (
-                                                        <button
-                                                            onClick={() => handleApproveOrder(order.id)}
-                                                            className="px-3 py-1 bg-green-600 rounded text-xs font-medium text-white flex items-center justify-center hover:bg-green-700 transition-colors"
-                                                            aria-label={`${
-                                                                order.product_names
-                                                                    ? order.product_names.join(', ')
-                                                                    : '-'
-                                                            } 승인`}
-                                                        >
-                                                            <span className="w-3 h-3 mr-1 relative">
-                                                                <span className="absolute inset-0 bg-white rounded-full transform scale-75"></span>
-                                                            </span>
-                                                            승인
-                                                        </button>
-                                                    ) : (
-                                                        <div className="px-5 text-green-600 text-xs font-medium flex items-center justify-center">
-                                                            <span className="w-4 h-4 mr-1 relative">
-                                                                <span className="absolute inset-0 bg-green-600 rounded-full transform scale-75"></span>
-                                                            </span>
-                                                            완료
-                                                        </div>
-                                                    )}
-                                                </td>
-                                            )}
+                                            <td className="px-6 py-3.5 text-center">
+                                                <button
+                                                    onClick={() => handleDeleteOrder(order)}
+                                                    className="px-3 py-1 bg-red-600 rounded text-xs font-medium text-white flex items-center justify-center hover:bg-red-700 transition-colors"
+                                                    aria-label={`${
+                                                        order.product_names ? order.product_names.join(', ') : '-'
+                                                    } 삭제`}
+                                                >
+                                                    삭제
+                                                </button>
+                                            </td>
                                         </tr>
                                     );
                                 })
                             ) : (
                                 <tr>
-                                    <td
-                                        colSpan={isManager ? 9 : 8}
-                                        className="px-4 py-8 text-sm text-gray-500 text-center"
-                                    >
+                                    <td colSpan={8} className="px-4 py-8 text-sm text-gray-500 text-center">
                                         검색 결과가 없습니다.
                                     </td>
                                 </tr>
@@ -679,7 +749,10 @@ const OrdersPage: React.FC = () => {
                 <NewOrderModal
                     isOpen={isNewOrderModalOpen}
                     onClose={() => setIsNewOrderModalOpen(false)}
-                    onSuccess={handleNewOrderSuccess}
+                    onSuccess={() => {
+                        refetch(); // 주문 생성 후 서버에서 최신 목록 받아오기
+                        setIsNewOrderModalOpen(false);
+                    }}
                 />
             )}
         </div>

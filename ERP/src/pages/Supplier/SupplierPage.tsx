@@ -194,7 +194,7 @@ const SupplierDetailModal = ({
         const edit = variantEdits[variant.id] || { cost_price: variant.cost_price, is_primary: variant.is_primary };
         setSavingId(variant.id);
         try {
-            await axios.patch(`/supplier/variant/${variant.id}/`, {
+            await axios.patch(`/supplier/variant/${supplierId}/${variant.variant_code}/`, {
                 cost_price: edit.cost_price,
                 is_primary: edit.is_primary,
             });
