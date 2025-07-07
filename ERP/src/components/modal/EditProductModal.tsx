@@ -71,7 +71,13 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
         const errs = [];
         if (!form.name?.trim()) errs.push('상품명을 입력해주세요.');
         if (!form.price || isNaN(Number(form.price))) errs.push('판매가는 숫자여야 합니다.');
-        if (!form.cost_price || isNaN(Number(form.cost_price))) errs.push('매입가는 숫자여야 합니다.');
+        if (form.cost_price === '' || isNaN(Number(form.cost_price))) {
+            errs.push('매입가는 숫자여야 합니다.');
+        }
+        // 공급업체 필수 안내
+        if (!form.suppliers || form.suppliers.length === 0 || !form.suppliers[0].supplier_name) {
+            errs.push('공급업체 정보는 상품 수정 시 필수입니다.');
+        }
         if (errs.length > 0) {
             setErrors(errs);
             return;
@@ -82,10 +88,22 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
             : Math.max(0, form.stock - adjustQty);
 
         const updated = {
-            ...form,
+            variant_id: form.variant_id,
             product_id: form.product_id,
+            name: form.name,
+            option: form.option,
             stock: adjustedStock,
+            price: form.price,
+            min_stock: form.min_stock,
+            description: form.description,
+            memo: form.memo,
+            suppliers: form.suppliers.map((s) => ({
+                supplier_name: s.supplier_name,
+                cost_price: s.cost_price,
+                is_primary: s.is_primary,
+            })),
         };
+
         onSave(updated);
         onClose();
     };
@@ -95,9 +113,11 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
             setForm({
                 ...product,
                 product_id: product.product_id ?? '',
+                description: product.description || '',
+                memo: product.memo || '',
                 suppliers: product.suppliers?.map((s: any) => ({
                     supplier_name: s.name,
-                    cost_price: Number(product.cost_price) || 0,
+                    cost_price: s.cost_price ?? 0,
                     is_primary: s.is_primary,
                 })) || [{ supplier_name: '', cost_price: 0, is_primary: false }],
             });
@@ -208,18 +228,19 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
 
                         <div className="space-y-4">
                             {form.suppliers.map((supplier, index) => (
-                                <div key={index} className="border border-gray-200 p-4 rounded-md bg-gray-50 space-y-2">
+                                <div key={index} className="border border-gray-300 p-4 rounded-md bg-white space-y-2">
                                     <SelectInput
                                         label="공급업체"
                                         value={supplier.supplier_name}
                                         options={['넥스트물류', 'LG트레이딩', '삼성상사', '대한유통']}
                                         onChange={(val) => handleSupplierChange(index, 'supplier_name', val)}
                                     />
-                                    <TextInput
-                                        label="매입가"
-                                        value={supplier.cost_price?.toString() || ''}
-                                        onChange={(val) => handleSupplierChange(index, 'cost_price', Number(val))}
-                                    />
+                                    {/* cost_price 필드는 백엔드에 전달은 되지만 UI에서는 숨김 */}
+                                    {/* <TextInput
+                label="매입가"
+                value={supplier.cost_price?.toString() || ''}
+                onChange={(val) => handleSupplierChange(index, 'cost_price', Number(val))}
+            /> */}
                                     <label className="inline-flex items-center text-sm text-gray-600">
                                         <input
                                             type="checkbox"
@@ -231,20 +252,15 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
                                         />
                                         주요 공급자 여부
                                     </label>
-                                    <button
-                                        onClick={() => handleRemoveSupplier(index)}
-                                        className="text-xs text-red-500 hover:underline ml-2"
-                                    >
-                                        삭제
-                                    </button>
                                 </div>
                             ))}
-                            <button
-                                onClick={handleAddSupplier}
-                                className="text-sm text-indigo-600 hover:underline mt-2"
-                            >
-                                + 공급업체 추가
-                            </button>
+                            {/* 공급업체 추가 버튼 제거 */}
+                            {/* <button
+        onClick={handleAddSupplier}
+        className="text-sm text-indigo-600 hover:underline mt-2"
+    >
+        + 공급업체 추가
+    </button> */}
                         </div>
 
                         <div>

@@ -5,6 +5,7 @@ import { MdFilterList, MdOutlineDownload } from 'react-icons/md';
 import { RxCaretSort } from 'react-icons/rx';
 import { useNavigate } from 'react-router-dom';
 import { Product } from '../../types/product';
+import { MdRestore } from 'react-icons/md';
 
 // Custom type for table data with string variant_id
 interface TableProduct extends Omit<Product, 'variant_id'> {
@@ -14,7 +15,6 @@ interface TableProduct extends Omit<Product, 'variant_id'> {
     totalSales: string;
 }
 
-// props 타입 추가
 interface InventoryTableProps {
     inventories: Product[];
     onDelete: (productId: string) => Promise<void>;
@@ -24,6 +24,8 @@ interface InventoryTableProps {
         minSales?: string;
         maxSales?: string;
     };
+    deletedVariant?: Product | null;
+    onUndoDelete?: () => void;
 }
 
 // 정렬 가능한 헤더 컴포넌트
@@ -46,7 +48,7 @@ const SortableHeader = ({
     </th>
 );
 
-const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps) => {
+const InventoryTable = ({ inventories, onDelete, filters, deletedVariant, onUndoDelete }: InventoryTableProps) => {
     const navigate = useNavigate();
     const [data, setData] = useState<TableProduct[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -112,9 +114,7 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
 
                 // 판매합계 필터
                 if (filters.minSales || filters.maxSales) {
-                    // totalSales에서 숫자 추출 (예: "1000원" -> 1000)
-                    const salesMatch = row.totalSales.match(/(\d+)/);
-                    const salesValue = salesMatch ? parseInt(salesMatch[1]) : 0;
+                    const salesValue = Number(row.totalSales.replace(/[^\d]/g, '')) || 0;
 
                     if (filters.minSales && salesValue < parseInt(filters.minSales)) {
                         return false;
@@ -255,7 +255,7 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
                                 <td className="px-4 py-2">{product.orderCount}개</td>
                                 <td className="px-4 py-2">{product.returnCount}개</td>
                                 <td className="px-4 py-2">{product.totalSales}</td>
-                                <td className="px-4 py-2 flex space-x-2">
+                                <td className="px-4 py-2 flex space-x-2 items-center">
                                     <MdOutlineEdit
                                         className="text-indigo-500 cursor-pointer"
                                         onClick={() => {
@@ -266,6 +266,13 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
                                         className="text-red-500 cursor-pointer"
                                         onClick={() => onDelete(product.variant_id)}
                                     />
+                                    {String(deletedVariant?.variant_id) === product.variant_id && (
+                                        <MdRestore
+                                            className="text-yellow-600 cursor-pointer"
+                                            onClick={onUndoDelete}
+                                            title="삭제 취소"
+                                        />
+                                    )}
                                 </td>
                             </tr>
                         ))}
