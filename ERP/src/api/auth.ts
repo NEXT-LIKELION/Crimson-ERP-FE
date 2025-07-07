@@ -1,11 +1,16 @@
 import { api } from './axios';
+import { getCookie } from '../utils/cookies';
 
 // 로그인
 export const login = (payload: { username: string; password: string }) => api.post('/authentication/login/', payload);
 
 // 회원가입
 export const signup = (payload: { username: string; password: string; email?: string }) =>
-    api.post('/authentication/signup/', payload);
+    api.post('/authentication/signup/', {
+        ...payload,
+        full_name: '홍길동', // ← 하드코딩 또는 form 입력값
+        contact: '010-1234-5678', // ← 하드코딩 또는 form 입력값
+    });
 
 // 토큰 유효성 검증
 export const verifyToken = () => api.get('/authentication/verify/');
@@ -16,7 +21,6 @@ export const getCurrentUser = () => api.get('/authentication/me/');
 // 로그아웃
 export const logout = () => {
     // 쿠키에서 refresh 토큰 가져오기
-    const { getCookie } = require('../utils/cookies');
     const refreshToken = getCookie('refreshToken') || localStorage.getItem('refresh');
 
     if (!refreshToken) {
@@ -27,5 +31,4 @@ export const logout = () => {
     return api.post('/authentication/logout/', {
         refresh_token: refreshToken,
     });
-
 };
