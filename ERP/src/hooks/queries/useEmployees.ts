@@ -3,9 +3,11 @@ import {
     fetchEmployees,
     fetchEmployee,
     updateEmployee,
+    patchEmployee,
     terminateEmployee,
-    Employee,
-    EmployeeUpdateData,
+    type Employee,
+    type EmployeeUpdateData,
+    type EmployeePatchData,
 } from '../../api/hr';
 
 // 직원 목록 조회 훅
@@ -33,6 +35,20 @@ export const useUpdateEmployee = () => {
     return useMutation({
         mutationFn: ({ employeeId, data }: { employeeId: number; data: EmployeeUpdateData }) =>
             updateEmployee(employeeId, data),
+        onSuccess: (_, { employeeId }) => {
+            queryClient.invalidateQueries({ queryKey: ['employees'] });
+            queryClient.invalidateQueries({ queryKey: ['employee', employeeId] });
+        },
+    });
+};
+
+// 직원 정보 부분 수정 뮤테이션 훅 (PATCH)
+export const usePatchEmployee = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ employeeId, data }: { employeeId: number; data: EmployeePatchData }) =>
+            patchEmployee(employeeId, data),
         onSuccess: (_, { employeeId }) => {
             queryClient.invalidateQueries({ queryKey: ['employees'] });
             queryClient.invalidateQueries({ queryKey: ['employee', employeeId] });
