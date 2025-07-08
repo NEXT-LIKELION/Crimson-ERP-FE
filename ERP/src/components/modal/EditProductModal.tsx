@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { FiX, FiAlertTriangle } from 'react-icons/fi';
 import TextInput from '../input/TextInput';
 import SelectInput from '../input/SelectInput';
-import { FaBoxArchive, FaClipboardList, FaFileCircleCheck } from 'react-icons/fa6';
+import { FaBoxArchive, FaClipboardList } from 'react-icons/fa6';
 import { BsCoin } from 'react-icons/bs';
+
 interface EditProductModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -11,32 +12,72 @@ interface EditProductModalProps {
     onSave: (product: any) => void;
 }
 
+interface SupplierForm {
+    supplier_name: string;
+    cost_price: number;
+    is_primary: boolean;
+}
+
+interface EditForm {
+    product_id: string;
+    name: string;
+    variant_id?: number | string;
+    option?: string;
+    stock: number;
+    min_stock?: number;
+    price?: number | string;
+    cost_price?: number | string;
+    description?: string;
+    memo?: string;
+    suppliers: SupplierForm[];
+}
+
 const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModalProps) => {
-    const [form, setForm] = useState({ ...product });
+    const [form, setForm] = useState<EditForm>({
+        ...product,
+        suppliers: product.suppliers || [{ supplier_name: '', cost_price: 0, is_primary: false }],
+    });
     const [adjustQty, setAdjustQty] = useState(0);
     const [adjustType, setAdjustType] = useState('입고 (증가)');
     const [adjustReason, setAdjustReason] = useState('신규 입고');
     const [errors, setErrors] = useState<string[]>([]);
 
-    useEffect(() => {
-        if (isOpen && product) {
-            setForm({ ...product, product_id: product.product_id ?? '' });
-            setAdjustQty(0);
-            setAdjustType('입고 (증가)');
-            setAdjustReason('신규 입고');
-            setErrors([]);
-        }
-    }, [isOpen, product]);
+    const handleRemoveSupplier = (index: number) => {
+        setForm((prev: EditForm) => {
+            const updatedSuppliers = [...prev.suppliers];
+            updatedSuppliers.splice(index, 1);
+            return { ...prev, suppliers: updatedSuppliers };
+        });
+    };
 
     const handleChange = (field: string, value: string | number) => {
         setForm((prev: any) => ({ ...prev, [field]: value }));
+    };
+
+    const handleSupplierChange = (index: number, field: keyof SupplierForm, value: any) => {
+        const newSuppliers = [...form.suppliers];
+        newSuppliers[index] = { ...newSuppliers[index], [field]: value };
+        setForm((prev) => ({ ...prev, suppliers: newSuppliers }));
+    };
+
+    const handleAddSupplier = () => {
+        setForm((prev: EditForm) => ({
+            ...prev,
+            suppliers: [...prev.suppliers, { supplier_name: '', cost_price: 0, is_primary: false }],
+        }));
     };
 
     const handleSubmit = () => {
         const errs = [];
         if (!form.name?.trim()) errs.push('상품명을 입력해주세요.');
         if (!form.price || isNaN(Number(form.price))) errs.push('판매가는 숫자여야 합니다.');
-        if (!form.cost_price || isNaN(Number(form.cost_price))) errs.push('매입가는 숫자여야 합니다.');
+        if (form.cost_price === '' || isNaN(Number(form.cost_price))) {
+            errs.push('매입가는 숫자여야 합니다.');
+        }
+        // 공급업체 필수 안내
+        if (!form.suppliers || form.suppliers.length === 0 || !form.suppliers[0].supplier_name) {
+            errs.push('공급업체 정보는 상품 수정 시 필수입니다.');
+        }
         if (errs.length > 0) {
             setErrors(errs);
             return;
@@ -47,13 +88,45 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
             : Math.max(0, form.stock - adjustQty);
 
         const updated = {
-            ...form,
+            variant_id: form.variant_id,
             product_id: form.product_id,
+            name: form.name,
+            option: form.option,
             stock: adjustedStock,
+            price: form.price,
+            min_stock: form.min_stock,
+            description: form.description,
+            memo: form.memo,
+            suppliers: form.suppliers.map((s) => ({
+                supplier_name: s.supplier_name,
+                cost_price: s.cost_price,
+                is_primary: s.is_primary,
+            })),
         };
+
         onSave(updated);
         onClose();
     };
+
+    useEffect(() => {
+        if (isOpen && product) {
+            setForm({
+                ...product,
+                product_id: product.product_id ?? '',
+                description: product.description || '',
+                memo: product.memo || '',
+                suppliers: product.suppliers?.map((s: any) => ({
+                    supplier_name: s.name,
+                    cost_price: s.cost_price ?? 0,
+                    is_primary: s.is_primary,
+                })) || [{ supplier_name: '', cost_price: 0, is_primary: false }],
+            });
+            setAdjustQty(0);
+            setAdjustType('입고 (증가)');
+            setAdjustReason('신규 입고');
+            setErrors([]);
+        }
+    }, [isOpen, product]);
 
     if (!isOpen || !product) return null;
 
@@ -90,15 +163,8 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
                                 <h3 className="text-md font-semibold">기본 정보</h3>
                             </div>
                             <div className="space-y-4">
-                                <div>
-                                    <TextInput label="상품코드" value={form.product_id} disabled />
-                                    <p className="text-xs text-gray-500 mt-1">상품코드는 변경할 수 없습니다.</p>
-                                </div>
-                                <div>
-                                    <TextInput label="품목코드" value={form.variant_id || ''} disabled />
-                                    <p className="text-xs text-gray-500 mt-1">상품코드는 변경할 수 없습니다.</p>
-                                </div>
-
+                                <TextInput label="상품코드" value={form.product_id} disabled />
+                                <TextInput label="품목코드" value={form.variant_id?.toString() || ''} disabled />
                                 <TextInput
                                     label="상품명"
                                     value={form.name || ''}
@@ -120,12 +186,12 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
                             <div className="space-y-4">
                                 <TextInput
                                     label="판매가"
-                                    value={form.price || ''}
+                                    value={form.price?.toString() || ''}
                                     onChange={(val) => handleChange('price', val)}
                                 />
                                 <TextInput
                                     label="매입가"
-                                    value={form.cost_price || ''}
+                                    value={form.cost_price?.toString() || ''}
                                     onChange={(val) => handleChange('cost_price', Number(val))}
                                 />
                                 <TextInput
@@ -134,17 +200,14 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
                                     value={form.stock?.toString() || '0'}
                                     onChange={(val) => handleChange('stock', Number(val))}
                                 />
-
-                                <div>
-                                    <TextInput
-                                        label="최소 재고"
-                                        value={form.min_stock || ''}
-                                        onChange={(val) => handleChange('min_stock', val)}
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        재고가 이 수준 이하로 떨어지면 경고가 표시됩니다.
-                                    </p>
-                                </div>
+                                <TextInput
+                                    label="최소 재고"
+                                    value={form.min_stock?.toString() || ''}
+                                    onChange={(val) => handleChange('min_stock', val)}
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    재고가 이 수준 이하로 떨어지면 경고가 표시됩니다.
+                                </p>
                             </div>
                         </section>
                     </div>
@@ -154,43 +217,74 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
                             <FaClipboardList className="text-indigo-500" />
                             <h3 className="text-md font-semibold">추가 정보</h3>
                         </div>
+
+                        <label className="text-sm text-gray-600">상품 설명</label>
+                        <textarea
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                            rows={3}
+                            value={form.description || ''}
+                            onChange={(e) => handleChange('description', e.target.value)}
+                        />
+
                         <div className="space-y-4">
-                            <label className="text-sm text-gray-600">상품 설명</label>
+                            {form.suppliers.map((supplier, index) => (
+                                <div key={index} className="border border-gray-300 p-4 rounded-md bg-white space-y-2">
+                                    <SelectInput
+                                        label="공급업체"
+                                        value={supplier.supplier_name}
+                                        options={['넥스트물류', 'LG트레이딩', '삼성상사', '대한유통']}
+                                        onChange={(val) => handleSupplierChange(index, 'supplier_name', val)}
+                                    />
+                                    {/* cost_price 필드는 백엔드에 전달은 되지만 UI에서는 숨김 */}
+                                    {/* <TextInput
+                label="매입가"
+                value={supplier.cost_price?.toString() || ''}
+                onChange={(val) => handleSupplierChange(index, 'cost_price', Number(val))}
+            /> */}
+                                    <label className="inline-flex items-center text-sm text-gray-600">
+                                        <input
+                                            type="checkbox"
+                                            className="mr-2"
+                                            checked={supplier.is_primary}
+                                            onChange={(e) =>
+                                                handleSupplierChange(index, 'is_primary', e.target.checked)
+                                            }
+                                        />
+                                        주요 공급자 여부
+                                    </label>
+                                </div>
+                            ))}
+                            {/* 공급업체 추가 버튼 제거 */}
+                            {/* <button
+        onClick={handleAddSupplier}
+        className="text-sm text-indigo-600 hover:underline mt-2"
+    >
+        + 공급업체 추가
+    </button> */}
+                        </div>
+
+                        <div>
+                            <label className="text-sm text-gray-600">관리자 메모</label>
                             <textarea
                                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                                 rows={3}
-                                value={form.description || ''}
-                                onChange={(e) => handleChange('description', e.target.value)}
+                                value={form.memo || ''}
+                                onChange={(e) => handleChange('memo', e.target.value)}
                             />
-                            <TextInput
-                                //여기는 table로 추후에 표시할 것
-                                label="공급업체 정보"
-                                value={form.supplier || ''}
-                                onChange={(val) => handleChange('supplier', val)}
-                            />
-                            <div>
-                                <label className="text-sm text-gray-600">관리자 메모</label>
-                                <textarea
-                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                    rows={3}
-                                    value={form.memo || ''}
-                                    onChange={(e) => handleChange('memo', e.target.value)}
-                                />
-                            </div>
                         </div>
                     </section>
-                </div>
 
-                <div className="px-6 py-4 border-t border-gray-300 flex justify-end gap-3">
-                    <button onClick={onClose} className="px-4 py-2 text-gray-700 border rounded-md">
-                        취소
-                    </button>
-                    <button
-                        onClick={handleSubmit}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-                    >
-                        저장하기
-                    </button>
+                    <div className="px-6 py-4 border-t border-gray-300 flex justify-end gap-3">
+                        <button onClick={onClose} className="px-4 py-2 text-gray-700 border rounded-md">
+                            취소
+                        </button>
+                        <button
+                            onClick={handleSubmit}
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                        >
+                            저장하기
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

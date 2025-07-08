@@ -3,6 +3,8 @@ import TextInput from '../input/TextInput';
 import SelectInput from '../input/SelectInput';
 import PrimaryButton from '../button/PrimaryButton';
 import { MdSearch, MdRefresh } from 'react-icons/md';
+import Slider from 'rc-slider';
+import 'rc-slider/assets/index.css';
 
 interface InputFieldProps {
     productName: string;
@@ -57,24 +59,28 @@ const InputField: React.FC<InputFieldProps> = ({
                         onChange={onStatusChange}
                     />
                 </div>
-                <div className="flex flex-col">
-                    <p className="text-sm font-semibold text-gray-700">판매합계</p>
-                    <div className="flex items-center space-x-2">
-                        <TextInput
-                            placeholder="최소값"
-                            type="number"
-                            value={minSales}
-                            onChange={onMinSalesChange}
-                            onKeyDown={handleKeyDown}
-                        />
-                        <span className="text-gray-500">~</span>
-                        <TextInput
-                            placeholder="최대값"
-                            type="number"
-                            value={maxSales}
-                            onChange={onMaxSalesChange}
-                            onKeyDown={handleKeyDown}
-                        />
+                <div className="flex flex-col w-72">
+                    <p className="text-sm font-semibold text-gray-700 mb-1">판매합계</p>
+                    <Slider
+                        range
+                        min={0}
+                        max={1000000}
+                        step={10000}
+                        defaultValue={[Number(minSales), Number(maxSales)]}
+                        onChange={(value) => {
+                            const [min, max] = value as number[];
+                            onMinSalesChange(min.toString());
+                            onMaxSalesChange(max.toString());
+                        }}
+                        trackStyle={[{ backgroundColor: '#2563eb' }]} // 파란색
+                        handleStyle={[
+                            { borderColor: '#2563eb', backgroundColor: '#2563eb' },
+                            { borderColor: '#2563eb', backgroundColor: '#2563eb' },
+                        ]}
+                    />
+                    <div className="flex justify-between text-sm text-gray-600 mt-1 px-1">
+                        <span>{Number(minSales).toLocaleString()}원</span>
+                        <span>{Number(maxSales).toLocaleString()}원</span>
                     </div>
                 </div>
             </div>

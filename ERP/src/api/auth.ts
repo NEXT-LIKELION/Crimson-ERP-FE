@@ -1,4 +1,5 @@
 import { api } from './axios';
+import { getCookie } from '../utils/cookies';
 
 // 로그인
 export const login = (payload: { username: string; password: string }) => api.post('/authentication/login/', payload);
@@ -12,6 +13,7 @@ export const signup = (payload: {
     contact: string;
 }) => api.post('/authentication/signup/', payload);
 
+
 // 토큰 유효성 검증
 export const verifyToken = () => api.get('/authentication/verify/');
 
@@ -21,7 +23,6 @@ export const getCurrentUser = () => api.get('/authentication/me/');
 // 로그아웃
 export const logout = () => {
     // 쿠키에서 refresh 토큰 가져오기
-    const { getCookie } = require('../utils/cookies');
     const refreshToken = getCookie('refreshToken') || localStorage.getItem('refresh');
 
     if (!refreshToken) {
