@@ -22,7 +22,7 @@ export interface Product {
     category?: string;
     categoryCode?: string;
     description?: string;
-    supplier?: string;
+    suppliers?: { name: string; is_primary: boolean }[];
     memo?: string;
     stock: number;
     min_stock?: number;

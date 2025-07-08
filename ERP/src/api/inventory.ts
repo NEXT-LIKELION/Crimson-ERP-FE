@@ -1,6 +1,6 @@
 import api from './axios';
 
-export const fetchInventories = () => api.get('/inventory/');
+export const fetchInventories = () => api.get('/inventory/items/');
 export const updateInventoryItem = (productId: number, data: any) => {
     return api.put(`/inventory/${productId}/`, data);
 };
@@ -20,14 +20,10 @@ export const updateInventoryVariant = (variantId: string, data: any) => {
         });
 };
 
-export const createInventoryVariant = async (variantId: string, itemPayload: any) => {
-    console.log('createInventoryVariant - variantId:', variantId);
-    console.log('createInventoryVariant - itemPayload:', itemPayload);
-    const res = await api.post(`/inventory/variants/${variantId}/`, itemPayload);
-    console.log('createInventoryVariant - response:', res.data);
+export const createInventoryVariant = async (itemPayload: any) => {
+    const res = await api.post(`/inventory/items/variants/`, itemPayload);
     return res.data;
-}; // variant 생성
-
+};
 export const createInventoryItem = async (itemPayload: any) => {
     console.log('createInventoryItem - itemPayload:', itemPayload);
     const res = await api.post(`/inventory/`, itemPayload);
@@ -52,9 +48,8 @@ export const checkProductIdExists = async (product_id: string) => {
  * Delete an InventoryItem (and its variants via cascade).
  * @param productId  the InventoryItem.id to delete
  */
-export const deleteInventoryItem = async (productId: number) => {
-    const res = await api.delete(`/inventory/${productId}/`);
-    return res.data;
+export const deleteProductVariant = async (variantCode: string) => {
+    return api.delete(`/inventory/items/variants/${variantCode}/`);
 };
 
 export const fetchVariantsByProductId = (productId: string) => api.get(`/inventory/items/${productId}/`);
