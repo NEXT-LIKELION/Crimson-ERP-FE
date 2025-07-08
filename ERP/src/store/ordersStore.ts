@@ -1,7 +1,7 @@
 // src/store/ordersStore.ts
-import { create } from "zustand";
+import { create } from 'zustand';
 
-export type OrderStatus = "PENDING" | "APPROVED" | "CANCELLED";
+export type OrderStatus = 'PENDING' | 'APPROVED' | 'CANCELLED';
 
 export interface OrderItem {
     id: number;
@@ -16,21 +16,14 @@ export interface OrderItem {
 
 export interface Order {
     id: number;
-    variant_id: string;
-    variant: {
-        id: number;
-        product_id: string;
-        name: string;
-        created_at: string;
-    };
-    supplier_id: number;
-    quantity: number;
-    status: OrderStatus;
+    supplier: string;
+    manager: string;
+    status: 'PENDING' | 'APPROVED' | 'CANCELLED';
+    note: string;
     order_date: string;
-    // Legacy fields for backward compatibility
-    productName?: string;
-    totalAmount?: number;
-    manager?: string;
+    total_quantity: number;
+    total_price: number;
+    product_names: string[];
 }
 
 interface OrdersState {
@@ -48,9 +41,7 @@ export const useOrdersStore = create<OrdersState>((set) => ({
         })),
     updateOrder: (id, updatedOrder) =>
         set((state) => ({
-            orders: state.orders.map((order) =>
-                order.id === id ? { ...order, ...updatedOrder } : order
-            ),
+            orders: state.orders.map((order) => (order.id === id ? { ...order, ...updatedOrder } : order)),
         })),
     deleteOrder: (id) =>
         set((state) => ({

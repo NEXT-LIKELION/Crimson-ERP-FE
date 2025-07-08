@@ -21,18 +21,20 @@ export const terminateEmployee = (employeeId: number) =>
 // 대시보드 데이터 조회
 export const fetchDashboardData = () => api.get('/');
 
+// 직원 승인/거절
+export const approveEmployee = (username: string, status: 'approved' | 'denied') =>
+    api.post('/authentication/approve/', { username, status });
+
 // 백엔드 API 응답에 맞는 Employee 타입
 export interface Employee {
     id: number;
     username: string;
     email: string;
     role: string;
+    status: 'APPROVED' | 'DENIED';
     contact: string;
     status: string;
     first_name: string;
-    is_active: boolean;
-    date_joined: string;
-    last_login?: string | null;
 }
 
 // 프론트엔드에서 사용할 매핑된 Employee 타입
@@ -43,7 +45,7 @@ export interface MappedEmployee {
     department: string;
     email: string;
     phone: string;
-    status: 'active' | 'terminated';
+    status: 'APPROVED' | 'DENIED';
     hire_date: string;
     created_at: string;
     updated_at: string;
@@ -53,7 +55,7 @@ export interface EmployeeUpdateData {
     role?: string;
     email?: string;
     contact?: string;
-    status?: 'active' | 'terminated';
+    status?: 'APPROVED' | 'DENIED';
 }
 
 // PATCH 엔드포인트용 데이터 타입

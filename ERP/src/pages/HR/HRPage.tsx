@@ -7,11 +7,11 @@ import SelectInput from '../../components/input/SelectInput';
 import EmployeeDetailsModal from '../../components/modal/EmployeeDetailsModal';
 import EmployeeContractModal from '../../components/modal/EmployeeContractModal';
 import { useEmployees, useUpdateEmployee, useTerminateEmployee } from '../../hooks/queries/useEmployees';
-import { Employee, MappedEmployee } from '../../api/hr';
+import { Employee, approveEmployee } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
 
 // 직원 상태 타입
-type EmployeeStatus = 'active' | 'vacation' | 'leave' | 'terminated';
+type EmployeeStatus = 'active' | 'vacation' | 'leave' | 'terminated' | 'denied';
 
 // 랜덤 이모지 생성 함수
 const getRandomEmoji = (employeeId: number): string => {
@@ -70,15 +70,31 @@ const mapRoleToKorean = (role: string): string => {
     }
 };
 
+// 프론트엔드에서 사용할 매핑된 Employee 타입
+export interface MappedEmployee {
+    id: number;
+    name: string;
+    role: string; // 추가: 영문 role(MANAGER/STAFF)
+    position: string;
+    department: string;
+    email: string;
+    phone: string;
+    status: 'active' | 'terminated' | 'denied';
+    hire_date: string;
+    created_at: string;
+    updated_at: string;
+}
+
 // 백엔드 Employee를 프론트엔드 MappedEmployee로 변환
 const mapEmployeeData = (emp: Employee): MappedEmployee => ({
     id: emp.id,
     name: emp.username,
+    role: emp.role, // 추가
     position: mapRoleToKorean(emp.role),
     department: emp.role === 'MANAGER' ? '경영진' : '일반', // 부서 정보가 없으므로 role 기반으로 설정
     email: emp.email,
     phone: emp.contact || '',
-    status: emp.is_active ? 'active' : 'terminated', // is_active 기반으로 status 결정
+    status: emp.status, // status를 그대로 사용
     hire_date: emp.date_joined,
     created_at: '',
     updated_at: '',
@@ -87,7 +103,7 @@ const mapEmployeeData = (emp: Employee): MappedEmployee => ({
 const HRPage: React.FC = () => {
     // 현재 로그인한 사용자 정보
     const currentUser = useAuthStore((state) => state.user);
-    const isAdmin = currentUser?.role === '대표';
+    const isAdmin = currentUser?.role === 'MANAGER';
 
     // API 훅 사용
     const { data: employeesData, isLoading, error } = useEmployees();
@@ -173,6 +189,8 @@ const HRPage: React.FC = () => {
 
     // 직원 카드 컴포넌트
     const EmployeeCard: React.FC<{ employee: MappedEmployee }> = ({ employee }) => {
+        console.log('employee:', employee);
+        console.log('isAdmin:', isAdmin, 'currentUser:', currentUser);
         const isTerminated = employee.status === 'terminated';
         const isCurrentUser = currentUser?.username === employee.name; // 현재 로그인한 사용자와 같은지 확인
 
@@ -187,6 +205,8 @@ const HRPage: React.FC = () => {
                     return <StatusBadge text="휴직중" theme="pending" />;
                 case 'terminated':
                     return <StatusBadge text="퇴사" theme="rejected" />;
+                case 'denied':
+                    return <StatusBadge text="승인 대기" theme="pending" />;
                 default:
                     return <StatusBadge text="재직중" theme="active" />;
             }
@@ -237,14 +257,18 @@ const HRPage: React.FC = () => {
 
         return (
             <div
-                className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 ${cardOpacity} ${isTerminated ? 'bg-gray-50' : ''}`}
+                className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 ${cardOpacity} ${
+                    isTerminated ? 'bg-gray-50' : ''
+                }`}
             >
                 {/* 카드 상단 영역 */}
                 <div className="p-6">
                     <div className="flex items-start space-x-4">
                         {/* 프로필 이모지 */}
                         <div
-                            className={`pointer-events-none w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center text-5xl ${isTerminated ? 'grayscale' : ''}`}
+                            className={`pointer-events-none w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center text-5xl ${
+                                isTerminated ? 'grayscale' : ''
+                            }`}
                         >
                             {getRandomEmoji(employee.id)}
                         </div>
@@ -254,7 +278,9 @@ const HRPage: React.FC = () => {
                             <div className="flex items-start justify-between mb-2">
                                 <div>
                                     <h3
-                                        className={`mb-10 text-lg font-semibold truncate ${textOpacity} ${isTerminated ? 'line-through' : ''}`}
+                                        className={`mb-10 text-lg font-semibold truncate ${textOpacity} ${
+                                            isTerminated ? 'line-through' : ''
+                                        }`}
                                     >
                                         {employee.name}
                                     </h3>
@@ -299,6 +325,53 @@ const HRPage: React.FC = () => {
                                 퇴사
                             </button>
                         )}
+                        {isAdmin && employee.role === 'STAFF' && !isTerminated && (
+                            <>
+                                {employee.status === 'denied' ? (
+                                    <button
+                                        className="px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center text-sm font-medium hover:bg-green-100 hover:border-green-300 transition-all duration-200 shadow-sm"
+                                        onClick={async () => {
+                                            try {
+                                                await approveEmployee(employee.name, 'approved');
+                                                setEmployees((prev) =>
+                                                    prev.map((emp) =>
+                                                        emp.id === employee.id
+                                                            ? { ...emp, status: 'active' as const }
+                                                            : emp
+                                                    )
+                                                );
+                                                alert('승인 완료!');
+                                            } catch (e: any) {
+                                                alert(e?.response?.data?.error || '승인 실패');
+                                            }
+                                        }}
+                                    >
+                                        승인
+                                    </button>
+                                ) : (
+                                    <button
+                                        className="px-3 py-1.5 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg flex items-center text-sm font-medium hover:bg-yellow-100 hover:border-yellow-300 transition-all duration-200 shadow-sm"
+                                        onClick={async () => {
+                                            try {
+                                                await approveEmployee(employee.name, 'denied');
+                                                setEmployees((prev) =>
+                                                    prev.map((emp) =>
+                                                        emp.id === employee.id
+                                                            ? { ...emp, status: 'denied' as const }
+                                                            : emp
+                                                    )
+                                                );
+                                                alert('거절 처리 완료!');
+                                            } catch (e: any) {
+                                                alert(e?.response?.data?.error || '거절 실패');
+                                            }
+                                        }}
+                                    >
+                                        거절
+                                    </button>
+                                )}
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -315,6 +388,7 @@ const HRPage: React.FC = () => {
         { value: 'vacation', label: '휴가중' },
         { value: 'leave', label: '휴직중' },
         { value: 'terminated', label: '퇴사' },
+        { value: 'denied', label: '승인 대기' },
     ];
 
     // 모달 제어 함수

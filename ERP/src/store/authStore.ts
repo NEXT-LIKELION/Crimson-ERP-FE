@@ -5,7 +5,8 @@ import { clearAuthCookies } from '../utils/cookies';
 interface User {
     id: number;
     username: string;
-    role: '대표' | '일반 사용자';
+    role: string; // 영문 role(MANAGER/STAFF)
+    first_name?: string;
 }
 
 interface AuthState {
@@ -22,7 +23,7 @@ export const useAuthStore = create<AuthState>()(
         (set) => ({
             user: null,
             isAuthenticated: false,
-            login: (userData) => set({ user: userData, isAuthenticated: true }),
+            login: (_userData) => {}, // 로그인은 토큰만 저장, user는 setUser로만 세팅
             logout: () => {
                 // 쿠키와 localStorage에서 토큰 관련 데이터 삭제
                 clearAuthCookies();
@@ -35,7 +36,6 @@ export const useAuthStore = create<AuthState>()(
         {
             name: 'auth-storage', // Zustand persist 스토리지 키
             partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
-
         }
     )
 );

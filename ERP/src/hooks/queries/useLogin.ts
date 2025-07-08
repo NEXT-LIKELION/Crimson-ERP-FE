@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { login, getCurrentUser } from '../../api/auth';
 import { setCookie } from '../../utils/cookies';
+import { useAuthStore } from '../../store/authStore';
 
 export const useLogin = (onSuccessCallback?: (userData: any) => void) =>
     useMutation({
@@ -8,6 +9,7 @@ export const useLogin = (onSuccessCallback?: (userData: any) => void) =>
         onSuccess: async (res) => {
             const access = res.data.access_token;
             const refresh = res.data.refresh_token;
+            const user = res.data.user;
 
             // 쿠키에 토큰 저장 (7일 만료)
             setCookie('accessToken', access, 7);
@@ -36,7 +38,6 @@ export const useLogin = (onSuccessCallback?: (userData: any) => void) =>
             }
         },
         onError: (err: any) => {
-            // ❌ alert 제거, 대신 에러는 그대로 상위로 throw됨
             throw err;
         },
     });

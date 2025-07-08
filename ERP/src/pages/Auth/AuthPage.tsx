@@ -18,6 +18,8 @@ const AuthPage = () => {
     const [signupContact, setSignupContact] = useState('');
     const [signupPassword, setSignupPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [signupFullName, setSignupFullName] = useState('');
+    const [signupContact, setSignupContact] = useState('');
 
     const [errorMessage, setErrorMessage] = useState('');
     const navigate = useNavigate();
@@ -242,8 +244,25 @@ const AuthPage = () => {
                                         id="signupFirstName"
                                         type="text"
                                         placeholder="이름을 입력하세요"
-                                        value={signupFirstName}
-                                        onChange={(e) => setSignupFirstName(e.target.value)}
+                                        value={signupFullName}
+                                        onChange={(e) => setSignupFullName(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-colors bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-500"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label
+                                        htmlFor="signupContact"
+                                        className="block text-sm font-medium text-gray-700 mb-2"
+                                    >
+                                        연락처
+                                    </label>
+                                    <input
+                                        id="signupContact"
+                                        type="text"
+                                        placeholder="연락처를 입력하세요"
+                                        value={signupContact}
+                                        onChange={(e) => setSignupContact(e.target.value)}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-colors bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-500"
                                     />
                                 </div>
@@ -331,6 +350,7 @@ const AuthPage = () => {
                                     signupMutation.isPending ||
                                     !signupUsername ||
                                     !signupFirstName ||
+                                    !signupContact ||
                                     !signupEmail ||
                                     !signupContact ||
                                     !signupPassword ||
