@@ -1,12 +1,16 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { clearAuthCookies } from '../utils/cookies';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { clearAuthCookies } from "../utils/cookies";
 
 interface User {
-    id: number;
+    id?: number;
     username: string;
     role: string; // 영문 role(MANAGER/STAFF)
     first_name?: string;
+    full_name?: string;
+    email?: string;
+    contact?: string;
+    status?: string;
 }
 
 interface AuthState {
@@ -23,19 +27,22 @@ export const useAuthStore = create<AuthState>()(
         (set) => ({
             user: null,
             isAuthenticated: false,
-            login: (_userData) => {}, // 로그인은 토큰만 저장, user는 setUser로만 세팅
+            login: () => {}, // 로그인은 토큰만 저장, user는 setUser로만 세팅
             logout: () => {
                 // 쿠키와 localStorage에서 토큰 관련 데이터 삭제
                 clearAuthCookies();
-                localStorage.removeItem('auth-storage');
+                localStorage.removeItem("auth-storage");
 
                 set({ user: null, isAuthenticated: false });
             },
             setUser: (user) => set({ user, isAuthenticated: !!user }),
         }),
         {
-            name: 'auth-storage', // Zustand persist 스토리지 키
-            partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+            name: "auth-storage", // Zustand persist 스토리지 키
+            partialize: (state) => ({
+                user: state.user,
+                isAuthenticated: state.isAuthenticated,
+            }),
         }
     )
 );
