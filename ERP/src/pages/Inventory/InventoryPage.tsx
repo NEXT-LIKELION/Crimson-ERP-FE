@@ -10,7 +10,7 @@ import {
 } from "../../api/inventory";
 import { useSearchParams } from "react-router-dom";
 import EditProductModal from "../../components/modal/EditProductModal";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import AddProductModal from "../../components/modal/AddProductModal";
 import { Product } from "../../types/product";
 import { useQueryClient } from "@tanstack/react-query";
@@ -156,6 +156,12 @@ const InventoryPage = () => {
         }
     };
 
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handlePOSButtonClick = () => {
+        fileInputRef.current?.click();
+    };
+
     const handlePOSUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -194,13 +200,13 @@ const InventoryPage = () => {
                         icon={<FaPlus size={16} />}
                         onClick={() => setAddModalOpen(true)}
                     />
-                    <label htmlFor="posUploadInput" className="cursor-pointer">
-                        <PrimaryButton
-                            text="POS 데이터 업로드"
-                            icon={<FaFileArrowUp size={16} />}
-                        />
-                    </label>
+                    <PrimaryButton
+                        text="POS 데이터 업로드"
+                        icon={<FaFileArrowUp size={16} />}
+                        onClick={handlePOSButtonClick}
+                    />
                     <input
+                        ref={fileInputRef}
                         id="posUploadInput"
                         type="file"
                         accept=".xlsx"
