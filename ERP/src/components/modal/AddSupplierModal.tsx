@@ -10,19 +10,15 @@ interface AddSupplierModalProps {
     title?: string;
 }
 
-const AddSupplierModal = ({
-    isOpen,
-    onClose,
-    onSave,
-    initialData = {},
-    title = '공급업체 추가',
-}: AddSupplierModalProps) => {
-    const [form, setForm] = useState<any>(initialData || {});
+const defaultForm = { name: '', contact: '', manager: '', email: '', address: '' };
+
+const AddSupplierModal = ({ isOpen, onClose, onSave, initialData, title = '공급업체 추가' }: AddSupplierModalProps) => {
+    const [form, setForm] = useState<any>(initialData ?? defaultForm);
     const [errors, setErrors] = useState<string[]>([]);
 
     useEffect(() => {
         if (isOpen) {
-            setForm(initialData || {});
+            setForm(initialData ?? defaultForm);
             setErrors([]);
         }
     }, [isOpen, initialData]);

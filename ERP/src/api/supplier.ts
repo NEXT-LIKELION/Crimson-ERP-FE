@@ -10,6 +10,6 @@ export const fetchSupplierById = (id: number) => api.get(`/supplier/${id}/`);
 export const createSupplier = (data: any) => api.post('/supplier/', data);
 
 // 공급업체 수정
-export const updateSupplier = (id: number, data: any) => api.put(`/supplier/${id}/`, data);
+export const updateSupplier = (id: number, data: any) => api.patch(`/supplier/${id}/`, data);
 
 // (삭제는 백엔드에 구현되면 추가)
