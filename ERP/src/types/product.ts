@@ -1,43 +1,45 @@
 // src/types/product.ts
 
 export interface ProductVariant {
-    id: number;
-    variant_code?: string;
+    product_id: string;
+    variant_code: string;
     option: string;
     stock: number;
     price: number;
+    min_stock: number;
+    description: string;
+    memo: string;
     cost_price: number;
-    min_stock?: number;
-    created_at?: string;
-    updated_at?: string;
-    order_count?: number;
-    return_count?: number;
+    order_count: number;
+    return_count: number;
+    sales: number;
+    suppliers: {
+        name: string;
+        is_primary: boolean;
+    }[];
 }
 
 export interface Product {
-    id: number;
+    id?: number;
     product_id: string;
     name: string;
-    item_code?: string;
-    category?: string;
-    categoryCode?: string;
-    description?: string;
-    suppliers?: { name: string; is_primary: boolean }[];
-    memo?: string;
-    stock: number;
-    min_stock?: number;
-    status?: string;
-    price?: string | number;
-    option?: string;
-    cost_price?: string | number;
-    variant_id?: number;
-    variant_code?: string;
-    variants?: ProductVariant[];
-    created_at?: string;
+    variants: ProductVariant[];
 
-    // 프론트에서만 사용하는 임시 필드들
+    // 프론트에서만 사용하는 임시 필드들 (테이블 렌더링용)
+    option?: string;
+    price?: number | string;
+    stock?: number;
+    cost_price?: number | string;
+    min_stock?: number;
+    variant_id?: number | string;
+    variant_code?: string;
     orderCount?: number;
     returnCount?: number;
     salesCount?: number;
     totalSales?: string;
+    status?: string;
+    created_at?: string;
+    description?: string;
+    memo?: string;
+    suppliers?: { name: string; is_primary: boolean }[];
 }

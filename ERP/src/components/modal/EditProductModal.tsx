@@ -4,6 +4,7 @@ import TextInput from '../input/TextInput';
 import SelectInput from '../input/SelectInput';
 import { FaBoxArchive, FaClipboardList } from 'react-icons/fa6';
 import { BsCoin } from 'react-icons/bs';
+import { useSuppliers } from '../../hooks/queries/useSuppliers';
 
 interface EditProductModalProps {
     isOpen: boolean;
@@ -22,6 +23,7 @@ interface EditForm {
     product_id: string;
     name: string;
     variant_id?: number | string;
+    variant_code?: string;
     option?: string;
     stock: number;
     min_stock?: number;
@@ -33,6 +35,9 @@ interface EditForm {
 }
 
 const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModalProps) => {
+    const { data: suppliersData, isLoading: isLoadingSuppliers } = useSuppliers();
+    const supplierOptions = suppliersData?.data?.map((s: any) => s.name) || [];
+
     const [form, setForm] = useState<EditForm>({
         ...product,
         suppliers: product.suppliers || [{ supplier_name: '', cost_price: 0, is_primary: false }],
@@ -71,7 +76,9 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
         const errs = [];
         if (!form.name?.trim()) errs.push('상품명을 입력해주세요.');
         if (!form.price || isNaN(Number(form.price))) errs.push('판매가는 숫자여야 합니다.');
-        if (form.cost_price === '' || isNaN(Number(form.cost_price))) {
+        // 원가 데이터 유효성 검사 - 빈 값이면 0으로 처리
+        const costPrice = form.cost_price === '' || form.cost_price === undefined ? 0 : Number(form.cost_price);
+        if (isNaN(costPrice)) {
             errs.push('매입가는 숫자여야 합니다.');
         }
         // 공급업체 필수 안내
@@ -88,18 +95,18 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
             : Math.max(0, form.stock - adjustQty);
 
         const updated = {
-            variant_id: form.variant_id,
+            variant_code: form.variant_code, // variant 식별을 위해 추가
             product_id: form.product_id,
             name: form.name,
-            option: form.option,
+            option: form.option || '기본',
+            price: Number(form.price), // 숫자로 변환
             stock: adjustedStock,
-            price: form.price,
-            min_stock: form.min_stock,
-            description: form.description,
-            memo: form.memo,
+            min_stock: Number(form.min_stock) || 0, // 최소재고가 없는 경우 0으로 설정
+            description: form.description || '',
+            memo: form.memo || '',
             suppliers: form.suppliers.map((s) => ({
-                supplier_name: s.supplier_name,
-                cost_price: s.cost_price,
+                name: s.supplier_name, // 백엔드가 기대하는 'name' 필드로 변경
+                cost_price: Number(s.cost_price) || 0, // 원가 데이터가 없는 경우 0으로 설정
                 is_primary: s.is_primary,
             })),
         };
@@ -115,9 +122,11 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
                 product_id: product.product_id ?? '',
                 description: product.description || '',
                 memo: product.memo || '',
+                min_stock: product.min_stock || 0, // 최소재고가 없는 경우 0으로 설정
+                cost_price: product.cost_price || 0, // 원가 데이터가 없는 경우 0으로 설정
                 suppliers: product.suppliers?.map((s: any) => ({
                     supplier_name: s.name,
-                    cost_price: s.cost_price ?? 0,
+                    cost_price: s.cost_price || 0, // 원가 데이터가 없는 경우 0으로 설정
                     is_primary: s.is_primary,
                 })) || [{ supplier_name: '', cost_price: 0, is_primary: false }],
             });
@@ -202,8 +211,8 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
                                 />
                                 <TextInput
                                     label="최소 재고"
-                                    value={form.min_stock?.toString() || ''}
-                                    onChange={(val) => handleChange('min_stock', val)}
+                                    value={form.min_stock?.toString() || '0'}
+                                    onChange={(val) => handleChange('min_stock', Number(val) || 0)}
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
                                     재고가 이 수준 이하로 떨어지면 경고가 표시됩니다.
@@ -232,7 +241,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
                                     <SelectInput
                                         label="공급업체"
                                         value={supplier.supplier_name}
-                                        options={['넥스트물류', 'LG트레이딩', '삼성상사', '대한유통']}
+                                        options={supplierOptions}
                                         onChange={(val) => handleSupplierChange(index, 'supplier_name', val)}
                                     />
                                     {/* cost_price 필드는 백엔드에 전달은 되지만 UI에서는 숨김 */}
