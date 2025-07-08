@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLogin } from '../../hooks/queries/useLogin';
@@ -14,7 +13,9 @@ const AuthPage = () => {
 
     // 회원가입 폼 상태
     const [signupUsername, setSignupUsername] = useState('');
+    const [signupFirstName, setSignupFirstName] = useState('');
     const [signupEmail, setSignupEmail] = useState('');
+    const [signupContact, setSignupContact] = useState('');
     const [signupPassword, setSignupPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -22,14 +23,31 @@ const AuthPage = () => {
     const navigate = useNavigate();
     const loginStore = useAuthStore((state) => state.login);
 
-    const loginMutation = useLogin(() => {
+    const loginMutation = useLogin((userData) => {
         alert('로그인 성공!');
+
+        // API에서 받은 실제 사용자 정보를 저장
+        const mappedUserData = {
+            id: userData.id,
+            username: userData.username,
+            role: userData.role === 'MANAGER' ? '대표' : ('일반 사용자' as '대표' | '일반 사용자'),
+        };
+
+        loginStore(mappedUserData);
         navigate('/');
     });
 
     const signupMutation = useSignup(
         () => {
-            alert('회원가입 성공!');
+            alert('회원가입 성공! 로그인해주세요.');
+            setActiveTab('login'); // 로그인 탭으로 전환
+            // 회원가입 폼 초기화
+            setSignupUsername('');
+            setSignupFirstName('');
+            setSignupEmail('');
+            setSignupContact('');
+            setSignupPassword('');
+            setConfirmPassword('');
         },
         (msg) => setErrorMessage(msg)
     );
@@ -40,14 +58,6 @@ const AuthPage = () => {
         loginMutation.mutate(
             { username: loginId, password: loginPassword },
             {
-                onSuccess: (res) => {
-                    const userData = res.data.user || {
-                        id: 1,
-                        username: loginId,
-                        role: '일반 사용자',
-                    };
-                    loginStore(userData);
-                },
                 onError: (err: any) => {
                     const msg = err?.response?.data?.message ?? '로그인 실패';
                     setErrorMessage(msg);
@@ -67,7 +77,9 @@ const AuthPage = () => {
         if (
             e.key === 'Enter' &&
             signupUsername &&
+            signupFirstName &&
             signupEmail &&
+            signupContact &&
             signupPassword &&
             confirmPassword &&
             signupPassword === confirmPassword &&
@@ -87,14 +99,16 @@ const AuthPage = () => {
         }
 
         // 필수 필드 검증
-        if (!signupUsername || !signupEmail || !signupPassword) {
+        if (!signupUsername || !signupFirstName || !signupEmail || !signupContact || !signupPassword) {
             setErrorMessage('모든 필수 항목을 입력해주세요.');
             return;
         }
 
         signupMutation.mutate({
             username: signupUsername,
+            first_name: signupFirstName,
             email: signupEmail,
+            contact: signupContact,
             password: signupPassword,
         });
     };
@@ -219,6 +233,23 @@ const AuthPage = () => {
 
                                 <div>
                                     <label
+                                        htmlFor="signupFirstName"
+                                        className="block text-sm font-medium text-gray-700 mb-2"
+                                    >
+                                        이름
+                                    </label>
+                                    <input
+                                        id="signupFirstName"
+                                        type="text"
+                                        placeholder="이름을 입력하세요"
+                                        value={signupFirstName}
+                                        onChange={(e) => setSignupFirstName(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-colors bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-500"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label
                                         htmlFor="signupEmail"
                                         className="block text-sm font-medium text-gray-700 mb-2"
                                     >
@@ -230,6 +261,23 @@ const AuthPage = () => {
                                         placeholder="이메일 주소를 입력하세요"
                                         value={signupEmail}
                                         onChange={(e) => setSignupEmail(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-colors bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-500"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label
+                                        htmlFor="signupContact"
+                                        className="block text-sm font-medium text-gray-700 mb-2"
+                                    >
+                                        전화번호
+                                    </label>
+                                    <input
+                                        id="signupContact"
+                                        type="text"
+                                        placeholder="전화번호를 입력하세요"
+                                        value={signupContact}
+                                        onChange={(e) => setSignupContact(e.target.value)}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-colors bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-500"
                                     />
                                 </div>
@@ -282,7 +330,9 @@ const AuthPage = () => {
                                 disabled={
                                     signupMutation.isPending ||
                                     !signupUsername ||
+                                    !signupFirstName ||
                                     !signupEmail ||
+                                    !signupContact ||
                                     !signupPassword ||
                                     !confirmPassword ||
                                     signupPassword !== confirmPassword
@@ -329,7 +379,6 @@ const AuthPage = () => {
             </div>
         </div>
     );
-
 };
 
 export default AuthPage;
