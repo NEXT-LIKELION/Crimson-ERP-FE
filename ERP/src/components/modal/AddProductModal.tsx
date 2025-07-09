@@ -5,6 +5,7 @@ import SelectInput from '../input/SelectInput';
 import { FaBoxArchive, FaClipboardList } from 'react-icons/fa6';
 import { BsCoin } from 'react-icons/bs';
 import { createInventoryVariant } from '../../api/inventory';
+import { useSuppliers } from '../../hooks/queries/useSuppliers';
 
 interface AddProductModalProps {
     isOpen: boolean;
@@ -13,6 +14,9 @@ interface AddProductModalProps {
 }
 
 const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
+    const { data: suppliersData, isLoading: isLoadingSuppliers } = useSuppliers();
+    const supplierOptions = suppliersData?.data?.map((s: any) => s.name) || [];
+
     const [form, setForm] = useState<any>({
         suppliers: [{ supplier_name: '', cost_price: 0, is_primary: false }],
     });
@@ -55,8 +59,8 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
         const adjustedStock = adjustType.includes('입고')
             ? adjustQty
             : adjustType.includes('출고')
-            ? Math.max(0, 0 - adjustQty)
-            : adjustQty;
+              ? Math.max(0, 0 - adjustQty)
+              : adjustQty;
 
         try {
             const variantPayload = {
@@ -65,10 +69,14 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                 option: form.option || '기본 옵션',
                 price: Number(form.price),
                 stock: adjustedStock,
-                min_stock: Number(form.min_stock) || 0,
+                min_stock: Number(form.min_stock) || 0, // 최소재고가 없는 경우 0으로 설정
                 description: form.description || '',
                 memo: form.memo || '',
-                suppliers: form.suppliers,
+                suppliers: form.suppliers.map((s: any) => ({
+                    name: s.supplier_name, // 백엔드가 기대하는 'name' 필드로 변경
+                    cost_price: s.cost_price || 0, // 원가 데이터가 없는 경우 0으로 설정
+                    is_primary: s.is_primary,
+                })),
             };
 
             const variantRes = await createInventoryVariant(variantPayload);
@@ -120,10 +128,26 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                                 <h3 className="text-md font-semibold">기본 정보</h3>
                             </div>
                             <div className="space-y-4">
-                                <TextInput label="상품코드" value={form.product_id || ''} onChange={(val) => handleChange('product_id', val)} />
-                                <TextInput label="품목코드" value={form.item_code || ''} onChange={(val) => handleChange('item_code', val)} />
-                                <TextInput label="상품명" value={form.name || ''} onChange={(val) => handleChange('name', val)} />
-                                <TextInput label="옵션" value={form.option || ''} onChange={(val) => handleChange('option', val)} />
+                                <TextInput
+                                    label="상품코드"
+                                    value={form.product_id || ''}
+                                    onChange={(val) => handleChange('product_id', val)}
+                                />
+                                <TextInput
+                                    label="품목코드"
+                                    value={form.item_code || ''}
+                                    onChange={(val) => handleChange('item_code', val)}
+                                />
+                                <TextInput
+                                    label="상품명"
+                                    value={form.name || ''}
+                                    onChange={(val) => handleChange('name', val)}
+                                />
+                                <TextInput
+                                    label="옵션"
+                                    value={form.option || ''}
+                                    onChange={(val) => handleChange('option', val)}
+                                />
                             </div>
                         </section>
 
@@ -133,11 +157,30 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                                 <h3 className="text-md font-semibold">판매 정보</h3>
                             </div>
                             <div className="space-y-4">
-                                <TextInput label="판매가" value={form.price || ''} onChange={(val) => handleChange('price', val)} />
-                                <TextInput label="매입가" value={form.suppliers[0]?.cost_price?.toString() || ''} onChange={(val) => handleSupplierChange(0, 'cost_price', Number(val))} />
-                                <TextInput label="현재 재고" type="number" value={form.stock?.toString() || '0'} onChange={(val) => handleChange('stock', Number(val))} />
-                                <TextInput label="최소 재고" value={form.min_stock || ''} onChange={(val) => handleChange('min_stock', val)} />
-                                <p className="text-xs text-gray-500 mt-1">재고가 이 수준 이하로 떨어지면 경고가 표시됩니다.</p>
+                                <TextInput
+                                    label="판매가"
+                                    value={form.price || ''}
+                                    onChange={(val) => handleChange('price', val)}
+                                />
+                                <TextInput
+                                    label="매입가"
+                                    value={form.suppliers[0]?.cost_price?.toString() || ''}
+                                    onChange={(val) => handleSupplierChange(0, 'cost_price', Number(val))}
+                                />
+                                <TextInput
+                                    label="현재 재고"
+                                    type="number"
+                                    value={form.stock?.toString() || '0'}
+                                    onChange={(val) => handleChange('stock', Number(val))}
+                                />
+                                <TextInput
+                                    label="최소 재고"
+                                    value={form.min_stock || '0'}
+                                    onChange={(val) => handleChange('min_stock', Number(val) || 0)}
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    재고가 이 수준 이하로 떨어지면 경고가 표시됩니다.
+                                </p>
                             </div>
                         </section>
                     </div>
@@ -149,14 +192,31 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                         </div>
 
                         <label className="text-sm text-gray-600">상품 설명</label>
-                        <textarea className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" rows={3} value={form.description || ''} onChange={(e) => handleChange('description', e.target.value)} />
+                        <textarea
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                            rows={3}
+                            value={form.description || ''}
+                            onChange={(e) => handleChange('description', e.target.value)}
+                        />
 
                         <div className="space-y-4">
                             {form.suppliers.map((supplier: any, index: number) => (
                                 <div key={index} className="border border-gray-300 p-4 rounded-md bg-white space-y-2">
-                                    <SelectInput label="공급업체" value={supplier.supplier_name} options={['넥스트물류', 'LG트레이딩', '삼성상사', '대한유통']} onChange={(val) => handleSupplierChange(index, 'supplier_name', val)} />
+                                    <SelectInput
+                                        label="공급업체"
+                                        value={supplier.supplier_name}
+                                        options={supplierOptions}
+                                        onChange={(val) => handleSupplierChange(index, 'supplier_name', val)}
+                                    />
                                     <label className="inline-flex items-center text-sm text-gray-600">
-                                        <input type="checkbox" className="mr-2" checked={supplier.is_primary} onChange={(e) => handleSupplierChange(index, 'is_primary', e.target.checked)} />
+                                        <input
+                                            type="checkbox"
+                                            className="mr-2"
+                                            checked={supplier.is_primary}
+                                            onChange={(e) =>
+                                                handleSupplierChange(index, 'is_primary', e.target.checked)
+                                            }
+                                        />
                                         주요 공급자 여부
                                     </label>
                                 </div>
@@ -165,14 +225,26 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
 
                         <div>
                             <label className="text-sm text-gray-600">관리자 메모</label>
-                            <textarea className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" rows={3} value={form.memo || ''} onChange={(e) => handleChange('memo', e.target.value)} />
+                            <textarea
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                rows={3}
+                                value={form.memo || ''}
+                                onChange={(e) => handleChange('memo', e.target.value)}
+                            />
                         </div>
                     </section>
                 </div>
 
                 <div className="px-6 py-4 border-t border-gray-300 flex justify-end gap-3">
-                    <button onClick={onClose} className="px-4 py-2 text-gray-700 border rounded-md">취소</button>
-                    <button onClick={handleSubmit} className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">저장하기</button>
+                    <button onClick={onClose} className="px-4 py-2 text-gray-700 border rounded-md">
+                        취소
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                    >
+                        저장하기
+                    </button>
                 </div>
             </div>
         </div>

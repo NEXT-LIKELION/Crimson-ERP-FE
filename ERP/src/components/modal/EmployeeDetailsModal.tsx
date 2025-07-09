@@ -111,24 +111,14 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                         {/* 직급 */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">직급</label>
-                            {isEditing ? (
-                                <select
-                                    name="position"
-                                    value={editedEmployee.position}
-                                    onChange={(e) =>
-                                        setEditedEmployee((prev) => ({
-                                            ...prev,
-                                            position: e.target.value,
-                                        }))
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                                >
-                                    <option value="직원">직원</option>
-                                    <option value="대표">대표</option>
-                                </select>
-                            ) : (
+                            <div className="flex justify-between items-center">
                                 <span className="text-gray-900">{employee.position}</span>
-                            )}
+                                {isEditing && (
+                                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                        수정 불가
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
                         {/* 입사일 */}

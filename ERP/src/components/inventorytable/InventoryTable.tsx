@@ -13,6 +13,7 @@ interface TableProduct extends Omit<Product, 'variant_id'> {
     orderCount: number;
     returnCount: number;
     totalSales: string;
+    status: string; // 상태 필드 추가 (정상, 재고부족, 품절)
 }
 
 interface InventoryTableProps {
@@ -69,23 +70,29 @@ const InventoryTable = ({ inventories, onDelete, filters, deletedVariant, onUndo
         let rows = inventories.flatMap((item) => {
             const variants = item.variants || [];
             return variants.map((variant) => {
+                const stock = variant.stock;
+                const minStock = variant.min_stock || 0;
+
+                // 상태 계산: 품절 > 재고부족 > 정상
+                let status = '정상';
+                if (stock === 0) {
+                    status = '품절';
+                } else if (stock < minStock) {
+                    status = '재고부족';
+                }
+
                 const row = {
                     ...item,
                     option: variant.option,
                     price: variant.price,
                     stock: variant.stock,
-                    cost_price: variant.cost_price,
-                    min_stock: variant.min_stock !== undefined ? variant.min_stock : item.min_stock,
+                    cost_price: variant.cost_price || 0, // 원가 데이터가 없는 경우 0으로 설정
+                    min_stock: variant.min_stock || 0, // 최소재고가 없는 경우 0으로 설정
                     variant_id: variant.variant_code || '',
                     orderCount: variant.order_count ?? 0,
                     returnCount: variant.return_count ?? 0,
-                    totalSales:
-                        variant.order_count &&
-                        variant.return_count &&
-                        variant.price &&
-                        variant.order_count - variant.return_count > 0
-                            ? `${((variant.order_count - variant.return_count) * variant.price).toLocaleString()}원`
-                            : '0원',
+                    totalSales: variant.sales ? `${variant.sales.toLocaleString()}원` : '0원', // 새로운 sales 필드 사용
+                    status: status, // 계산된 상태 추가
                 };
                 console.log(
                     'row 생성 - product_id:',
@@ -93,7 +100,11 @@ const InventoryTable = ({ inventories, onDelete, filters, deletedVariant, onUndo
                     'variant_code:',
                     variant.variant_code,
                     'min_stock:',
-                    row.min_stock
+                    row.min_stock,
+                    'sales:',
+                    variant.sales,
+                    'status:',
+                    status
                 );
                 return row;
             });
@@ -108,20 +119,29 @@ const InventoryTable = ({ inventories, onDelete, filters, deletedVariant, onUndo
                 }
 
                 // 상태 필터
-                if (filters.status && filters.status !== '모든 상태' && row.status !== filters.status) {
-                    return false;
+                if (filters.status && filters.status !== '모든 상태') {
+                    if (filters.status === '재고부족' && row.status !== '재고부족') {
+                        return false;
+                    }
+                    if (filters.status === '품절' && row.status !== '품절') {
+                        return false;
+                    }
+                    if (filters.status === '정상' && row.status !== '정상') {
+                        return false;
+                    }
                 }
 
                 // 판매합계 필터
                 if (filters.minSales || filters.maxSales) {
                     const salesValue = Number(row.totalSales.replace(/[^\d]/g, '')) || 0;
+                    const minSalesValue = parseInt(filters.minSales || '0') || 0;
+                    const maxSalesValue = parseInt(filters.maxSales || '1000000') || 1000000;
 
-                    if (filters.minSales && salesValue < parseInt(filters.minSales)) {
-                        return false;
-                    }
-
-                    if (filters.maxSales && salesValue > parseInt(filters.maxSales)) {
-                        return false;
+                    // 기본값(0, 1000000)이 아닌 경우에만 필터링 적용
+                    if (!(minSalesValue === 0 && maxSalesValue === 1000000)) {
+                        if (salesValue < minSalesValue || salesValue > maxSalesValue) {
+                            return false;
+                        }
                     }
                 }
 
@@ -195,8 +215,8 @@ const InventoryTable = ({ inventories, onDelete, filters, deletedVariant, onUndo
                             />
                             <SortableHeader
                                 label="품목코드"
-                                sortKey="categoryCode"
-                                sortOrder={sortConfig.key === 'categoryCode' ? sortConfig.order : null}
+                                sortKey="variant_id"
+                                sortOrder={sortConfig.key === 'variant_id' ? sortConfig.order : null}
                                 onSort={handleSort}
                             />
                             <SortableHeader
@@ -222,6 +242,12 @@ const InventoryTable = ({ inventories, onDelete, filters, deletedVariant, onUndo
                                 label="재고(최소재고)"
                                 sortKey="stock"
                                 sortOrder={sortConfig.key === 'stock' ? sortConfig.order : null}
+                                onSort={handleSort}
+                            />
+                            <SortableHeader
+                                label="상태"
+                                sortKey="status"
+                                sortOrder={sortConfig.key === 'status' ? sortConfig.order : null}
                                 onSort={handleSort}
                             />
                             <th className="px-4 py-3 border-b border-gray-300">결제수량</th>
@@ -251,6 +277,19 @@ const InventoryTable = ({ inventories, onDelete, filters, deletedVariant, onUndo
                                 <td className="px-4 py-2">{Number(product.cost_price).toLocaleString()}원</td>
                                 <td className="px-4 py-2">
                                     {product.stock}EA ({product.min_stock !== undefined ? product.min_stock : '-'})
+                                </td>
+                                <td className="px-4 py-2">
+                                    <span
+                                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                            product.status === '품절'
+                                                ? 'bg-red-100 text-red-800'
+                                                : product.status === '재고부족'
+                                                  ? 'bg-yellow-100 text-yellow-800'
+                                                  : 'bg-green-100 text-green-800'
+                                        }`}
+                                    >
+                                        {product.status}
+                                    </span>
                                 </td>
                                 <td className="px-4 py-2">{product.orderCount}개</td>
                                 <td className="px-4 py-2">{product.returnCount}개</td>

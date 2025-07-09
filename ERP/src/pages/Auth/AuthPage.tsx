@@ -13,12 +13,11 @@ const AuthPage = () => {
 
     // 회원가입 폼 상태
     const [signupUsername, setSignupUsername] = useState("");
-    const [signupFirstName, setSignupFirstName] = useState("");
+    const [signupFullName, setSignupFullName] = useState("");
     const [signupEmail, setSignupEmail] = useState("");
     const [signupContact, setSignupContact] = useState("");
     const [signupPassword, setSignupPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [signupFullName, setSignupFullName] = useState("");
 
     const [errorMessage, setErrorMessage] = useState("");
     const navigate = useNavigate();
@@ -47,7 +46,7 @@ const AuthPage = () => {
             setActiveTab("login"); // 로그인 탭으로 전환
             // 회원가입 폼 초기화
             setSignupUsername("");
-            setSignupFirstName("");
+            setSignupFullName("");
             setSignupEmail("");
             setSignupContact("");
             setSignupPassword("");
@@ -86,7 +85,7 @@ const AuthPage = () => {
         if (
             e.key === "Enter" &&
             signupUsername &&
-            signupFirstName &&
+            signupFullName &&
             signupEmail &&
             signupContact &&
             signupPassword &&
@@ -110,7 +109,7 @@ const AuthPage = () => {
         // 필수 필드 검증
         if (
             !signupUsername ||
-            !signupFirstName ||
+            !signupFullName ||
             !signupEmail ||
             !signupContact ||
             !signupPassword
@@ -121,7 +120,7 @@ const AuthPage = () => {
 
         signupMutation.mutate({
             username: signupUsername,
-            first_name: signupFirstName,
+            full_name: signupFullName,
             email: signupEmail,
             contact: signupContact,
             password: signupPassword,
@@ -263,37 +262,18 @@ const AuthPage = () => {
 
                                 <div>
                                     <label
-                                        htmlFor="signupFirstName"
+                                        htmlFor="signupFullName"
                                         className="block text-sm font-medium text-gray-700 mb-2"
                                     >
                                         이름
                                     </label>
                                     <input
-                                        id="signupFirstName"
+                                        id="signupFullName"
                                         type="text"
                                         placeholder="이름을 입력하세요"
                                         value={signupFullName}
                                         onChange={(e) =>
                                             setSignupFullName(e.target.value)
-                                        }
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-colors bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label
-                                        htmlFor="signupContact"
-                                        className="block text-sm font-medium text-gray-700 mb-2"
-                                    >
-                                        연락처
-                                    </label>
-                                    <input
-                                        id="signupContact"
-                                        type="text"
-                                        placeholder="연락처를 입력하세요"
-                                        value={signupContact}
-                                        onChange={(e) =>
-                                            setSignupContact(e.target.value)
                                         }
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-colors bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-500"
                                     />
@@ -393,10 +373,9 @@ const AuthPage = () => {
                                 disabled={
                                     signupMutation.isPending ||
                                     !signupUsername ||
-                                    !signupFirstName ||
+                                    !signupFullName ||
                                     !signupContact ||
                                     !signupEmail ||
-                                    !signupContact ||
                                     !signupPassword ||
                                     !confirmPassword ||
                                     signupPassword !== confirmPassword
