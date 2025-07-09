@@ -8,14 +8,17 @@ export const updateInventoryItem = (productId: number, data: any) => {
 export const updateInventoryVariant = (variantId: string, data: any) => {
     console.log('updateInventoryVariant - variantId:', variantId);
     console.log('updateInventoryVariant - data:', data);
+    console.log('updateInventoryVariant - data JSON:', JSON.stringify(data, null, 2));
     return api
-        .patch(`/inventory/variants/${variantId}/`, data)
+        .patch(`/inventory/items/variants/${variantId}/`, data)
         .then((response) => {
             console.log('updateInventoryVariant - response:', response.data);
             return response;
         })
         .catch((error) => {
             console.error('updateInventoryVariant - error:', error);
+            console.error('updateInventoryVariant - error response:', error.response?.data);
+            console.error('updateInventoryVariant - error status:', error.response?.status);
             throw error;
         });
 };
