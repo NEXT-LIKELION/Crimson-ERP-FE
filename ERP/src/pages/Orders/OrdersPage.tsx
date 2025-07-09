@@ -14,7 +14,7 @@ import axios from '../../api/axios';
 import { deleteOrder, createOrder, fetchOrderById } from '../../api/orders';
 import { fetchInventories } from '../../api/inventory';
 import { fetchSuppliers } from '../../api/supplier';
-
+        
 // 검색 필터 타입 정의
 interface SearchFilters {
     orderId: string;
@@ -22,14 +22,6 @@ interface SearchFilters {
     status: string;
     dateRange: string;
 }
-
-// 공급업체 매핑 객체 추가 (상단에 위치)
-const supplierMapping = {
-    1: '팩토리코퍼레이션',
-    2: '한국판촉물',
-    3: '대한상사',
-    4: '서울프로모션',
-};
 
 // order_date를 YYYY-MM-DD로 변환
 function parseOrderDate(dateStr: string | undefined | null): string {
@@ -69,6 +61,7 @@ function numberToKorean(num: number): string {
     return result || '영';
 }
 
+
 const OrdersPage: React.FC = () => {
     // 모든 Hook 선언을 최상단에 위치시킴
     const [isOrderDetailModalOpen, setIsOrderDetailModalOpen] = useState<boolean>(false);
@@ -77,16 +70,16 @@ const OrdersPage: React.FC = () => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [deletedOrders, setDeletedOrders] = useState<any[]>([]);
     const [searchInputs, setSearchInputs] = useState<SearchFilters>({
-        orderId: '',
-        supplier: '',
-        status: '모든 상태',
-        dateRange: '전체 기간',
+        orderId: "",
+        supplier: "",
+        status: "모든 상태",
+        dateRange: "전체 기간",
     });
     const [searchFilters, setSearchFilters] = useState<SearchFilters>({
-        orderId: '',
-        supplier: '',
-        status: '모든 상태',
-        dateRange: '전체 기간',
+        orderId: "",
+        supplier: "",
+        status: "모든 상태",
+        dateRange: "전체 기간",
     });
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [itemsPerPage, setItemsPerPage] = useState<number>(10);
@@ -95,13 +88,13 @@ const OrdersPage: React.FC = () => {
         dataLength: number;
         error: string | null;
     }>({
-        lastFetch: '',
+        lastFetch: "",
         dataLength: 0,
         error: null,
     });
     const { data, isLoading, isError, error, refetch } = useOrder();
     const user = useAuthStore((state) => state.user);
-    const isManager = user?.role === '대표';
+    const isManager = user?.role === "대표";
     const [variantIdToCode, setVariantIdToCode] = useState<Record<number, string>>({});
     const [supplierNameToId, setSupplierNameToId] = useState<Record<string, number>>({});
 
@@ -118,10 +111,10 @@ const OrdersPage: React.FC = () => {
 
     useEffect(() => {
         if (error) {
-            console.error('Order fetch error:', error);
+            console.error("Order fetch error:", error);
             setDebugInfo((prev) => ({
                 ...prev,
-                error: error instanceof Error ? error.message : 'Unknown error occurred',
+                error: error instanceof Error ? error.message : "Unknown error occurred",
             }));
         }
     }, [error]);
@@ -160,17 +153,17 @@ const OrdersPage: React.FC = () => {
         try {
             const date = new Date(dateString);
             if (isNaN(date.getTime())) {
-                console.warn('Invalid date string:', dateString);
-                return '날짜 없음';
+                console.warn("Invalid date string:", dateString);
+                return "날짜 없음";
             }
             return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
         } catch (error) {
-            console.error('Date formatting error:', error);
+            console.error("Date formatting error:", error);
         }
     }, []);
 
     const filteredOrders = useMemo(() => {
-        console.log('Filtering orders:', { orders, searchFilters }); // 디버깅 로그
+        console.log("Filtering orders:", { orders, searchFilters }); // 디버깅 로그
         let result = [...orders];
 
         if (searchFilters.orderId) {
@@ -194,7 +187,7 @@ const OrdersPage: React.FC = () => {
             완료: 'COMPLETED',
         };
 
-        if (searchFilters.status !== '모든 상태') {
+        if (searchFilters.status !== "모든 상태") {
             const filterStatus = statusMap[searchFilters.status];
             if (filterStatus) {
                 result = result.filter((order) => order.status === filterStatus);
@@ -202,18 +195,18 @@ const OrdersPage: React.FC = () => {
         }
 
         // 날짜 필터링
-        if (searchFilters.dateRange !== '전체 기간') {
+        if (searchFilters.dateRange !== "전체 기간") {
             const today = new Date();
             let startDate: Date;
 
             switch (searchFilters.dateRange) {
-                case '최근 1개월':
+                case "최근 1개월":
                     startDate = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
                     break;
-                case '최근 3개월':
+                case "최근 3개월":
                     startDate = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
                     break;
-                case '최근 6개월':
+                case "최근 6개월":
                     startDate = new Date(today.getFullYear(), today.getMonth() - 6, today.getDate());
                     break;
                 default:
@@ -232,11 +225,11 @@ const OrdersPage: React.FC = () => {
             (order) =>
                 ({
                     ...order,
-                    order_date: order.order_date ? formatDate(order.order_date) : '',
+                    order_date: order.order_date ? formatDate(order.order_date) : "",
                 } as Order)
         );
 
-        console.log('Filtered results:', result); // 디버깅 로그
+        console.log("Filtered results:", result); // 디버깅 로그
         return result;
     }, [orders, searchFilters, formatDate]);
 
@@ -248,30 +241,15 @@ const OrdersPage: React.FC = () => {
 
     const totalPages = useMemo(() => Math.ceil(filteredOrders.length / itemsPerPage), [filteredOrders, itemsPerPage]);
 
-    const handleApproveOrder = useCallback(
-        async (orderId: number) => {
-            try {
-                console.log('Approving order:', orderId); // 디버깅 로그
-                await axios.put(`/api/orders/${orderId}/approve`);
-                await refetch(); // 데이터 새로고침
-                alert('발주가 성공적으로 승인되었습니다.');
-            } catch (error) {
-                console.error('Error approving order:', error);
-                alert('발주 승인 중 오류가 발생했습니다.');
-            }
-        },
-        [refetch]
-    );
-
     const handleOpenOrderDetail = useCallback((orderId: number) => {
         setSelectedOrderId(orderId);
         setIsOrderDetailModalOpen(true);
     }, []);
 
     const handlePrintOrder = useCallback((order: Order) => {
-        const printWindow = window.open('', '_blank');
+        const printWindow = window.open("", "_blank");
         if (!printWindow) {
-            alert('팝업이 차단되었습니다. 팝업 차단을 해제해주세요.');
+            alert("팝업이 차단되었습니다. 팝업 차단을 해제해주세요.");
             return;
         }
 
@@ -280,7 +258,7 @@ const OrdersPage: React.FC = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>발주서 - ${order.product_names ? order.product_names.join(', ') : '-'}</title>
+        <title>발주서 - ${order.product_names ? order.product_names.join(", ") : "-"}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
           .header { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px; }
@@ -306,7 +284,7 @@ const OrdersPage: React.FC = () => {
             <p><strong>주소:</strong> 서울특별시 성북구 안암로145, 고려대학교 100주년삼성기념관 103호 크림슨 스토어</p>
           </div>
           <div class="info-column">
-            <p><strong>발주물품:</strong> ${order.product_names ? order.product_names.join(', ') : '-'}</p>
+            <p><strong>발주물품:</strong> ${order.product_names ? order.product_names.join(", ") : "-"}</p>
             <p><strong>발주일자:</strong> ${order.order_date}</p>
             <p><strong>공급업체:</strong> ${order.supplier}</p>
             <p><strong>담당자:</strong> ${order.manager}</p>
@@ -315,7 +293,7 @@ const OrdersPage: React.FC = () => {
         <p>아래와 같이 발주하오니 기일 내 필히 납품하여 주시기 바랍니다.</p>
         <p><strong>총 금액:</strong> {(order.total_price ?? 0).toLocaleString()}원</p>
         <p><strong>상태:</strong> ${
-            order.status === 'PENDING' ? '승인 대기' : order.status === 'APPROVED' ? '승인됨' : '취소됨'
+            order.status === "PENDING" ? "승인 대기" : order.status === "APPROVED" ? "승인됨" : "취소됨"
         }</p>
         <button onclick="window.print()">인쇄</button>
       </body>
@@ -446,19 +424,13 @@ const OrdersPage: React.FC = () => {
         setCurrentPage(1);
     };
 
-    const handleNewOrderSuccess = useCallback(async (newOrder: Order) => {
-        console.log('New order created:', newOrder); // 디버깅 로그
-        setOrders((prev) => [...prev, newOrder]);
-        setIsNewOrderModalOpen(false);
-    }, []);
-
     const renderStatusBadge = useCallback((status: OrderStatus) => {
         switch (status) {
-            case 'PENDING':
+            case "PENDING":
                 return <StatusBadge text="승인 대기" theme="pending" />;
-            case 'APPROVED':
+            case "APPROVED":
                 return <StatusBadge text="승인됨" theme="approved" />;
-            case 'CANCELLED':
+            case "CANCELLED":
                 return <StatusBadge text="취소됨" theme="rejected" />;
             case 'COMPLETED':
                 return <StatusBadge text="완료" theme="completed" />;
@@ -469,19 +441,19 @@ const OrdersPage: React.FC = () => {
 
     const formatCurrency = useCallback((amount: number | undefined) => {
         if (amount === undefined) {
-            console.warn('Attempted to format undefined amount');
-            return '0원';
+            console.warn("Attempted to format undefined amount");
+            return "0원";
         }
         try {
-            return `${amount.toLocaleString('ko-KR')}원`;
+            return `${amount.toLocaleString("ko-KR")}원`;
         } catch (error) {
-            console.error('Currency formatting error:', error);
-            return '0원';
+            console.error("Currency formatting error:", error);
+            return "0원";
         }
     }, []);
 
     const handleDeleteOrder = async (order: Order) => {
-        if (window.confirm('정말 삭제하시겠습니까?')) {
+        if (window.confirm("정말 삭제하시겠습니까?")) {
             // 상세 데이터 fetch
             const res = await fetchOrderById(order.id);
             setDeletedOrders((prev) => [...prev, res.data]); // 여러 개 저장
@@ -495,14 +467,14 @@ const OrdersPage: React.FC = () => {
             const lastDeletedOrder = deletedOrders[deletedOrders.length - 1];
             let supplierId = lastDeletedOrder.supplier_id;
             if (!supplierId) {
-                if (typeof lastDeletedOrder.supplier === 'number') {
+                if (typeof lastDeletedOrder.supplier === "number") {
                     supplierId = lastDeletedOrder.supplier;
-                } else if (typeof lastDeletedOrder.supplier === 'string') {
+                } else if (typeof lastDeletedOrder.supplier === "string") {
                     supplierId = supplierNameToId[lastDeletedOrder.supplier];
                 }
             }
-            if (!supplierId || typeof supplierId !== 'number') {
-                alert('공급업체 id가 없어 복구할 수 없습니다.');
+            if (!supplierId || typeof supplierId !== "number") {
+                alert("공급업체 id가 없어 복구할 수 없습니다.");
                 return;
             }
             const items = (lastDeletedOrder.items || []).map((item: any) => {
@@ -531,7 +503,7 @@ const OrdersPage: React.FC = () => {
                 note: lastDeletedOrder.note,
                 vat_included: lastDeletedOrder.vat_included,
                 packaging_included: lastDeletedOrder.packaging_included,
-                manager_name: lastDeletedOrder.manager || user?.first_name || user?.username || '',
+                manager_name: lastDeletedOrder.manager || user?.first_name || user?.username || "",
                 items,
             };
             await createOrder(payload);
@@ -583,7 +555,7 @@ const OrdersPage: React.FC = () => {
                         <button
                             onClick={handleUndoDelete}
                             className={`inline-flex items-center justify-center h-10 px-4 py-2 rounded-md text-white text-sm font-medium leading-tight bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 transition-colors duration-200 ease-in-out`}
-                            style={{ fontFamily: 'inherit' }}
+                            style={{ fontFamily: "inherit" }}
                         >
                             <span className="mr-2 w-4 h-4 flex items-center justify-center">
                                 <FiRotateCcw size={18} />
@@ -611,9 +583,9 @@ const OrdersPage: React.FC = () => {
                             id="order-id-search"
                             placeholder="상품명으로 검색"
                             value={searchInputs.orderId}
-                            onChange={(value) => handleInputChange('orderId', value)}
+                            onChange={(value) => handleInputChange("orderId", value)}
                             className="w-full"
-                            extra={{ id: 'order-id-search' }}
+                            extra={{ id: "order-id-search" }}
                         />
                     </div>
                     <div className="w-64 flex flex-col gap-1">
@@ -624,9 +596,9 @@ const OrdersPage: React.FC = () => {
                             id="supplier-search"
                             placeholder="공급업체로 검색"
                             value={searchInputs.supplier}
-                            onChange={(value) => handleInputChange('supplier', value)}
+                            onChange={(value) => handleInputChange("supplier", value)}
                             className="w-full"
-                            extra={{ id: 'supplier-search' }}
+                            extra={{ id: "supplier-search" }}
                         />
                     </div>
                     <div className="w-64 flex flex-col gap-1">
@@ -638,8 +610,8 @@ const OrdersPage: React.FC = () => {
                             options={['모든 상태', '승인 대기', '승인됨', '취소됨', '완료']}
                             onChange={(value) => handleFilterChange('status', value)}
                             extra={{
-                                id: 'status-filter',
-                                'aria-label': '주문 상태 필터',
+                                id: "status-filter",
+                                "aria-label": "주문 상태 필터",
                             }}
                         />
                     </div>
@@ -649,11 +621,11 @@ const OrdersPage: React.FC = () => {
                         </label>
                         <SelectInput
                             defaultText="전체 기간"
-                            options={['전체 기간', '최근 1개월', '최근 3개월', '최근 6개월']}
-                            onChange={(value) => handleFilterChange('dateRange', value)}
+                            options={["전체 기간", "최근 1개월", "최근 3개월", "최근 6개월"]}
+                            onChange={(value) => handleFilterChange("dateRange", value)}
                             extra={{
-                                id: 'date-range-filter',
-                                'aria-label': '날짜 범위 필터',
+                                id: "date-range-filter",
+                                "aria-label": "날짜 범위 필터",
                             }}
                         />
                     </div>
@@ -731,16 +703,16 @@ const OrdersPage: React.FC = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {paginatedOrders.length > 0 ? (
                                 paginatedOrders.map((order) => {
-                                    const isPending = order.status === 'PENDING';
+                                    const isPending = order.status === "PENDING";
                                     return (
                                         <tr
                                             key={order.id}
                                             className={`${
-                                                isPending ? 'bg-yellow-50' : ''
+                                                isPending ? "bg-yellow-50" : ""
                                             } hover:bg-gray-50 transition-colors`}
                                         >
                                             <td className="px-4 py-4 text-sm font-medium text-gray-900 text-center">
-                                                {order.product_names ? order.product_names.join(', ') : '-'}
+                                                {order.product_names ? order.product_names.join(", ") : "-"}
                                             </td>
                                             <td className="px-4 py-4 text-sm text-gray-500 text-center">
                                                 {order.supplier}
@@ -762,7 +734,7 @@ const OrdersPage: React.FC = () => {
                                                     onClick={() => handleOpenOrderDetail(order.id)}
                                                     className="px-3 py-1 bg-indigo-600 rounded-md text-xs font-medium text-white hover:bg-indigo-700 transition-colors"
                                                     aria-label={`${
-                                                        order.product_names ? order.product_names.join(', ') : '-'
+                                                        order.product_names ? order.product_names.join(", ") : "-"
                                                     } 상세보기`}
                                                 >
                                                     상세보기
@@ -784,7 +756,7 @@ const OrdersPage: React.FC = () => {
                                                     onClick={() => handleDeleteOrder(order)}
                                                     className="px-3 py-1 bg-red-600 rounded text-xs font-medium text-white flex items-center justify-center hover:bg-red-700 transition-colors"
                                                     aria-label={`${
-                                                        order.product_names ? order.product_names.join(', ') : '-'
+                                                        order.product_names ? order.product_names.join(", ") : "-"
                                                     } 삭제`}
                                                 >
                                                     삭제
@@ -839,8 +811,8 @@ const OrdersPage: React.FC = () => {
                                     onClick={() => handlePageChange(pageNum)}
                                     className={`relative inline-flex items-center justify-center w-10 h-9 rounded-md ${
                                         currentPage === pageNum
-                                            ? 'text-indigo-600 bg-indigo-50 border border-indigo-600'
-                                            : 'text-gray-700 bg-white border border-gray-200 hover:bg-gray-50'
+                                            ? "text-indigo-600 bg-indigo-50 border border-indigo-600"
+                                            : "text-gray-700 bg-white border border-gray-200 hover:bg-gray-50"
                                     } focus:outline-none`}
                                     aria-label={`${pageNum}페이지로 이동`}
                                 >
