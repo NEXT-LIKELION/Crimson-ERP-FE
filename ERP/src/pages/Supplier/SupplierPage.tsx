@@ -6,6 +6,7 @@ import { useSuppliers, useCreateSupplier, useSupplierById, useUpdateSupplier } f
 import AddSupplierModal from '../../components/modal/AddSupplierModal';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import axios from '../../api/axios';
+import { fetchInventories } from '../../api/inventory';
 
 interface Supplier {
     id: number;
@@ -170,22 +171,33 @@ const SupplierDetailModal = ({
     supplierId: number | null;
 }) => {
     const { data, isLoading, error } = useSupplierById(supplierId ?? 0);
-    const [variantEdits, setVariantEdits] = useState<Record<number, { cost_price: number; is_primary: boolean }>>({});
-    const [savingId, setSavingId] = useState<number | null>(null);
+    const [variantEdits, setVariantEdits] = useState<Record<string, { cost_price: number; is_primary: boolean }>>({});
+    const [savingId, setSavingId] = useState<string | null>(null);
+    useEffect(() => {
+        fetchInventories().then((res) => {
+            const flatVariants: any[] = [];
+            res.data.forEach((product: any) => {
+                (product.variants || []).forEach((variant: any) => {
+                    flatVariants.push(variant);
+                });
+            });
+        });
+    }, []);
     if (!isOpen || !supplierId) return null;
     const supplier = data?.data;
 
-    // variant 수정값 핸들러
-    const handleEditChange = (id: number, field: 'cost_price' | 'is_primary', value: any) => {
+    // variant_code 기반으로 상태 관리 및 핸들러 수정
+    const handleEditChange = (
+        code: string,
+        field: 'cost_price' | 'is_primary',
+        value: any,
+        original: { cost_price: number; is_primary: boolean }
+    ) => {
         setVariantEdits((prev) => {
-            const variant = supplier.variants.find((v: any) => v.id === id);
-            const current = prev[id] ?? {
-                cost_price: variant?.cost_price ?? 0,
-                is_primary: variant?.is_primary ?? false,
-            };
+            const current = prev[code] ?? { cost_price: original.cost_price, is_primary: original.is_primary };
             return {
                 ...prev,
-                [id]: {
+                [code]: {
                     ...current,
                     [field]: value,
                 },
@@ -195,10 +207,15 @@ const SupplierDetailModal = ({
 
     // 저장 버튼 클릭 시 PATCH
     const handleSave = async (variant: any) => {
-        const edit = variantEdits[variant.id] || { cost_price: variant.cost_price, is_primary: variant.is_primary };
-        setSavingId(variant.id);
+        const code = variant.variant_code;
+        if (!code) {
+            alert('variant_code가 없습니다.');
+            return;
+        }
+        const edit = variantEdits[code] || { cost_price: variant.cost_price, is_primary: variant.is_primary };
+        setSavingId(code);
         try {
-            await axios.patch(`/supplier/variant/${supplierId}/${variant.variant_code}/`, {
+            await axios.patch(`/supplier/variant/${supplierId}/${code}/`, {
                 cost_price: edit.cost_price,
                 is_primary: edit.is_primary,
             });
@@ -241,7 +258,7 @@ const SupplierDetailModal = ({
                         <table className="w-full text-sm text-gray-700 border-collapse mb-4">
                             <thead className="bg-gray-50 border-b border-gray-300">
                                 <tr>
-                                    <th className="px-4 py-2 border-b text-center">ID</th>
+                                    <th className="px-4 py-2 border-b text-center">CODE</th>
                                     <th className="px-4 py-2 border-b text-center">품목명</th>
                                     <th className="px-4 py-2 border-b text-center">옵션</th>
                                     <th className="px-4 py-2 border-b text-center">재고</th>
@@ -252,13 +269,14 @@ const SupplierDetailModal = ({
                             </thead>
                             <tbody>
                                 {supplier.variants.map((variant: any) => {
-                                    const edit = variantEdits[variant.id] || {
+                                    const code = variant.variant_code;
+                                    const edit = variantEdits[code] || {
                                         cost_price: variant.cost_price,
                                         is_primary: variant.is_primary,
                                     };
                                     return (
-                                        <tr key={variant.id}>
-                                            <td className="px-4 py-2 border-b text-center">{variant.id}</td>
+                                        <tr key={code}>
+                                            <td className="px-4 py-2 border-b text-center">{variant.variant_code}</td>
                                             <td className="px-4 py-2 border-b text-center">{variant.name}</td>
                                             <td className="px-4 py-2 border-b text-center">{variant.option}</td>
                                             <td className="px-4 py-2 border-b text-center">{variant.stock}</td>
@@ -268,11 +286,10 @@ const SupplierDetailModal = ({
                                                     className="border rounded px-2 py-1 w-24 text-right"
                                                     value={edit.cost_price}
                                                     onChange={(e) =>
-                                                        handleEditChange(
-                                                            variant.id,
-                                                            'cost_price',
-                                                            Number(e.target.value)
-                                                        )
+                                                        handleEditChange(code, 'cost_price', Number(e.target.value), {
+                                                            cost_price: variant.cost_price,
+                                                            is_primary: variant.is_primary,
+                                                        })
                                                     }
                                                 />
                                             </td>
@@ -281,7 +298,10 @@ const SupplierDetailModal = ({
                                                     type="checkbox"
                                                     checked={edit.is_primary}
                                                     onChange={(e) =>
-                                                        handleEditChange(variant.id, 'is_primary', e.target.checked)
+                                                        handleEditChange(code, 'is_primary', e.target.checked, {
+                                                            cost_price: variant.cost_price,
+                                                            is_primary: variant.is_primary,
+                                                        })
                                                     }
                                                 />
                                             </td>
@@ -289,9 +309,9 @@ const SupplierDetailModal = ({
                                                 <button
                                                     className="bg-blue-500 text-white px-3 py-1 rounded disabled:opacity-50"
                                                     onClick={() => handleSave(variant)}
-                                                    disabled={savingId === variant.id}
+                                                    disabled={savingId === code}
                                                 >
-                                                    {savingId === variant.id ? '저장중...' : '저장'}
+                                                    {savingId === code ? '저장중...' : '저장'}
                                                 </button>
                                             </td>
                                         </tr>
