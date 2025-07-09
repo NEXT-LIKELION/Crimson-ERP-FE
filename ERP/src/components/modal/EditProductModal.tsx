@@ -90,6 +90,8 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
             ? form.stock + adjustQty
             : Math.max(0, form.stock - adjustQty);
 
+        const filteredSuppliers = form.suppliers.filter((s) => s.supplier_name && s.supplier_name !== "선택");
+
         const updated = {
             variant_code: form.variant_code, // variant 식별을 위해 추가
             product_id: form.product_id,
@@ -100,7 +102,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
             min_stock: Number(form.min_stock) || 0, // 최소재고가 없는 경우 0으로 설정
             description: form.description || "",
             memo: form.memo || "",
-            suppliers: form.suppliers.map((s) => ({
+            suppliers: filteredSuppliers.map((s) => ({
                 name: s.supplier_name, // 백엔드가 기대하는 'name' 필드로 변경
                 cost_price: Number(s.cost_price) || 0, // 원가 데이터가 없는 경우 0으로 설정
                 is_primary: s.is_primary,
@@ -220,6 +222,18 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
                             </div>
                         </section>
                     </div>
+                    {/* 설명 추가 */}
+                    <section>
+                        <div className="mb-2">
+                            <label className="text-sm font-medium text-gray-700">설명</label>
+                        </div>
+                        <textarea
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                            rows={3}
+                            value={form.description || ""}
+                            onChange={(e) => handleChange("description", e.target.value)}
+                        />
+                    </section>
 
                     <section>
                         <div className="flex items-center gap-2 mb-3">
