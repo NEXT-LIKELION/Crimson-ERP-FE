@@ -135,8 +135,12 @@ const SupplierPage: React.FC = () => {
             <AddSupplierModal
                 isOpen={isAddModalOpen}
                 onClose={() => setAddModalOpen(false)}
-                onSave={(form) => {
-                    createSupplier.mutate(form);
+                onSave={async (form) => {
+                    try {
+                        await createSupplier.mutateAsync(form);
+                    } catch (error: any) {
+                        alert(error?.response?.data?.detail || '공급업체 추가 중 오류가 발생했습니다.');
+                    }
                 }}
             />
 

@@ -1,20 +1,20 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { FiPrinter, FiPlus, FiSearch, FiLoader, FiRotateCcw } from "react-icons/fi";
-import PrimaryButton from "../../components/button/PrimaryButton";
-import GreenButton from "../../components/button/GreenButton";
-import StatusBadge from "../../components/common/StatusBadge";
-import TextInput from "../../components/input/TextInput";
-import SelectInput from "../../components/input/SelectInput";
-import OrderDetailModal from "../../components/modal/OrderDetailModal";
-import NewOrderModal from "../../components/modal/NewOrderModal";
-import { Order, OrderStatus } from "../../store/ordersStore";
-import { useAuthStore } from "../../store/authStore";
-import { useOrder } from "../../hooks/queries/useOrder";
-import axios from "../../api/axios";
-import { deleteOrder, createOrder, fetchOrderById } from "../../api/orders";
-import { fetchInventories } from "../../api/inventory";
-import { fetchSuppliers } from "../../api/supplier";
-
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { FiPlus, FiSearch, FiLoader, FiRotateCcw, FiPrinter, FiDownload } from 'react-icons/fi';
+import PrimaryButton from '../../components/button/PrimaryButton';
+import GreenButton from '../../components/button/GreenButton';
+import StatusBadge from '../../components/common/StatusBadge';
+import TextInput from '../../components/input/TextInput';
+import SelectInput from '../../components/input/SelectInput';
+import OrderDetailModal from '../../components/modal/OrderDetailModal';
+import NewOrderModal from '../../components/modal/NewOrderModal';
+import { Order, OrderStatus } from '../../store/ordersStore';
+import { useAuthStore } from '../../store/authStore';
+import { useOrder } from '../../hooks/queries/useOrder';
+import axios from '../../api/axios';
+import { deleteOrder, createOrder, fetchOrderById } from '../../api/orders';
+import { fetchInventories } from '../../api/inventory';
+import { fetchSuppliers } from '../../api/supplier';
+        
 // 검색 필터 타입 정의
 interface SearchFilters {
     orderId: string;
@@ -22,6 +22,45 @@ interface SearchFilters {
     status: string;
     dateRange: string;
 }
+
+// order_date를 YYYY-MM-DD로 변환
+function parseOrderDate(dateStr: string | undefined | null): string {
+    if (!dateStr) return '';
+    const match = dateStr.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+    if (match) {
+        const [, year, month, day] = match;
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    return dateStr; // 이미 포맷이 맞으면 그대로
+}
+
+// 숫자를 한글로 변환하는 함수 추가 (OrderDetailModal.tsx에서 복사)
+function numberToKorean(num: number): string {
+    const hanA = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구', '십'];
+    const danA = ['', '만', '억', '조', '경'];
+    let result = '';
+    let i = 0;
+    while (num > 0) {
+        let str = '';
+        let n = num % 10000;
+        num = Math.floor(num / 10000);
+        if (n > 0) {
+            let d = 1000;
+            for (let j = 0; j < 4; j++) {
+                let q = Math.floor(n / d);
+                if (q > 0) {
+                    str += hanA[q] + (d > 1 ? hanA[10] : '');
+                }
+                n %= d;
+                d = Math.floor(d / 10);
+            }
+            result = str + danA[i] + result;
+        }
+        i++;
+    }
+    return result || '영';
+}
+
 
 const OrdersPage: React.FC = () => {
     // 모든 Hook 선언을 최상단에 위치시킴
@@ -142,9 +181,10 @@ const OrdersPage: React.FC = () => {
 
         // 상태 필터링
         const statusMap: Record<string, OrderStatus> = {
-            "승인 대기": "PENDING",
-            승인됨: "APPROVED",
-            취소됨: "CANCELLED",
+            '승인 대기': 'PENDING',
+            승인됨: 'APPROVED',
+            취소됨: 'CANCELLED',
+            완료: 'COMPLETED',
         };
 
         if (searchFilters.status !== "모든 상태") {
@@ -265,6 +305,104 @@ const OrdersPage: React.FC = () => {
         printWindow.document.close();
     }, []);
 
+    const handleDownloadOrderExcel = async (order: Order) => {
+        try {
+            console.log('주문 상세 요청 시작');
+            const res = await axios.get(`/orders/${order.id}`);
+            console.log('주문 상세 응답', res.data);
+            const orderDetail = res.data;
+            // 2. 전체 공급업체 목록 fetch
+            console.log('공급업체 목록 요청');
+            const suppliersRes = await fetchSuppliers();
+            console.log('공급업체 목록 응답', suppliersRes.data);
+            const suppliers = suppliersRes.data;
+            // 3. orderDetail.supplier(이름)과 suppliers의 name을 비교해 매칭
+            const supplierDetail = suppliers.find((s: any) => s.name === orderDetail.supplier) || {
+                name: orderDetail.supplier,
+                contact: '',
+                manager: '',
+                email: '',
+            };
+            console.log('엑셀 템플릿 fetch');
+            const response = await fetch('/data/template.xlsx');
+            console.log('엑셀 템플릿 fetch 완료', response);
+            const arrayBuffer = await response.arrayBuffer();
+            console.log('xlsx-populate import');
+            const XlsxPopulate = (await import('xlsx-populate/browser/xlsx-populate-no-encryption')).default;
+            console.log('xlsx-populate import 완료', XlsxPopulate);
+            const workbook = await XlsxPopulate.fromDataAsync(arrayBuffer);
+            const sheet = workbook.sheet(0);
+            // 4. 셀 값 매핑 (OrderDetailModal.tsx와 동일)
+            sheet.cell('I10').value(orderDetail.manager);
+            sheet.cell('I11').value(supplierDetail.name);
+            sheet.cell('W11').value(supplierDetail.contact);
+            sheet.cell('I12').value(supplierDetail.manager);
+            sheet.cell('W12').value(supplierDetail.email);
+            sheet.cell('E16').value(orderDetail.order_date);
+            sheet
+                .cell('Q16')
+                .value(
+                    orderDetail.expected_delivery_date ? `납품일자: ${orderDetail.expected_delivery_date}` : '납품일자:'
+                );
+            sheet.cell('E17').value('고려대학교 100주년기념관(크림슨스토어)');
+            const totalAmount = orderDetail.items.reduce(
+                (sum: any, item: any) => sum + item.quantity * item.unit_price,
+                0
+            );
+            sheet.cell('G18').value(numberToKorean(totalAmount));
+            sheet.cell('Q18').value(`${totalAmount.toLocaleString()})`);
+            sheet
+                .cell('AG18')
+                .value(orderDetail.vat_included ? true : false)
+                .style('numberFormat', ';;;');
+            sheet
+                .cell('AH18')
+                .value(orderDetail.vat_included ? false : true)
+                .style('numberFormat', ';;;');
+            sheet.cell('AB31').value(orderDetail.packaging_included ? true : false);
+            sheet.cell('A30').value(orderDetail.instruction_note || '');
+            sheet.cell('A33').value(orderDetail.note || '');
+            // 품목 테이블
+            const startRow = 21;
+            const templateRow = 22;
+            const itemCount = orderDetail.items.length;
+            if (itemCount > 6) {
+                for (let i = 6; i < itemCount; i++) {
+                    sheet.row(templateRow).copyTo(sheet.row(startRow + i));
+                }
+            }
+            orderDetail.items.forEach((item: any, idx: number) => {
+                const row = startRow + idx;
+                sheet.cell(`C${row}`).value(item.item_name);
+                sheet.cell(`H${row}`).value(item.spec);
+                sheet.cell(`K${row}`).value('EA');
+                sheet.cell(`N${row}`).value(item.quantity);
+                sheet.cell(`Q${row}`).value(item.unit_price);
+                sheet.cell(`X${row}`).value(item.quantity * item.unit_price);
+                sheet.cell(`AD${row}`).value(item.remark || '');
+            });
+            const templateRows = 6;
+            if (orderDetail.items.length < templateRows) {
+                for (let i = orderDetail.items.length; i < templateRows; i++) {
+                    const row = startRow + i;
+                    ['C', 'H', 'K', 'N', 'Q', 'X', 'AD'].forEach((col) => {
+                        sheet.cell(`${col}${row}`).value('');
+                    });
+                }
+            }
+            // 5. 파일 저장
+            console.log('saveAs import');
+            const saveAs = (await import('file-saver')).saveAs;
+            console.log('saveAs import 완료', saveAs);
+            const blob = await workbook.outputAsync();
+            saveAs(blob, `(주)고대미래_발주서_${orderDetail.id}.xlsx`);
+            console.log('엑셀 파일 저장 완료');
+        } catch (error) {
+            console.error('엑셀 다운로드 중 오류 발생:', error);
+            alert('엑셀 생성 중 오류가 발생했습니다. 콘솔을 확인해 주세요.');
+        }
+    };
+
     const handlePageChange = useCallback((pageNumber: number) => {
         setCurrentPage(pageNumber);
     }, []);
@@ -294,6 +432,8 @@ const OrdersPage: React.FC = () => {
                 return <StatusBadge text="승인됨" theme="approved" />;
             case "CANCELLED":
                 return <StatusBadge text="취소됨" theme="rejected" />;
+            case 'COMPLETED':
+                return <StatusBadge text="완료" theme="completed" />;
             default:
                 return <StatusBadge text="기타" theme="neutral" />;
         }
@@ -467,8 +607,8 @@ const OrdersPage: React.FC = () => {
                         </label>
                         <SelectInput
                             defaultText="모든 상태"
-                            options={["모든 상태", "승인 대기", "승인됨", "취소됨"]}
-                            onChange={(value) => handleFilterChange("status", value)}
+                            options={['모든 상태', '승인 대기', '승인됨', '취소됨', '완료']}
+                            onChange={(value) => handleFilterChange('status', value)}
                             extra={{
                                 id: "status-filter",
                                 "aria-label": "주문 상태 필터",
@@ -550,7 +690,7 @@ const OrdersPage: React.FC = () => {
                                     scope="col"
                                     className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center"
                                 >
-                                    인쇄
+                                    다운로드
                                 </th>
                                 <th
                                     scope="col"
@@ -602,13 +742,13 @@ const OrdersPage: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-3 text-center">
                                                 <button
-                                                    onClick={() => handlePrintOrder(order)}
+                                                    onClick={() => handleDownloadOrderExcel(order)}
                                                     className="p-2 rounded text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors"
                                                     aria-label={`${
-                                                        order.product_names ? order.product_names.join(", ") : "-"
-                                                    } 인쇄`}
+                                                        order.product_names ? order.product_names.join(', ') : '-'
+                                                    } 다운로드`}
                                                 >
-                                                    <FiPrinter className="w-4 h-4" />
+                                                    <FiDownload className="w-4 h-4" />
                                                 </button>
                                             </td>
                                             <td className="px-6 py-3.5 text-center">

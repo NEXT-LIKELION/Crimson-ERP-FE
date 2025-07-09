@@ -18,6 +18,7 @@ interface NewOrderModalProps {
 }
 
 interface OrderItemPayload {
+    product_id: string | null; // 상품 ID
     variant: string | null;
     quantity: number;
     unit_price: number;
@@ -30,11 +31,11 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     const [products, setProducts] = useState<any[]>([]);
     const [supplier, setSupplier] = useState<number>(0);
     const [supplierName, setSupplierName] = useState<string>('');
-    const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [orderDate, setOrderDate] = useState<Date | null>(new Date());
     const [deliveryDate, setDeliveryDate] = useState<Date | null>(null);
     const [items, setItems] = useState<OrderItemPayload[]>([
         {
+            product_id: null,
             variant: null,
             quantity: 1,
             unit_price: 0,
@@ -49,7 +50,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     const [hasPackaging, setHasPackaging] = useState<boolean>(true);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [formErrors, setFormErrors] = useState<string[]>([]);
-    const [variants, setVariants] = useState<any[]>([]);
+    const [variantsByProduct, setVariantsByProduct] = useState<{ [productId: string]: any[] }>({});
     const { data: employeesData } = useEmployees();
     const employees = employeesData?.data || [];
     const user = useAuthStore((state) => state.user);
@@ -62,20 +63,19 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             fetchInventories().then((res) => setProducts(res.data));
             resetForm();
             setSupplierName('');
-            setSelectedProductId(null);
         }
     }, [isOpen]);
 
     const resetForm = () => {
         setSupplier(0);
         setSupplierName('');
-        setSelectedProductId(null);
         setOrderDate(new Date());
         const twoWeeksLater = new Date();
         twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
         setDeliveryDate(twoWeeksLater);
         setItems([
             {
+                product_id: null,
                 variant: null,
                 quantity: 1,
                 unit_price: 0,
@@ -90,7 +90,17 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     };
 
     const handleAddItem = () => {
-        setItems([...items, { variant: null, quantity: 1, unit_price: 0, remark: '', spec: '' }]);
+        setItems([
+            ...items,
+            {
+                product_id: null,
+                variant: null,
+                quantity: 1,
+                unit_price: 0,
+                remark: '',
+                spec: '',
+            },
+        ]);
     };
 
     const handleRemoveItem = (idx: number) => {
@@ -121,8 +131,14 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             errors.push('예상 납품일을 선택해주세요.');
         }
         items.forEach((item, index) => {
-            if (!item.variant || !variantOptions.find((v: any) => v.option === item.variant)) {
-                errors.push(`${index + 1}번 항목의 품목(variant)을 선택해주세요.`);
+            if (!item.product_id) {
+                errors.push(`${index + 1}번 항목의 상품을 선택해주세요.`);
+            }
+            if (
+                !item.variant ||
+                !(item.product_id && variantsByProduct[item.product_id]?.find((v: any) => v.option === item.variant))
+            ) {
+                errors.push(`${index + 1}번 항목의 품목을 선택해주세요.`);
             }
             if (!item.spec) {
                 errors.push(`${index + 1}번 항목의 규격을 입력해주세요.`);
@@ -160,8 +176,11 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 packaging_included: hasPackaging,
                 manager_name: user?.first_name || user?.username || '',
                 items: items.map((item) => {
-                    const variantObj = variantOptions.find((v: any) => v.option === item.variant);
+                    const product_id = item.product_id;
+                    const variantObj =
+                        product_id && variantsByProduct[product_id]?.find((v: any) => v.option === item.variant);
                     return {
+                        product_id: product_id,
                         variant_code: variantObj ? variantObj.variant_code : undefined,
                         quantity: item.quantity,
                         unit_price: item.unit_price,
@@ -188,51 +207,30 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         setSupplier(found ? found.id : 0);
     };
 
-    // 상품 드롭다운 value를 위한 배열
-    const productNames = products.map((p) => p.name);
-    const getProductNameById = (id: string | null) => {
-        if (!id) return '';
-        const found = products.find((p) => p.product_id === id);
-        return found ? found.name : '';
-    };
-    const handleProductChange = async (name: string) => {
-        console.log('상품 선택:', name);
+    // 2. 행별 상품 선택 핸들러
+    const handleProductChange = async (idx: number, name: string) => {
         const found = products.find((p) => p.name === name);
-        console.log('선택된 상품:', found);
-        setSelectedProductId(found ? found.product_id : null);
-        if (found) {
+        const product_id = found ? found.product_id : null;
+        // 품목 캐시 없으면 fetch
+        if (product_id && !variantsByProduct[product_id]) {
             try {
-                const res = await fetchVariantsByProductId(found.product_id);
-                setVariants(res.data.variants || []);
-                console.log('variants API 응답:', res.data.variants);
+                const res = await fetchVariantsByProductId(product_id);
+                setVariantsByProduct((prev) => ({ ...prev, [product_id]: res.data.variants || [] }));
             } catch (e) {
-                setVariants([]);
-                console.error('variants API 호출 오류:', e);
+                setVariantsByProduct((prev) => ({ ...prev, [product_id]: [] }));
             }
-        } else {
-            setVariants([]);
         }
-        // 상품이 바뀌면 품목(variant) 선택 초기화
-        setItems([
-            {
-                variant: null,
-                quantity: 1,
-                unit_price: 0,
-                remark: '',
-                spec: '',
-            },
-        ]);
+        // 상품 바뀌면 품목, 규격 초기화
+        setItems(items.map((item, i) => (i === idx ? { ...item, product_id, variant: null, spec: '' } : item)));
     };
 
-    // 선택된 상품의 variants
-    const variantOptions = variants;
-    console.log('variantOptions:', variantOptions);
-
-    const getVariantNameById = (id: number | null) => {
-        if (!id) return '';
-        const found = variantOptions.find((v: any) => v.id === id);
+    // 필요하다면 아래와 같이 items의 product_id를 받아서 찾는 함수로 변경
+    const getVariantNameById = (product_id: string | null, id: number | null) => {
+        if (!product_id || !id) return '';
+        const found = variantsByProduct[product_id]?.find((v: any) => v.id === id);
         return found ? found.option : '';
     };
+    // 5. 행별 품목 선택 핸들러
     const handleVariantChange = (idx: number, option: string) => {
         console.log('품목(variant) 선택:', option);
         handleItemChange(idx, 'variant', option);
@@ -297,16 +295,6 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-700">상품 선택</label>
-                                <SelectInput
-                                    defaultText="상품 선택"
-                                    options={productNames}
-                                    value={getProductNameById(selectedProductId)}
-                                    onChange={handleProductChange}
-                                    disabled={products.length === 0}
-                                />
-                            </div>
-                            <div className="space-y-1">
                                 <label className="block text-sm font-medium text-gray-700">담당자</label>
                                 <SelectInput
                                     defaultText="담당자 선택"
@@ -349,17 +337,24 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                             <button
                                 onClick={handleAddItem}
                                 className="px-3 py-1 bg-indigo-600 text-white rounded-md flex items-center text-sm font-medium"
-                                disabled={isSubmitting || !selectedProductId}
+                                disabled={isSubmitting || !supplier}
                             >
                                 <FiPlus className="w-3.5 h-3.5 mr-1" />
                                 항목 추가
                             </button>
                         </div>
                         <div className="border border-gray-200 rounded-md overflow-hidden">
-                            <div className="min-w-[852px]">
+                            <div className="min-w-[952px]">
+                                {' '}
+                                {/* 기존보다 100px 넓힘 */}
                                 {/* Table Header */}
                                 <div className="bg-gray-50 h-8">
                                     <div className="h-8 flex">
+                                        <div className="w-32 px-3 py-2 flex items-center">
+                                            <span className="text-xs font-medium text-gray-500 uppercase">
+                                                상품 <span className="text-red-500">*</span>
+                                            </span>
+                                        </div>
                                         <div className="w-32 px-3 py-2 flex items-center">
                                             <span className="text-xs font-medium text-gray-500 uppercase">
                                                 품목 <span className="text-red-500">*</span>
@@ -394,18 +389,43 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                         </div>
                                     </div>
                                 </div>
-
                                 {/* Table Body */}
                                 <div className="bg-white">
                                     {items.map((item, idx) => (
                                         <div key={idx} className="h-14 flex border-t border-gray-200">
+                                            {/* 상품 드롭다운 */}
+                                            <div className="w-32 px-3 py-3.5 flex items-center">
+                                                <SelectInput
+                                                    defaultText="상품 선택"
+                                                    options={products.map((p: any) => p.name)}
+                                                    value={(() => {
+                                                        const found = products.find(
+                                                            (p: any) => p.product_id === item.product_id
+                                                        );
+                                                        return found ? found.name : '';
+                                                    })()}
+                                                    onChange={(name: string) => {
+                                                        handleProductChange(idx, name);
+                                                    }}
+                                                    disabled={isSubmitting}
+                                                />
+                                            </div>
+                                            {/* 품목 드롭다운 */}
                                             <div className="w-32 px-3 py-3.5 flex items-center">
                                                 <SelectInput
                                                     defaultText="품목 선택"
-                                                    options={variantOptions.map((v: any) => v.option)}
-                                                    onChange={(option) => handleVariantChange(idx, option)}
+                                                    options={
+                                                        item.product_id && variantsByProduct[item.product_id]
+                                                            ? variantsByProduct[item.product_id].map(
+                                                                  (v: any) => v.option
+                                                              )
+                                                            : []
+                                                    }
+                                                    onChange={(option: string) => {
+                                                        handleVariantChange(idx, option);
+                                                    }}
                                                     value={item.variant ?? ''}
-                                                    disabled={isSubmitting || !selectedProductId}
+                                                    disabled={isSubmitting || !item.product_id}
                                                 />
                                             </div>
                                             <div className="w-32 px-3 py-3.5 flex items-center">
