@@ -31,8 +31,8 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     const [products, setProducts] = useState<any[]>([]);
     const [supplier, setSupplier] = useState<number>(0);
     const [supplierName, setSupplierName] = useState<string>('');
-    const [orderDate, setOrderDate] = useState<Date | null>(new Date());
-    const [deliveryDate, setDeliveryDate] = useState<Date | null>(null);
+    const [orderDate, setOrderDate] = useState<Date | null>(null); // 초기값 null
+    const [deliveryDate, setDeliveryDate] = useState<Date | null>(null); // 초기값 null
     const [items, setItems] = useState<OrderItemPayload[]>([
         {
             product_id: null,
@@ -69,10 +69,8 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     const resetForm = () => {
         setSupplier(0);
         setSupplierName('');
-        setOrderDate(new Date());
-        const twoWeeksLater = new Date();
-        twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
-        setDeliveryDate(twoWeeksLater);
+        setOrderDate(null); // 초기값 null
+        setDeliveryDate(null); // 초기값 null
         setItems([
             {
                 product_id: null,
@@ -116,7 +114,8 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     };
 
     const calculateTotal = (): number => {
-        return items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+        const total = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+        return includesTax ? total : Math.round(total * 1.1);
     };
 
     const validateForm = (): boolean => {
@@ -162,7 +161,10 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             setFormErrors(['공급업체를 선택해주세요.']);
             return;
         }
-        if (!validateForm()) return;
+        if (!validateForm()) {
+            alert('필수 입력값을 모두 입력해주세요.');
+            return;
+        }
         setIsSubmitting(true);
         try {
             const payload = {
@@ -183,7 +185,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                         product_id: product_id,
                         variant_code: variantObj ? variantObj.variant_code : undefined,
                         quantity: item.quantity,
-                        unit_price: item.unit_price,
+                        unit_price: includesTax ? item.unit_price : Math.round(item.unit_price * 1.1),
                         remark: item.remark,
                         spec: item.spec,
                     };
@@ -314,13 +316,17 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                 <label className="block text-sm font-medium text-gray-700">
                                     발주일자 <span className="text-red-500">*</span>
                                 </label>
-                                <DateInput placeholder="발주일자 선택" onChange={setOrderDate} />
+                                <DateInput placeholder="발주일자 선택" value={orderDate} onChange={setOrderDate} />
                             </div>
                             <div className="space-y-1">
                                 <label className="block text-sm font-medium text-gray-700">
                                     예상 납품일 <span className="text-red-500">*</span>
                                 </label>
-                                <DateInput placeholder="예상 납품일 선택" onChange={setDeliveryDate} />
+                                <DateInput
+                                    placeholder="예상 납품일 선택"
+                                    value={deliveryDate}
+                                    onChange={setDeliveryDate}
+                                />
                             </div>
                         </div>
                     </div>
@@ -474,7 +480,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                             <div className="w-20 px-3 py-2 flex items-center justify-center">
                                                 <div className="text-sm font-normal text-gray-900 leading-tight">
                                                     {(item.quantity && item.unit_price
-                                                        ? item.quantity * item.unit_price
+                                                        ? includesTax
+                                                            ? item.quantity * item.unit_price
+                                                            : Math.round(item.quantity * item.unit_price * 1.1)
                                                         : 0
                                                     ).toLocaleString()}
                                                     원
