@@ -4,14 +4,9 @@ import { getCookie } from '../utils/cookies';
 // 로그인
 export const login = (payload: { username: string; password: string }) => api.post('/authentication/login/', payload);
 
-// 회원가입 (full_name, contact 등 추가 필드 허용)
-export const signup = (payload: {
-    username: string;
-    password: string;
-    email?: string;
-    full_name?: string;
-    contact?: string;
-}) => api.post('/authentication/signup/', payload);
+    // 회원가입 (first_name, contact 등 추가 필드 허용)
+export const signup = (payload: { username: string; password: string; first_name?: string; contact?: string }) =>
+    api.post('/authentication/signup/', payload);
 
 // 토큰 유효성 검증
 export const verifyToken = () => api.get('/authentication/verify/');

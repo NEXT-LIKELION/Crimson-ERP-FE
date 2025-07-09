@@ -7,7 +7,6 @@ interface User {
     username: string;
     role: string; // 영문 role(MANAGER/STAFF)
     first_name?: string;
-    full_name?: string;
     email?: string;
     contact?: string;
     status?: string;

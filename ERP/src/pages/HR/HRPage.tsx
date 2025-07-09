@@ -11,7 +11,7 @@ import { Employee, approveEmployee } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
 
 // 직원 상태 타입
-type EmployeeStatus = 'active' | 'vacation' | 'leave' | 'terminated' | 'denied';
+type EmployeeStatus = 'active' | 'terminated' | 'denied';
 
 // 랜덤 이모지 생성 함수
 const getRandomEmoji = (employeeId: number): string => {
@@ -199,10 +199,6 @@ const HRPage: React.FC = () => {
             switch (status) {
                 case 'active':
                     return <StatusBadge text="재직중" theme="active" />;
-                case 'vacation':
-                    return <StatusBadge text="휴가중" theme="approved" />;
-                case 'leave':
-                    return <StatusBadge text="휴직중" theme="pending" />;
                 case 'terminated':
                     return <StatusBadge text="퇴사" theme="rejected" />;
                 case 'denied':
@@ -385,8 +381,6 @@ const HRPage: React.FC = () => {
     const statusOptions = [
         { value: '', label: '전체' },
         { value: 'active', label: '재직중' },
-        { value: 'vacation', label: '휴가중' },
-        { value: 'leave', label: '휴직중' },
         { value: 'terminated', label: '퇴사' },
         { value: 'denied', label: '승인 대기' },
     ];
@@ -487,10 +481,7 @@ const HRPage: React.FC = () => {
                         {/* 검색 입력 */}
                         <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 mb-2">직원 검색</label>
-                            <SearchInput
-                                placeholder="이름 또는 사번으로 검색하세요"
-                                onSearch={(query) => setSearchQuery(query)}
-                            />
+                            <SearchInput placeholder="검색하세요" onSearch={(query) => setSearchQuery(query)} />
                         </div>
 
                         {/* 직급 필터 */}

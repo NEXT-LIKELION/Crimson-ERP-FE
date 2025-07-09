@@ -33,8 +33,8 @@ export const useUpdateEmployee = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ employeeId, data }: { employeeId: number; data: EmployeeUpdateData }) =>
-            updateEmployee(employeeId, data),
+        mutationFn: ({ employeeId, data }: { employeeId: number; data: EmployeePatchData }) =>
+            patchEmployee(employeeId, data),
         onSuccess: (_, { employeeId }) => {
             queryClient.invalidateQueries({ queryKey: ['employees'] });
             queryClient.invalidateQueries({ queryKey: ['employee', employeeId] });
