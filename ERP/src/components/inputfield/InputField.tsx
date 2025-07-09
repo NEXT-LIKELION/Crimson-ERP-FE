@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import TextInput from '../input/TextInput';
 import SelectInput from '../input/SelectInput';
 import PrimaryButton from '../button/PrimaryButton';
@@ -31,11 +31,29 @@ const InputField: React.FC<InputFieldProps> = ({
     onSearch,
     onReset,
 }) => {
+    // 슬라이더의 내부 상태 관리
+    const [sliderValues, setSliderValues] = useState<[number, number]>([0, 1000000]);
+
+    // props의 minSales, maxSales가 변경될 때 슬라이더 값 동기화
+    useEffect(() => {
+        const min = minSales ? parseInt(minSales) : 0;
+        const max = maxSales ? parseInt(maxSales) : 1000000;
+        setSliderValues([min, max]);
+    }, [minSales, maxSales]);
+
     // 엔터키 입력 시 검색 실행
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             onSearch();
         }
+    };
+
+    // 슬라이더 값 변경 핸들러
+    const handleSliderChange = (value: number | number[]) => {
+        const [min, max] = value as number[];
+        setSliderValues([min, max]);
+        onMinSalesChange(min.toString());
+        onMaxSalesChange(max.toString());
     };
 
     return (
@@ -66,12 +84,8 @@ const InputField: React.FC<InputFieldProps> = ({
                         min={0}
                         max={1000000}
                         step={10000}
-                        defaultValue={[Number(minSales), Number(maxSales)]}
-                        onChange={(value) => {
-                            const [min, max] = value as number[];
-                            onMinSalesChange(min.toString());
-                            onMaxSalesChange(max.toString());
-                        }}
+                        value={sliderValues}
+                        onChange={handleSliderChange}
                         trackStyle={[{ backgroundColor: '#2563eb' }]} // 파란색
                         handleStyle={[
                             { borderColor: '#2563eb', backgroundColor: '#2563eb' },
@@ -79,8 +93,8 @@ const InputField: React.FC<InputFieldProps> = ({
                         ]}
                     />
                     <div className="flex justify-between text-sm text-gray-600 mt-1 px-1">
-                        <span>{Number(minSales).toLocaleString()}원</span>
-                        <span>{Number(maxSales).toLocaleString()}원</span>
+                        <span>{sliderValues[0].toLocaleString()}원</span>
+                        <span>{sliderValues[1].toLocaleString()}원</span>
                     </div>
                 </div>
             </div>
