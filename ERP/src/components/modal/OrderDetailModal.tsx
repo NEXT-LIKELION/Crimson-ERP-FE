@@ -496,7 +496,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
             // 5. 파일 저장
             const blob = await workbook.outputAsync();
-            saveAs(blob, `발주서_${orderDetail.id}.xlsx`);
+            saveAs(blob, `(주)고대미래_발주서_${orderDetail.id}.xlsx`);
         } catch (error) {
             console.error('엑셀 다운로드 실패:', error);
             alert('엑셀 파일 생성 중 오류가 발생했습니다.');
@@ -508,9 +508,10 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         try {
             const response = await axios.patch(`/orders/${orderDetail.id}/`, { status: newStatus });
             const { order, stock_changes } = response.data;
+            console.log('서버에서 내려온 order.status:', order.status);
             setOrderDetail(order); // 상세정보 갱신
             if (stock_changes && stock_changes.length > 0) {
-                alert(
+                /*alert(
                     '재고가 변경되었습니다.\n' +
                         stock_changes
                             .map(
@@ -518,7 +519,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                                     `${s.name}(${s.option}): ${s.stock_before} → ${s.stock_after} (+${s.quantity})`
                             )
                             .join('\n')
-                );
+                );*/
             }
             alert('상태가 변경되었습니다.');
         } catch (e: any) {
