@@ -7,6 +7,7 @@ import AddSupplierModal from '../../components/modal/AddSupplierModal';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import axios from '../../api/axios';
 import { fetchInventories } from '../../api/inventory';
+import { updateSupplierVariant } from '../../api/supplier';
 
 interface Supplier {
     id: number;
@@ -215,10 +216,10 @@ const SupplierDetailModal = ({
         const edit = variantEdits[code] || { cost_price: variant.cost_price, is_primary: variant.is_primary };
         setSavingId(code);
         try {
-            await axios.patch(`/supplier/variant/${supplierId}/${code}/`, {
+            await updateSupplierVariant(supplierId, code, {
                 cost_price: edit.cost_price,
                 is_primary: edit.is_primary,
-            });
+            }); // 백엔드에서 처리하는 것이므로 파라미터 순서 중요
             alert('저장되었습니다.');
         } catch (e) {
             alert('저장 실패');

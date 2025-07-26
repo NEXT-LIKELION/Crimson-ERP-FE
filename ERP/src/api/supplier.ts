@@ -12,4 +12,6 @@ export const createSupplier = (data: any) => api.post('/supplier/', data);
 // 공급업체 수정
 export const updateSupplier = (id: number, data: any) => api.patch(`/supplier/${id}/`, data);
 
+export const updateSupplierVariant = (id: number, code: string, data: any) =>
+    api.patch(`/supplier/variants/${id}/${code}/`, data);
 // (삭제는 백엔드에 구현되면 추가)
