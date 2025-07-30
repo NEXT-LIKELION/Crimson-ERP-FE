@@ -18,12 +18,14 @@ interface TableProduct extends Omit<Product, 'variant_id'> {
 interface InventoryTableProps {
     inventories: Product[];
     onDelete: (productId: string) => Promise<void>;
-    filters?: {
-        productName?: string;
-        status?: string;
-        minSales?: string;
-        maxSales?: string;
+    pagination?: {
+        count: number;
+        next: string | null;
+        previous: string | null;
     };
+    currentPage?: number;
+    onPageChange?: (page: number) => void;
+    onExportToExcel?: () => void;
 }
 
 // 정렬 가능한 헤더 컴포넌트
@@ -46,10 +48,9 @@ const SortableHeader = ({
     </th>
 );
 
-const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps) => {
+const InventoryTable = ({ inventories, onDelete, pagination, currentPage = 1, onPageChange, onExportToExcel }: InventoryTableProps) => {
     const navigate = useNavigate();
     const [data, setData] = useState<TableProduct[]>([]);
-    const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<{
         key: keyof TableProduct;
         order: 'asc' | 'desc' | null;
@@ -64,8 +65,8 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
         if (!Array.isArray(inventories)) return;
         console.log('InventoryTable - inventories changed:', inventories.length);
 
-        // 백엔드에서 이미 평면화된 variant 데이터를 직접 받음
-        let rows = inventories.map((item) => {
+        // 백엔드에서 이미 필터링된 데이터를 직접 받아서 상태만 계산
+        const rows = inventories.map((item) => {
             const stock = item.stock;
             const minStock = item.min_stock || 0;
 
@@ -87,63 +88,12 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
                 totalSales: item.sales ? `${item.sales.toLocaleString()}원` : '0원',
                 status: status,
             };
-            console.log(
-                'row 생성 - product_id:',
-                item.product_id,
-                'variant_code:',
-                item.variant_code,
-                'min_stock:',
-                row.min_stock,
-                'sales:',
-                item.sales,
-                'status:',
-                status
-            );
             return row;
         });
 
-        // 필터링 적용
-        if (filters) {
-            rows = rows.filter((row) => {
-                // 상품명 필터
-                if (filters.productName && !row.name.toLowerCase().includes(filters.productName.toLowerCase())) {
-                    return false;
-                }
-
-                // 상태 필터
-                if (filters.status && filters.status !== '모든 상태') {
-                    if (filters.status === '재고부족' && row.status !== '재고부족') {
-                        return false;
-                    }
-                    if (filters.status === '품절' && row.status !== '품절') {
-                        return false;
-                    }
-                    if (filters.status === '정상' && row.status !== '정상') {
-                        return false;
-                    }
-                }
-
-                // 판매합계 필터
-                if (filters.minSales || filters.maxSales) {
-                    const salesValue = Number(row.totalSales.replace(/[^\d]/g, '')) || 0;
-                    const minSalesValue = parseInt(filters.minSales || '0') || 0;
-                    const maxSalesValue = parseInt(filters.maxSales || '1000000') || 1000000;
-
-                    // 기본값(0, 1000000)이 아닌 경우에만 필터링 적용
-                    if (!(minSalesValue === 0 && maxSalesValue === 1000000)) {
-                        if (salesValue < minSalesValue || salesValue > maxSalesValue) {
-                            return false;
-                        }
-                    }
-                }
-
-                return true;
-            });
-        }
-
         console.log('InventoryTable - mapped data:', rows);
         setData(rows);
-    }, [inventories, filters]);
+    }, [inventories]);
 
     // 정렬 함수
     const handleSort = (key: keyof TableProduct) => {
@@ -172,7 +122,8 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
         }
     };
 
-    const paginatedData = data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    // 백엔드에서 이미 페이지네이션된 데이터를 받으므로 슬라이싱하지 않음
+    const paginatedData = data;
 
     return (
         <div className="p-6 bg-white shadow-md rounded-lg">
@@ -180,7 +131,7 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold flex items-center">상품별 재고 현황</h2>
                 <div className="flex items-center space-x-3 text-gray-500">
-                    <span className="text-sm">총 {data.length}개 상품</span>
+                    <span className="text-sm">총 {pagination?.count ?? data.length}개 상품</span>
                     <MdFilterList
                         className="cursor-pointer hover:text-gray-700"
                         size={20}
@@ -189,7 +140,7 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
                     <MdOutlineDownload
                         className="cursor-pointer hover:text-gray-700"
                         size={20}
-                        onClick={() => alert('다운로드 클릭')}
+                        onClick={onExportToExcel || (() => alert('Export 기능이 연결되지 않았습니다.'))}
                     />
                 </div>
             </div>
@@ -215,6 +166,12 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
                                 label="상품명"
                                 sortKey="name"
                                 sortOrder={sortConfig.key === 'name' ? sortConfig.order : null}
+                                onSort={handleSort}
+                            />
+                            <SortableHeader
+                                label="카테고리"
+                                sortKey="category"
+                                sortOrder={sortConfig.key === 'category' ? sortConfig.order : null}
                                 onSort={handleSort}
                             />
                             <th className="px-4 py-3 border-b border-gray-300">옵션</th>
@@ -264,6 +221,7 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
                                 <td className="px-4 py-2">{product.product_id}</td>
                                 <td className="px-4 py-2">{product.variant_id}</td>
                                 <td className="px-4 py-2">{product.name}</td>
+                                <td className="px-4 py-2">{product.category}</td>
                                 <td className="px-4 py-2">{product.option}</td>
                                 <td className="px-4 py-2">{Number(product.price).toLocaleString()}원</td>
                                 <td className="px-4 py-2">{Number(product.cost_price).toLocaleString()}원</td>
@@ -303,12 +261,14 @@ const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps)
                     </tbody>
                 </table>
             </div>
-            <Pagination
-                currentPage={currentPage}
-                totalItems={data.length}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-            />
+            {pagination && onPageChange && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalItems={pagination.count}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={onPageChange}
+                />
+            )}
         </div>
     );
 };

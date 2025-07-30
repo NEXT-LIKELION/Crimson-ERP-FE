@@ -6,33 +6,134 @@ import { FaCodeBranch } from "react-icons/fa";
 import InputField from "../../components/inputfield/InputField";
 import InventoryTable from "../../components/inventorytable/InventoryTable";
 import { useInventories } from "../../hooks/queries/useInventories";
-import { deleteProductVariant, updateInventoryVariant, mergeVariants } from "../../api/inventory";
+import { deleteProductVariant, updateInventoryVariant, mergeVariants, fetchInventoriesForExport, fetchInventories } from "../../api/inventory";
 import { useSearchParams } from "react-router-dom";
 import EditProductModal from "../../components/modal/EditProductModal";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import AddProductModal from "../../components/modal/AddProductModal";
 import MergeVariantsModal from "../../components/modal/MergeVariantsModal";
 import { Product } from "../../types/product";
 import { useQueryClient } from "@tanstack/react-query";
 import { uploadInventoryExcel } from "../../api/upload";
+import * as XLSX from "xlsx";
 
 const InventoryPage = () => {
-    const { data, isLoading, error, refetch } = useInventories();
     const queryClient = useQueryClient();
     const [searchParams, setSearchParams] = useSearchParams();
     const [isAddModalOpen, setAddModalOpen] = useState(false);
     const [isMergeModalOpen, setMergeModalOpen] = useState(false);
     const [productName, setProductName] = useState("");
+    const [category, setCategory] = useState("");
     const [status, setStatus] = useState("");
+    const [minStock, setMinStock] = useState("0");
+    const [maxStock, setMaxStock] = useState("1000");
     const [minSales, setMinSales] = useState("0");
     const [maxSales, setMaxSales] = useState("5000000");
-    const [filters, setFilters] = useState({
-        productName: "",
-        status: "",
-        minSales: "0",
-        maxSales: "5000000",
-    });
+    const [currentPage, setCurrentPage] = useState(1);
+    const [appliedFilters, setAppliedFilters] = useState<{
+        page?: number;
+        name?: string;
+        category?: string;
+        min_stock?: number;
+        max_stock?: number;
+        min_sales?: number;
+        max_sales?: number;
+    }>({});
 
+    // URL에서 필터 파라미터 초기화 (초기 로드 시에만)
+    const [isInitialized, setIsInitialized] = useState(false);
+    
+    useEffect(() => {
+        if (isInitialized) return; // 이미 초기화되었으면 실행하지 않음
+
+        const urlPage = parseInt(searchParams.get("page") || "1");
+        const urlName = searchParams.get("name") || "";
+        const urlCategory = searchParams.get("category") || "";
+        const urlStatus = searchParams.get("status") || "";
+        const urlMinStock = searchParams.get("min_stock") || "0";
+        const urlMaxStock = searchParams.get("max_stock") || "1000";
+        const urlMinSales = searchParams.get("min_sales") || "0";
+        const urlMaxSales = searchParams.get("max_sales") || "5000000";
+
+        setCurrentPage(urlPage);
+        setProductName(urlName);
+        setCategory(urlCategory === "모든 카테고리" ? "" : urlCategory);
+        setStatus(urlStatus === "모든 상태" ? "" : urlStatus);
+        setMinStock(urlMinStock);
+        setMaxStock(urlMaxStock);
+        setMinSales(urlMinSales);
+        setMaxSales(urlMaxSales);
+
+        const filters: any = { page: urlPage };
+        if (urlName) filters.name = urlName;
+        if (urlCategory && urlCategory !== "모든 카테고리") filters.category = urlCategory;
+        if (urlStatus && urlStatus !== "모든 상태") filters.status = urlStatus;
+        if (urlMinStock !== "0" || urlMaxStock !== "1000") {
+            filters.min_stock = parseInt(urlMinStock);
+            filters.max_stock = parseInt(urlMaxStock);
+        }
+        if (urlMinSales !== "0" || urlMaxSales !== "5000000") {
+            filters.min_sales = parseInt(urlMinSales);
+            filters.max_sales = parseInt(urlMaxSales);
+        }
+
+        setAppliedFilters(filters);
+        setIsInitialized(true);
+    }, [searchParams, isInitialized]);
+
+    const { data, isLoading, error, refetch, pagination } = useInventories(appliedFilters);
+    
+    // 병합 모달용 전체 데이터 (모든 페이지 데이터 합치기)
+    const [allMergeData, setAllMergeData] = useState<any[]>([]);
+    
+    useEffect(() => {
+        const fetchAllData = async () => {
+            try {
+                let allData: any[] = [];
+                let page = 1;
+                let hasMoreData = true;
+                
+                while (hasMoreData) {
+                    const response = await fetchInventories({ page });
+                    const pageData = response.data.results || [];
+                    allData = [...allData, ...pageData];
+                    
+                    // 다음 페이지가 있는지 확인
+                    hasMoreData = response.data.next !== null;
+                    page++;
+                    
+                    console.log(`페이지 ${page - 1} 로드: ${pageData.length}개, 누적: ${allData.length}개`);
+                }
+                
+                setAllMergeData(allData);
+                console.log('병합용 전체 데이터 로드 완료:', allData.length);
+            } catch (error) {
+                console.error('전체 데이터 로드 실패:', error);
+            }
+        };
+        
+        fetchAllData();
+    }, []); // 컴포넌트 마운트 시 한 번만 실행
+
+    // URL 업데이트 함수
+    const updateURL = useCallback((newFilters: any, page: number) => {
+        const params = new URLSearchParams();
+        
+        if (page > 1) params.set("page", page.toString());
+        if (newFilters.name) params.set("name", newFilters.name);
+        if (newFilters.category) params.set("category", newFilters.category);
+        if (newFilters.status) params.set("status", newFilters.status);
+        if (newFilters.min_stock !== undefined) params.set("min_stock", newFilters.min_stock.toString());
+        if (newFilters.max_stock !== undefined) params.set("max_stock", newFilters.max_stock.toString());
+        if (newFilters.min_sales !== undefined) params.set("min_sales", newFilters.min_sales.toString());
+        if (newFilters.max_sales !== undefined) params.set("max_sales", newFilters.max_sales.toString());
+
+        // edit 파라미터는 유지
+        const editId = searchParams.get("edit");
+        if (editId) params.set("edit", editId);
+
+        setSearchParams(params);
+    }, [searchParams, setSearchParams]);
 
     const editId = searchParams.get("edit");
     const selectedProduct = useMemo(() => {
@@ -146,11 +247,16 @@ const InventoryPage = () => {
 
     const handleReset = () => {
         setProductName("");
+        setCategory("");
         setStatus("");
+        setMinStock("0");
+        setMaxStock("1000");
         setMinSales("0");
-        setMaxSales("1000000");
-        setFilters({ productName: "", status: "", minSales: "0", maxSales: "1000000" });
-        // refetch는 필요하지 않음 - 필터 변경으로 자동 업데이트됨
+        setMaxSales("5000000");
+        setCurrentPage(1);
+        setAppliedFilters({});
+        updateURL({}, 1);
+        // 필터 초기화로 자동 refetch됨
     };
 
     const handleMerge = async (targetCode: string, sourceCodes: string[]) => {
@@ -159,11 +265,170 @@ const InventoryPage = () => {
                 target_variant_code: targetCode,
                 source_variant_codes: sourceCodes
             });
+            // 병합 후 모든 캐시 클리어하고 강제 새로고침
+            await queryClient.clear(); // 모든 캐시 클리어
             await queryClient.invalidateQueries({ queryKey: ["inventories"] });
             await refetch();
+            
+            // 필터 초기화해서 최신 데이터 확인
+            setAppliedFilters({});
+            console.log("병합 완료 - 캐시 클리어 및 데이터 갱신됨");
         } catch (error) {
             console.error("병합 실패:", error);
             throw error; // 모달에서 에러 처리하도록 re-throw
+        }
+    };
+
+    const handleExportToExcel = async () => {
+        try {
+            console.log("엑셀 Export 시작 - 현재 필터:", appliedFilters);
+            
+            // 현재 필터링된 전체 데이터 가져오기 (페이지네이션 무시)
+            let exportData: any[] = [];
+            
+            if (Object.keys(appliedFilters).length === 0 || (Object.keys(appliedFilters).length === 1 && appliedFilters.page)) {
+                // 필터가 없거나 페이지만 있는 경우 → 전체 데이터 가져오기
+                exportData = allMergeData; // 이미 로드된 전체 데이터 사용
+                console.log("필터 없음 - 전체 데이터 사용:", exportData.length);
+            } else {
+                // 필터가 있는 경우 → useInventories와 동일한 로직으로 필터링된 전체 데이터 가져오기
+                let allData: any[] = [];
+                let page = 1;
+                let hasMoreData = true;
+                
+                // 백엔드 필터 (상태 필터 제외)
+                const backendFilters = { ...appliedFilters };
+                delete backendFilters.status;
+                delete backendFilters.page;
+                
+                // 모든 페이지에서 데이터 수집
+                while (hasMoreData) {
+                    const response = await fetchInventories({ ...backendFilters, page });
+                    const pageData = response.data.results || [];
+                    allData = [...allData, ...pageData];
+                    
+                    hasMoreData = response.data.next !== null;
+                    page++;
+                }
+                
+                // 프론트엔드 필터링 적용 (useInventories와 동일한 로직)
+                const filteredData = allData.filter((item: any) => {
+                    // 상품명 필터
+                    if (appliedFilters?.name && !item.name.toLowerCase().includes(appliedFilters.name.toLowerCase())) {
+                        return false;
+                    }
+
+                    // 카테고리 필터
+                    if (appliedFilters?.category && item.category !== appliedFilters.category) {
+                        return false;
+                    }
+
+                    // 상태 필터
+                    if (appliedFilters?.status && appliedFilters.status !== '모든 상태') {
+                        const stock = item.stock;
+                        const minStock = item.min_stock || 0;
+                        let status = '정상';
+                        if (stock === 0) {
+                            status = '품절';
+                        } else if (stock < minStock) {
+                            status = '재고부족';
+                        }
+                        if (status !== appliedFilters.status) return false;
+                    }
+
+                    // 재고수량 필터
+                    if (appliedFilters?.min_stock !== undefined && appliedFilters?.min_stock > 0) {
+                        if (item.stock < appliedFilters.min_stock) return false;
+                    }
+                    if (appliedFilters?.max_stock !== undefined && appliedFilters?.max_stock < 1000) {
+                        if (item.stock > appliedFilters.max_stock) return false;
+                    }
+
+                    // 판매합계 필터
+                    if (appliedFilters?.min_sales !== undefined && appliedFilters?.min_sales > 0) {
+                        const sales = item.sales || 0;
+                        if (sales < appliedFilters.min_sales) return false;
+                    }
+                    if (appliedFilters?.max_sales !== undefined && appliedFilters?.max_sales < 5000000) {
+                        const sales = item.sales || 0;
+                        if (sales > appliedFilters.max_sales) return false;
+                    }
+
+                    return true;
+                });
+                
+                exportData = filteredData;
+                console.log("필터 적용 - 전체 데이터:", allData.length, "필터링 후:", exportData.length);
+            }
+
+            if (!exportData || exportData.length === 0) {
+                alert("내보낼 데이터가 없습니다.");
+                return;
+            }
+
+            // 엑셀에 표시할 데이터 변환
+            const excelData = exportData.map((item: any, index: number) => ({
+                "번호": index + 1,
+                "상품코드": item.product_id,
+                "품목코드": item.variant_code,
+                "상품명": item.name,
+                "카테고리": item.category,
+                "옵션": item.option,
+                "판매가": item.price,
+                "매입가": item.cost_price,
+                "재고수량": item.stock,
+                "최소재고": item.min_stock,
+                "상태": item.stock === 0 ? "품절" : item.stock < (item.min_stock || 0) ? "재고부족" : "정상",
+                "결제수량": item.order_count,
+                "환불수량": item.return_count,
+                "판매합계": item.sales,
+                "설명": item.description,
+                "메모": item.memo,
+                "주요 공급업체": item.suppliers?.find((s: any) => s.is_primary)?.name || "",
+            }));
+
+            // 워크시트 생성
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            
+            // 컬럼 너비 설정
+            const columnWidths = [
+                { wch: 5 },  // 번호
+                { wch: 12 }, // 상품코드
+                { wch: 15 }, // 품목코드
+                { wch: 25 }, // 상품명
+                { wch: 10 }, // 카테고리
+                { wch: 15 }, // 옵션
+                { wch: 10 }, // 판매가
+                { wch: 10 }, // 매입가
+                { wch: 8 },  // 재고수량
+                { wch: 8 },  // 최소재고
+                { wch: 8 },  // 상태
+                { wch: 8 },  // 결제수량
+                { wch: 8 },  // 환불수량
+                { wch: 12 }, // 판매합계
+                { wch: 30 }, // 설명
+                { wch: 20 }, // 메모
+                { wch: 15 }, // 주요 공급업체
+            ];
+            worksheet["!cols"] = columnWidths;
+
+            // 워크북 생성
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "재고 현황");
+
+            // 파일명 생성 (현재 날짜 포함)
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
+            const timeStr = now.toTimeString().slice(0, 5).replace(/:/g, "");
+            const filename = `재고_현황_${dateStr}_${timeStr}.xlsx`;
+
+            // 파일 다운로드
+            XLSX.writeFile(workbook, filename);
+            
+            console.log(`엑셀 파일 생성 완료: ${filename}`);
+        } catch (error) {
+            console.error("엑셀 Export 오류:", error);
+            alert("엑셀 파일 생성 중 오류가 발생했습니다.");
         }
     };
 
@@ -197,29 +462,65 @@ const InventoryPage = () => {
                 <InputField
                     productName={productName}
                     onProductNameChange={setProductName}
+                    category={category}
+                    onCategoryChange={setCategory}
                     status={status}
                     onStatusChange={setStatus}
+                    minStock={minStock}
+                    onMinStockChange={setMinStock}
+                    maxStock={maxStock}
+                    onMaxStockChange={setMaxStock}
                     minSales={minSales}
                     onMinSalesChange={setMinSales}
                     maxSales={maxSales}
                     onMaxSalesChange={setMaxSales}
                     onSearch={() => {
-                        const minValue = parseInt(minSales) || 0;
-                        const maxValue = parseInt(maxSales) || 1000000;
+                        const minSalesValue = parseInt(minSales) || 0;
+                        const maxSalesValue = parseInt(maxSales) || 5000000;
+                        const minStockValue = parseInt(minStock) || 0;
+                        const maxStockValue = parseInt(maxStock) || 1000;
 
-                        if (minValue > maxValue) {
+                        if (minSalesValue > maxSalesValue) {
                             alert("판매합계 최소값이 최대값보다 클 수 없습니다.");
                             return;
                         }
 
-                        console.log("검색 실행:", { productName, status, minSales, maxSales });
-                        setFilters({
-                            productName: productName.trim(),
-                            status,
-                            minSales: minValue.toString(),
-                            maxSales: maxValue.toString(),
-                        });
-                        // refetch는 필요하지 않음 - 필터 변경으로 자동 업데이트됨
+                        if (minStockValue > maxStockValue) {
+                            alert("재고수량 최소값이 최대값보다 클 수 없습니다.");
+                            return;
+                        }
+
+                        console.log("검색 실행:", { productName, category, status, minStock, maxStock, minSales, maxSales });
+                        
+                        const newFilters: any = {
+                            page: 1,
+                        };
+
+                        if (productName.trim()) newFilters.name = productName.trim();
+                        if (category && category !== '모든 카테고리') newFilters.category = category;
+                        
+                        // 상태 필터 - 프론트엔드에서 처리할 수 있도록 저장
+                        if (status && status !== '모든 상태') {
+                            newFilters.status = status;
+                            // 상태 필터가 있으면 반드시 1페이지로 리셋
+                            newFilters.page = 1;
+                        }
+                        
+                        if (minStockValue !== 0 || maxStockValue !== 1000) {
+                            newFilters.min_stock = minStockValue;
+                            newFilters.max_stock = maxStockValue;
+                        }
+                        if (minSalesValue !== 0 || maxSalesValue !== 5000000) {
+                            newFilters.min_sales = minSalesValue;
+                            newFilters.max_sales = maxSalesValue;
+                        }
+
+                        console.log("적용될 필터:", newFilters);
+
+                        setCurrentPage(1);
+                        setAppliedFilters(newFilters);
+                        updateURL(newFilters, 1);
+                        // 필터 변경으로 자동 refetch됨
                     }}
                     onReset={handleReset}
                 />
@@ -228,7 +529,15 @@ const InventoryPage = () => {
             <InventoryTable
                 inventories={data ?? []}
                 onDelete={handleVariantDelete}
-                filters={filters}
+                pagination={pagination}
+                currentPage={currentPage}
+                onPageChange={(page) => {
+                    setCurrentPage(page);
+                    const newFilters = { ...appliedFilters, page };
+                    setAppliedFilters(newFilters);
+                    updateURL(newFilters, page);
+                }}
+                onExportToExcel={handleExportToExcel}
             />
             {selectedProduct && (
                 <EditProductModal
@@ -249,7 +558,7 @@ const InventoryPage = () => {
                 <MergeVariantsModal
                     isOpen={isMergeModalOpen}
                     onClose={() => setMergeModalOpen(false)}
-                    variants={data ?? []}
+                    variants={allMergeData}
                     onMerge={handleMerge}
                 />
             )}

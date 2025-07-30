@@ -1,6 +1,28 @@
 import api from './axios';
 
-export const fetchInventories = () => api.get('/inventory/variants/');
+export const fetchInventories = (params?: {
+    page?: number;
+    page_size?: number;
+    name?: string;
+    category?: string;
+    min_stock?: number;
+    max_stock?: number;
+    min_sales?: number;
+    max_sales?: number;
+}) => {
+    return api.get('/inventory/variants/', { params });
+};
+
+export const fetchInventoriesForExport = (params?: {
+    name?: string;
+    category?: string;
+    min_stock?: number;
+    max_stock?: number;
+    min_sales?: number;
+    max_sales?: number;
+}) => {
+    return api.get('/inventory/variants/export', { params });
+};
 export const updateInventoryItem = (productId: number, data: any) => {
     return api.put(`/inventory/${productId}/`, data);
 };
