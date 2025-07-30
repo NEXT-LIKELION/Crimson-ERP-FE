@@ -5,7 +5,6 @@ import { MdFilterList, MdOutlineDownload } from 'react-icons/md';
 import { RxCaretSort } from 'react-icons/rx';
 import { useNavigate } from 'react-router-dom';
 import { Product } from '../../types/product';
-import { MdRestore } from 'react-icons/md';
 
 // Custom type for table data with string variant_id
 interface TableProduct extends Omit<Product, 'variant_id'> {
@@ -25,8 +24,6 @@ interface InventoryTableProps {
         minSales?: string;
         maxSales?: string;
     };
-    deletedVariant?: Product | null;
-    onUndoDelete?: () => void;
 }
 
 // 정렬 가능한 헤더 컴포넌트
@@ -49,7 +46,7 @@ const SortableHeader = ({
     </th>
 );
 
-const InventoryTable = ({ inventories, onDelete, filters, deletedVariant, onUndoDelete }: InventoryTableProps) => {
+const InventoryTable = ({ inventories, onDelete, filters }: InventoryTableProps) => {
     const navigate = useNavigate();
     const [data, setData] = useState<TableProduct[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -67,47 +64,42 @@ const InventoryTable = ({ inventories, onDelete, filters, deletedVariant, onUndo
         if (!Array.isArray(inventories)) return;
         console.log('InventoryTable - inventories changed:', inventories.length);
 
-        let rows = inventories.flatMap((item) => {
-            const variants = item.variants || [];
-            return variants.map((variant) => {
-                const stock = variant.stock;
-                const minStock = variant.min_stock || 0;
+        // 백엔드에서 이미 평면화된 variant 데이터를 직접 받음
+        let rows = inventories.map((item) => {
+            const stock = item.stock;
+            const minStock = item.min_stock || 0;
 
-                // 상태 계산: 품절 > 재고부족 > 정상
-                let status = '정상';
-                if (stock === 0) {
-                    status = '품절';
-                } else if (stock < minStock) {
-                    status = '재고부족';
-                }
+            // 상태 계산: 품절 > 재고부족 > 정상
+            let status = '정상';
+            if (stock === 0) {
+                status = '품절';
+            } else if (stock < minStock) {
+                status = '재고부족';
+            }
 
-                const row = {
-                    ...item,
-                    option: variant.option,
-                    price: variant.price,
-                    stock: variant.stock,
-                    cost_price: variant.cost_price || 0, // 원가 데이터가 없는 경우 0으로 설정
-                    min_stock: variant.min_stock || 0, // 최소재고가 없는 경우 0으로 설정
-                    variant_id: variant.variant_code || '',
-                    orderCount: variant.order_count ?? 0,
-                    returnCount: variant.return_count ?? 0,
-                    totalSales: variant.sales ? `${variant.sales.toLocaleString()}원` : '0원', // 새로운 sales 필드 사용
-                    status: status, // 계산된 상태 추가
-                };
-                console.log(
-                    'row 생성 - product_id:',
-                    item.product_id,
-                    'variant_code:',
-                    variant.variant_code,
-                    'min_stock:',
-                    row.min_stock,
-                    'sales:',
-                    variant.sales,
-                    'status:',
-                    status
-                );
-                return row;
-            });
+            const row = {
+                ...item,
+                cost_price: item.cost_price || 0,
+                min_stock: item.min_stock || 0,
+                variant_id: item.variant_code || '',
+                orderCount: item.order_count ?? 0,
+                returnCount: item.return_count ?? 0,
+                totalSales: item.sales ? `${item.sales.toLocaleString()}원` : '0원',
+                status: status,
+            };
+            console.log(
+                'row 생성 - product_id:',
+                item.product_id,
+                'variant_code:',
+                item.variant_code,
+                'min_stock:',
+                row.min_stock,
+                'sales:',
+                item.sales,
+                'status:',
+                status
+            );
+            return row;
         });
 
         // 필터링 적용
@@ -305,13 +297,6 @@ const InventoryTable = ({ inventories, onDelete, filters, deletedVariant, onUndo
                                         className="text-red-500 cursor-pointer"
                                         onClick={() => onDelete(product.variant_id)}
                                     />
-                                    {String(deletedVariant?.variant_id) === product.variant_id && (
-                                        <MdRestore
-                                            className="text-yellow-600 cursor-pointer"
-                                            onClick={onUndoDelete}
-                                            title="삭제 취소"
-                                        />
-                                    )}
                                 </td>
                             </tr>
                         ))}

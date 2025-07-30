@@ -4,7 +4,14 @@ import { AxiosResponse } from 'axios';
 import { Product } from '../../types/product';
 import { useEffect } from 'react';
 
-type InventoriesResponse = AxiosResponse<Product[]>;
+type PaginatedResponse = {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: Product[];
+};
+
+type InventoriesResponse = AxiosResponse<PaginatedResponse>;
 
 export const useInventories = () => {
     const query = useQuery<InventoriesResponse, Error>({
@@ -25,6 +32,6 @@ export const useInventories = () => {
 
     return {
         ...query,
-        data: query.data?.data ?? [], // ✅ 배열만 리턴하도록 수정
+        data: query.data?.data?.results ?? [], // 페이지네이션된 results 배열 반환
     };
 };

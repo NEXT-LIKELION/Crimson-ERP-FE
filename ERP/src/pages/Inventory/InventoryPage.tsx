@@ -29,39 +29,30 @@ const InventoryPage = () => {
         maxSales: "5000000",
     });
 
-    const [deletedVariant, setDeletedVariant] = useState<Product | null>(null);
 
     const editId = searchParams.get("edit");
     const selectedProduct = useMemo(() => {
         if (!data || !editId) return null;
-        const result =
-            data
-                .flatMap((item) => {
-                    const variants = item.variants || [];
-                    return variants.map((variant) => ({
-                        ...item,
-                        option: variant.option,
-                        price: variant.price,
-                        stock: variant.stock,
-                        cost_price: variant.cost_price || 0, // 원가 데이터가 없는 경우 0으로 설정
-                        min_stock: variant.min_stock || 0, // 최소재고가 없는 경우 0으로 설정
-                        variant_id: variant.variant_code as string,
-                        variant_code: variant.variant_code, // 명시적으로 추가
-                        orderCount: variant.order_count ?? 0,
-                        returnCount: variant.return_count ?? 0,
-                        totalSales: variant.sales ? `${variant.sales.toLocaleString()}원` : "0원", // 새로운 sales 필드 사용
-                        product_id: item.product_id,
-                        // variant의 추가 정보들 포함
-                        description: variant.description || "",
-                        memo: variant.memo || "",
-                        suppliers: variant.suppliers || [],
-                    }));
-                })
-                .find((p) => p.variant_id === String(editId)) || null;
+        // 백엔드에서 이미 평면화된 데이터를 직접 사용
+        const result = data.find((item) => item.variant_code === String(editId));
+        if (!result) return null;
+        
+        const processedResult = {
+            ...result,
+            cost_price: result.cost_price || 0,
+            min_stock: result.min_stock || 0,
+            variant_id: result.variant_code,
+            orderCount: result.order_count ?? 0,
+            returnCount: result.return_count ?? 0,
+            totalSales: result.sales ? `${result.sales.toLocaleString()}원` : "0원",
+            description: result.description || "",
+            memo: result.memo || "",
+            suppliers: result.suppliers || [],
+        };
 
-        console.log("selectedProduct:", result);
+        console.log("selectedProduct:", processedResult);
         console.log("editId:", editId);
-        return result;
+        return processedResult;
     }, [data, editId]);
 
     const handleCloseModal = () => {
@@ -102,18 +93,8 @@ const InventoryPage = () => {
     };
 
     const handleVariantDelete = async (variantCode: string) => {
-        const flatVariants =
-            data?.flatMap(
-                (item) =>
-                    item.variants?.map((variant) => ({
-                        ...item,
-                        ...variant,
-                        variant_id: variant.variant_code,
-                        product_id: item.product_id,
-                    })) || []
-            ) || [];
-
-        const variantToDelete = flatVariants.find((v) => v?.variant_id === variantCode);
+        // 백엔드에서 이미 평면화된 데이터를 직접 사용
+        const variantToDelete = data?.find((item) => item.variant_code === variantCode);
 
         if (!variantToDelete) {
             alert("삭제할 품목을 찾을 수 없습니다.");
@@ -123,30 +104,19 @@ const InventoryPage = () => {
         if (!window.confirm("정말 이 품목을 삭제하시겠습니까?")) return;
 
         try {
-            setDeletedVariant(variantToDelete as Product);
             await deleteProductVariant(variantCode);
             alert("품목이 삭제되었습니다.");
             refetch();
         } catch (err: any) {
             console.error("품목 삭제 실패:", err);
-            alert(err?.response?.data?.error || "삭제 중 오류가 발생했습니다.");
-            setDeletedVariant(null);
+            if (err?.response?.status === 500) {
+                alert("❌ 삭제 불가\n\n해당 상품은 주문 이력이 있어 삭제할 수 없습니다.\n주문 이력을 먼저 처리하거나 관리자에게 문의하세요.");
+            } else {
+                alert(err?.response?.data?.error || "삭제 중 오류가 발생했습니다.");
+            }
         }
     };
 
-    const handleUndoDelete = async () => {
-        if (!deletedVariant) return;
-
-        try {
-            await updateInventoryVariant(String(deletedVariant.variant_id), deletedVariant);
-            alert("삭제가 취소되어 품목이 복원되었습니다.");
-            setDeletedVariant(null);
-            refetch();
-        } catch (err) {
-            console.error("복원 실패:", err);
-            alert("복원 중 오류가 발생했습니다.");
-        }
-    };
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -240,8 +210,6 @@ const InventoryPage = () => {
                 inventories={data ?? []}
                 onDelete={handleVariantDelete}
                 filters={filters}
-                deletedVariant={deletedVariant}
-                onUndoDelete={handleUndoDelete}
             />
             {selectedProduct && (
                 <EditProductModal

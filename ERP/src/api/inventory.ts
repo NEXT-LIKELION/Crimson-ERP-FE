@@ -1,6 +1,6 @@
 import api from './axios';
 
-export const fetchInventories = () => api.get('/inventory/items/');
+export const fetchInventories = () => api.get('/inventory/variants/');
 export const updateInventoryItem = (productId: number, data: any) => {
     return api.put(`/inventory/${productId}/`, data);
 };
@@ -10,7 +10,7 @@ export const updateInventoryVariant = (variantId: string, data: any) => {
     console.log('updateInventoryVariant - data:', data);
     console.log('updateInventoryVariant - data JSON:', JSON.stringify(data, null, 2));
     return api
-        .patch(`/inventory/items/variants/${variantId}/`, data)
+        .patch(`/inventory/variants/${variantId}/`, data)
         .then((response) => {
             console.log('updateInventoryVariant - response:', response.data);
             return response;
@@ -24,7 +24,7 @@ export const updateInventoryVariant = (variantId: string, data: any) => {
 };
 
 export const createInventoryVariant = async (itemPayload: any) => {
-    const res = await api.post(`/inventory/items/variants/`, itemPayload);
+    const res = await api.post(`/inventory/variants/`, itemPayload);
     return res.data;
 };
 export const createInventoryItem = async (itemPayload: any) => {
@@ -52,7 +52,7 @@ export const checkProductIdExists = async (product_id: string) => {
  * @param productId  the InventoryItem.id to delete
  */
 export const deleteProductVariant = async (variantCode: string) => {
-    return api.delete(`/inventory/items/variants/${variantCode}/`);
+    return api.delete(`/inventory/variants/${variantCode}/`);
 };
 
-export const fetchVariantsByProductId = (productId: string) => api.get(`/inventory/items/${productId}/`);
+export const fetchVariantsByProductId = (productId: string) => api.get(`/inventory/${productId}/`);
