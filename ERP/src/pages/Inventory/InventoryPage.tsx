@@ -1,14 +1,17 @@
 import GreenButton from "../../components/button/GreenButton";
 import PrimaryButton from "../../components/button/PrimaryButton";
+import SecondaryButton from "../../components/button/SecondaryButton";
 import { FaPlus, FaFileArrowUp } from "react-icons/fa6";
+import { FaCodeBranch } from "react-icons/fa";
 import InputField from "../../components/inputfield/InputField";
 import InventoryTable from "../../components/inventorytable/InventoryTable";
 import { useInventories } from "../../hooks/queries/useInventories";
-import { deleteProductVariant, updateInventoryVariant } from "../../api/inventory";
+import { deleteProductVariant, updateInventoryVariant, mergeVariants } from "../../api/inventory";
 import { useSearchParams } from "react-router-dom";
 import EditProductModal from "../../components/modal/EditProductModal";
 import { useState, useMemo, useRef, useEffect } from "react";
 import AddProductModal from "../../components/modal/AddProductModal";
+import MergeVariantsModal from "../../components/modal/MergeVariantsModal";
 import { Product } from "../../types/product";
 import { useQueryClient } from "@tanstack/react-query";
 import { uploadInventoryExcel } from "../../api/upload";
@@ -18,6 +21,7 @@ const InventoryPage = () => {
     const queryClient = useQueryClient();
     const [searchParams, setSearchParams] = useSearchParams();
     const [isAddModalOpen, setAddModalOpen] = useState(false);
+    const [isMergeModalOpen, setMergeModalOpen] = useState(false);
     const [productName, setProductName] = useState("");
     const [status, setStatus] = useState("");
     const [minSales, setMinSales] = useState("0");
@@ -149,6 +153,20 @@ const InventoryPage = () => {
         // refetch는 필요하지 않음 - 필터 변경으로 자동 업데이트됨
     };
 
+    const handleMerge = async (targetCode: string, sourceCodes: string[]) => {
+        try {
+            await mergeVariants({
+                target_variant_code: targetCode,
+                source_variant_codes: sourceCodes
+            });
+            await queryClient.invalidateQueries({ queryKey: ["inventories"] });
+            await refetch();
+        } catch (error) {
+            console.error("병합 실패:", error);
+            throw error; // 모달에서 에러 처리하도록 re-throw
+        }
+    };
+
     if (isLoading) return <p>로딩 중...</p>;
     if (error) return <p>에러가 발생했습니다!</p>;
 
@@ -158,6 +176,7 @@ const InventoryPage = () => {
                 <h1 className="text-2xl font-bold">재고 관리</h1>
                 <div className="flex space-x-2">
                     <GreenButton text="상품 추가" icon={<FaPlus size={16} />} onClick={() => setAddModalOpen(true)} />
+                    <SecondaryButton text="상품 병합" icon={<FaCodeBranch size={16} />} onClick={() => setMergeModalOpen(true)} />
                     <PrimaryButton
                         text="POS 데이터 업로드"
                         icon={<FaFileArrowUp size={16} />}
@@ -224,6 +243,14 @@ const InventoryPage = () => {
                     isOpen={isAddModalOpen}
                     onClose={() => setAddModalOpen(false)}
                     onSave={handleAddSave}
+                />
+            )}
+            {isMergeModalOpen && (
+                <MergeVariantsModal
+                    isOpen={isMergeModalOpen}
+                    onClose={() => setMergeModalOpen(false)}
+                    variants={data ?? []}
+                    onMerge={handleMerge}
                 />
             )}
         </div>

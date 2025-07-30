@@ -56,3 +56,22 @@ export const deleteProductVariant = async (variantCode: string) => {
 };
 
 export const fetchVariantsByProductId = (productId: string) => api.get(`/inventory/${productId}/`);
+
+// 상품 코드 병합
+export const mergeVariants = async (payload: {
+    target_variant_code: string;
+    source_variant_codes: string[];
+}) => {
+    console.log('mergeVariants - payload:', payload);
+    return api.post('/inventory/variants/merge/', payload)
+        .then((response) => {
+            console.log('mergeVariants - response:', response.data);
+            return response;
+        })
+        .catch((error) => {
+            console.error('mergeVariants - error:', error);
+            console.error('mergeVariants - error response:', error.response?.data);
+            throw error;
+        });
+};
+
