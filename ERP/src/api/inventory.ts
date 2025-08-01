@@ -79,6 +79,9 @@ export const deleteProductVariant = async (variantCode: string) => {
 
 export const fetchVariantsByProductId = (productId: string) => api.get(`/inventory/${productId}/`);
 
+// 상품 드롭다운용 목록 조회 (product_id, name만)
+export const fetchProductOptions = () => api.get('/inventory/');
+
 // 상품 코드 병합
 export const mergeVariants = async (payload: {
     target_variant_code: string;
