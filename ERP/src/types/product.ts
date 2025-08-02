@@ -24,6 +24,7 @@ export interface Product {
     product_id: string;
     name: string;
     variants: ProductVariant[];
+    category?: string;
 
     // 프론트에서만 사용하는 임시 필드들 (테이블 렌더링용)
     option?: string;
@@ -35,6 +36,9 @@ export interface Product {
     variant_code?: string;
     orderCount?: number;
     returnCount?: number;
+    order_count?: number;
+    return_count?: number;
+    sales?: number;
     salesCount?: number;
     totalSales?: string;
     status?: string;

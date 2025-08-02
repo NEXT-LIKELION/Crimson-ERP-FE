@@ -2,26 +2,39 @@ import GreenButton from "../../components/button/GreenButton";
 import PrimaryButton from "../../components/button/PrimaryButton";
 import SecondaryButton from "../../components/button/SecondaryButton";
 import { FaPlus, FaFileArrowUp } from "react-icons/fa6";
-import { FaCodeBranch } from "react-icons/fa";
+import { FaCodeBranch, FaHistory } from "react-icons/fa";
 import InputField from "../../components/inputfield/InputField";
 import InventoryTable from "../../components/inventorytable/InventoryTable";
 import { useInventories } from "../../hooks/queries/useInventories";
-import { deleteProductVariant, updateInventoryVariant, mergeVariants, fetchInventoriesForExport, fetchInventories } from "../../api/inventory";
+import { deleteProductVariant, updateInventoryVariant, mergeVariants, fetchInventoriesForExport, fetchAllInventoriesForMerge, fetchFilteredInventoriesForExport } from "../../api/inventory";
 import { useSearchParams } from "react-router-dom";
 import EditProductModal from "../../components/modal/EditProductModal";
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import AddProductModal from "../../components/modal/AddProductModal";
 import MergeVariantsModal from "../../components/modal/MergeVariantsModal";
+import StockAdjustmentModal from "../../components/modal/StockAdjustmentModal";
+import StockHistoryModal from "../../components/modal/StockHistoryModal";
 import { Product } from "../../types/product";
 import { useQueryClient } from "@tanstack/react-query";
 import { uploadInventoryExcel } from "../../api/upload";
 import * as XLSX from "xlsx";
+import { useAdjustStock } from "../../hooks/queries/useStockAdjustment";
 
 const InventoryPage = () => {
     const queryClient = useQueryClient();
     const [searchParams, setSearchParams] = useSearchParams();
     const [isAddModalOpen, setAddModalOpen] = useState(false);
     const [isMergeModalOpen, setMergeModalOpen] = useState(false);
+    const [isStockAdjustModalOpen, setStockAdjustModalOpen] = useState(false);
+    const [isStockHistoryModalOpen, setStockHistoryModalOpen] = useState(false);
+    const [selectedVariantForStock, setSelectedVariantForStock] = useState<{
+        variant_code: string;
+        product_id: string;
+        name: string;
+        option: string;
+        current_stock: number;
+        min_stock: number;
+    } | null>(null);
     const [productName, setProductName] = useState("");
     const [category, setCategory] = useState("");
     const [status, setStatus] = useState("");
@@ -82,37 +95,33 @@ const InventoryPage = () => {
     }, [searchParams, isInitialized]);
 
     const { data, isLoading, error, refetch, pagination } = useInventories(appliedFilters);
+    const adjustStockMutation = useAdjustStock();
     
     // 병합 모달용 전체 데이터 (모든 페이지 데이터 합치기)
     const [allMergeData, setAllMergeData] = useState<any[]>([]);
     
+    // 전체 데이터에서 카테고리 목록 추출 (병합용 데이터 사용)
+    const categoryOptions = useMemo(() => {
+        if (!allMergeData || allMergeData.length === 0) return ["모든 카테고리"];
+        
+        const uniqueCategories = Array.from(new Set(
+            allMergeData.map(item => item.category).filter(Boolean)
+        ));
+        
+        return ["모든 카테고리", ...uniqueCategories.sort()];
+    }, [allMergeData]);
+    
     useEffect(() => {
-        const fetchAllData = async () => {
+        const loadAllData = async () => {
             try {
-                let allData: any[] = [];
-                let page = 1;
-                let hasMoreData = true;
-                
-                while (hasMoreData) {
-                    const response = await fetchInventories({ page });
-                    const pageData = response.data.results || [];
-                    allData = [...allData, ...pageData];
-                    
-                    // 다음 페이지가 있는지 확인
-                    hasMoreData = response.data.next !== null;
-                    page++;
-                    
-                    console.log(`페이지 ${page - 1} 로드: ${pageData.length}개, 누적: ${allData.length}개`);
-                }
-                
+                const allData = await fetchAllInventoriesForMerge();
                 setAllMergeData(allData);
-                console.log('병합용 전체 데이터 로드 완료:', allData.length);
             } catch (error) {
                 console.error('전체 데이터 로드 실패:', error);
             }
         };
         
-        fetchAllData();
+        loadAllData();
     }, []); // 컴포넌트 마운트 시 한 번만 실행
 
     // URL 업데이트 함수
@@ -291,74 +300,8 @@ const InventoryPage = () => {
                 exportData = allMergeData; // 이미 로드된 전체 데이터 사용
                 console.log("필터 없음 - 전체 데이터 사용:", exportData.length);
             } else {
-                // 필터가 있는 경우 → useInventories와 동일한 로직으로 필터링된 전체 데이터 가져오기
-                let allData: any[] = [];
-                let page = 1;
-                let hasMoreData = true;
-                
-                // 백엔드 필터 (상태 필터 제외)
-                const backendFilters = { ...appliedFilters };
-                delete backendFilters.status;
-                delete backendFilters.page;
-                
-                // 모든 페이지에서 데이터 수집
-                while (hasMoreData) {
-                    const response = await fetchInventories({ ...backendFilters, page });
-                    const pageData = response.data.results || [];
-                    allData = [...allData, ...pageData];
-                    
-                    hasMoreData = response.data.next !== null;
-                    page++;
-                }
-                
-                // 프론트엔드 필터링 적용 (useInventories와 동일한 로직)
-                const filteredData = allData.filter((item: any) => {
-                    // 상품명 필터
-                    if (appliedFilters?.name && !item.name.toLowerCase().includes(appliedFilters.name.toLowerCase())) {
-                        return false;
-                    }
-
-                    // 카테고리 필터
-                    if (appliedFilters?.category && item.category !== appliedFilters.category) {
-                        return false;
-                    }
-
-                    // 상태 필터
-                    if (appliedFilters?.status && appliedFilters.status !== '모든 상태') {
-                        const stock = item.stock;
-                        const minStock = item.min_stock || 0;
-                        let status = '정상';
-                        if (stock === 0) {
-                            status = '품절';
-                        } else if (stock < minStock) {
-                            status = '재고부족';
-                        }
-                        if (status !== appliedFilters.status) return false;
-                    }
-
-                    // 재고수량 필터
-                    if (appliedFilters?.min_stock !== undefined && appliedFilters?.min_stock > 0) {
-                        if (item.stock < appliedFilters.min_stock) return false;
-                    }
-                    if (appliedFilters?.max_stock !== undefined && appliedFilters?.max_stock < 1000) {
-                        if (item.stock > appliedFilters.max_stock) return false;
-                    }
-
-                    // 판매합계 필터
-                    if (appliedFilters?.min_sales !== undefined && appliedFilters?.min_sales > 0) {
-                        const sales = item.sales || 0;
-                        if (sales < appliedFilters.min_sales) return false;
-                    }
-                    if (appliedFilters?.max_sales !== undefined && appliedFilters?.max_sales < 5000000) {
-                        const sales = item.sales || 0;
-                        if (sales > appliedFilters.max_sales) return false;
-                    }
-
-                    return true;
-                });
-                
-                exportData = filteredData;
-                console.log("필터 적용 - 전체 데이터:", allData.length, "필터링 후:", exportData.length);
+                // 필터가 있는 경우 → api에서 처리
+                exportData = await fetchFilteredInventoriesForExport(appliedFilters);
             }
 
             if (!exportData || exportData.length === 0) {
@@ -432,6 +375,35 @@ const InventoryPage = () => {
         }
     };
 
+    // 재고 조정 핸들러
+    const handleStockClick = (variant: {
+        variant_code: string;
+        product_id: string;
+        name: string;
+        option: string;
+        current_stock: number;
+        min_stock: number;
+    }) => {
+        setSelectedVariantForStock(variant);
+        setStockAdjustModalOpen(true);
+    };
+
+    const handleStockAdjust = async (variantCode: string, data: {
+        actual_stock: number;
+        reason: string;
+        updated_by: string;
+    }) => {
+        await adjustStockMutation.mutateAsync({ variantCode, data });
+    };
+
+    const handleStockAdjustSuccess = () => {
+        refetch();
+        // EditProductModal이 열려있는 경우 해당 product 데이터도 업데이트
+        if (editId && selectedVariantForStock) {
+            queryClient.invalidateQueries({ queryKey: ["inventories"] });
+        }
+    };
+
     if (isLoading) return <p>로딩 중...</p>;
     if (error) return <p>에러가 발생했습니다!</p>;
 
@@ -442,6 +414,7 @@ const InventoryPage = () => {
                 <div className="flex space-x-2">
                     <GreenButton text="상품 추가" icon={<FaPlus size={16} />} onClick={() => setAddModalOpen(true)} />
                     <SecondaryButton text="상품 병합" icon={<FaCodeBranch size={16} />} onClick={() => setMergeModalOpen(true)} />
+                    <SecondaryButton text="재고 변경 이력" icon={<FaHistory size={16} />} onClick={() => setStockHistoryModalOpen(true)} />
                     <PrimaryButton
                         text="POS 데이터 업로드"
                         icon={<FaFileArrowUp size={16} />}
@@ -451,7 +424,7 @@ const InventoryPage = () => {
                         ref={fileInputRef}
                         id="posUploadInput"
                         type="file"
-                        accept=".xlsx"
+                        accept=".xlsx,.xls"
                         className="hidden"
                         onChange={handlePOSUpload}
                     />
@@ -464,6 +437,7 @@ const InventoryPage = () => {
                     onProductNameChange={setProductName}
                     category={category}
                     onCategoryChange={setCategory}
+                    categoryOptions={categoryOptions}
                     status={status}
                     onStatusChange={setStatus}
                     minStock={minStock}
@@ -545,6 +519,7 @@ const InventoryPage = () => {
                     onClose={handleCloseModal}
                     product={selectedProduct}
                     onSave={handleUpdateSave}
+                    onStockAdjustClick={handleStockClick}
                 />
             )}
             {isAddModalOpen && (
@@ -560,6 +535,24 @@ const InventoryPage = () => {
                     onClose={() => setMergeModalOpen(false)}
                     variants={allMergeData}
                     onMerge={handleMerge}
+                />
+            )}
+            {isStockAdjustModalOpen && selectedVariantForStock && (
+                <StockAdjustmentModal
+                    isOpen={isStockAdjustModalOpen}
+                    onClose={() => {
+                        setStockAdjustModalOpen(false);
+                        setSelectedVariantForStock(null);
+                    }}
+                    variant={selectedVariantForStock}
+                    onAdjust={handleStockAdjust}
+                    onSuccess={handleStockAdjustSuccess}
+                />
+            )}
+            {isStockHistoryModalOpen && (
+                <StockHistoryModal
+                    isOpen={isStockHistoryModalOpen}
+                    onClose={() => setStockHistoryModalOpen(false)}
                 />
             )}
         </div>

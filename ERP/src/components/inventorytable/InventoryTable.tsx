@@ -12,7 +12,8 @@ interface TableProduct extends Omit<Product, 'variant_id'> {
     orderCount: number;
     returnCount: number;
     totalSales: string;
-    status: string; // 상태 필드 추가 (정상, 재고부족, 품절)
+    status: string;
+    category: string;
 }
 
 interface InventoryTableProps {
@@ -74,7 +75,7 @@ const InventoryTable = ({ inventories, onDelete, pagination, currentPage = 1, on
             let status = '정상';
             if (stock === 0) {
                 status = '품절';
-            } else if (stock < minStock) {
+            } else if (stock && stock < minStock) {
                 status = '재고부족';
             }
 
@@ -87,6 +88,7 @@ const InventoryTable = ({ inventories, onDelete, pagination, currentPage = 1, on
                 returnCount: item.return_count ?? 0,
                 totalSales: item.sales ? `${item.sales.toLocaleString()}원` : '0원',
                 status: status,
+                category: item.category || '',
             };
             return row;
         });

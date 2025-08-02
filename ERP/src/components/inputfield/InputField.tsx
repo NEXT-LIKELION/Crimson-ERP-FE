@@ -11,6 +11,7 @@ interface InputFieldProps {
     onProductNameChange: (v: string) => void;
     category: string;
     onCategoryChange: (v: string) => void;
+    categoryOptions?: string[];
     status: string;
     onStatusChange: (v: string) => void;
     minStock: string;
@@ -30,6 +31,7 @@ const InputField: React.FC<InputFieldProps> = ({
     onProductNameChange,
     category,
     onCategoryChange,
+    categoryOptions = ["모든 카테고리", "일반", "특가", "한정판"],
     status,
     onStatusChange,
     minStock,
@@ -101,7 +103,7 @@ const InputField: React.FC<InputFieldProps> = ({
                     <p className="text-sm font-semibold text-gray-700">카테고리</p>
                     <SelectInput
                         defaultText="모든 카테고리"
-                        options={["모든 카테고리", "일반", "특가", "한정판"]}
+                        options={categoryOptions}
                         value={category}
                         onChange={onCategoryChange}
                     />
