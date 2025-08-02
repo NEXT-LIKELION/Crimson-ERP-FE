@@ -1,12 +1,14 @@
 // src/pages/HR/HRPage.tsx
 import React, { useState, useEffect } from 'react';
-import { FiSearch, FiUser, FiUsers, FiCalendar, FiTrash2, FiEye } from 'react-icons/fi';
+import { FiSearch, FiUser, FiUsers, FiCalendar, FiTrash2, FiEye, FiPlusCircle, FiClipboard } from 'react-icons/fi';
 import StatusBadge from '../../components/common/StatusBadge';
 import SearchInput from '../../components/input/SearchInput';
 import SelectInput from '../../components/input/SelectInput';
 import EmployeeDetailsModal from '../../components/modal/EmployeeDetailsModal';
 import EmployeeContractModal from '../../components/modal/EmployeeContractModal';
 import EmployeeRegistrationModal from '../../components/modal/EmployeeRegistrationModal';
+import VacationRequestModal from '../../components/modal/VacationRequestModal';
+import VacationManagementModal from '../../components/modal/VacationManagementModal';
 import { useEmployees, useUpdateEmployee, useTerminateEmployee } from '../../hooks/queries/useEmployees';
 import { useQueryClient } from '@tanstack/react-query';
 import { Employee, approveEmployee } from '../../api/hr';
@@ -108,6 +110,9 @@ const HRPage: React.FC = () => {
     // 현재 로그인한 사용자 정보
     const currentUser = useAuthStore((state) => state.user);
     const isAdmin = currentUser?.role === 'MANAGER';
+    
+    console.log('HR 페이지 - 현재 사용자 정보:', currentUser);
+    console.log('HR 페이지 - 관리자 여부:', isAdmin);
 
     // API 훅 사용
     const { data: employeesData, isLoading, error } = useEmployees();
@@ -130,6 +135,8 @@ const HRPage: React.FC = () => {
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [showContractModal, setShowContractModal] = useState(false);
     const [showEmployeeRegistrationModal, setShowEmployeeRegistrationModal] = useState(false);
+    const [showVacationRequestModal, setShowVacationRequestModal] = useState(false);
+    const [showVacationManagementModal, setShowVacationManagementModal] = useState(false);
 
     // API 데이터 로드
     useEffect(() => {
@@ -471,6 +478,30 @@ const HRPage: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
+                            {/* 휴가 관련 버튼 */}
+                            <div className="flex items-center gap-2">
+                                {/* 휴가 신청 버튼 - 모든 사용자 */}
+                                <button 
+                                    onClick={() => setShowVacationRequestModal(true)}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center text-sm font-medium transition-colors shadow-sm"
+                                >
+                                    <FiPlusCircle className="w-4 h-4 mr-2" />
+                                    휴가신청
+                                </button>
+                                
+                                {/* 휴가 관리 버튼 */}
+                                <button 
+                                    onClick={() => setShowVacationManagementModal(true)}
+                                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center text-sm font-medium transition-colors shadow-sm"
+                                >
+                                    <FiClipboard className="w-4 h-4 mr-2" />
+                                    {isAdmin ? '휴가관리' : '내 휴가'}
+                                </button>
+                            </div>
+
+                            {/* 구분선 */}
+                            <div className="w-px h-6 bg-gray-300"></div>
+
                             {/* 직원등록 버튼 - MANAGER만 표시 */}
                             {isAdmin && (
                                 <button 
@@ -481,6 +512,7 @@ const HRPage: React.FC = () => {
                                     직원등록
                                 </button>
                             )}
+                            
                             <div className="hidden sm:flex items-center text-sm text-gray-500">
                                 <div className="flex items-center mr-4">
                                     <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
@@ -623,6 +655,25 @@ const HRPage: React.FC = () => {
                 <EmployeeRegistrationModal
                     onClose={() => setShowEmployeeRegistrationModal(false)}
                     onRegisterComplete={handleEmployeeRegistrationComplete}
+                />
+            )}
+
+            {/* 휴가 신청 모달 */}
+            {showVacationRequestModal && (
+                <VacationRequestModal
+                    onClose={() => setShowVacationRequestModal(false)}
+                    onSuccess={() => {
+                        setShowVacationRequestModal(false);
+                        // 휴가 신청 성공 시 휴가 관리 모달 열기
+                        setShowVacationManagementModal(true);
+                    }}
+                />
+            )}
+
+            {/* 휴가 관리 모달 */}
+            {showVacationManagementModal && (
+                <VacationManagementModal
+                    onClose={() => setShowVacationManagementModal(false)}
                 />
             )}
         </div>

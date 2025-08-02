@@ -17,9 +17,13 @@ export const useLogin = (onSuccessCallback?: (userData: User) => void) =>
     useMutation({
         mutationFn: login,
         onSuccess: (res) => {
+            console.log('로그인 API 응답 전체:', res.data);
+            
             const access = res.data.access_token;
             const refresh = res.data.refresh_token;
             const user = res.data.user as User;
+            
+            console.log('추출된 사용자 정보:', user);
 
             // 쿠키에 토큰 저장 (7일 만료)
             setCookie('accessToken', access, 7);
@@ -27,6 +31,8 @@ export const useLogin = (onSuccessCallback?: (userData: User) => void) =>
 
             // zustand에 user 정보 저장
             useAuthStore.getState().setUser(user);
+            console.log('Zustand에 저장된 사용자 정보:', useAuthStore.getState().user);
+            
             if (onSuccessCallback) {
                 onSuccessCallback(user);
             }

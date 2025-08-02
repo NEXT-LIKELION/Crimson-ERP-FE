@@ -15,16 +15,10 @@ const AuthPage = () => {
     const loginStore = useAuthStore((state) => state.login);
 
     const loginMutation = useLogin((userData) => {
+        console.log('로그인 성공 - 사용자 데이터:', userData);
         alert('로그인 성공!');
-
-        // API에서 받은 실제 사용자 정보를 저장
-        const mappedUserData = {
-            id: userData.id,
-            username: userData.username,
-            role: userData.role === 'MANAGER' ? '대표' : ('일반 사용자' as '대표' | '일반 사용자'),
-        };
-
-        loginStore(mappedUserData);
+        
+        // useLogin 훅에서 이미 사용자 정보를 저장했으므로 바로 이동
         navigate('/');
     });
 
