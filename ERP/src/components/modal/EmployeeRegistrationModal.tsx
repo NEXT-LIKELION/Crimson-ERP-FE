@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FiX, FiUser, FiChevronRight, FiCalendar, FiUserCheck } from 'react-icons/fi';
 import { MappedEmployee } from '../../pages/HR/HRPage';
-import { registerEmployee, EmployeeRegistrationData } from '../../api/hr';
+import { registerEmployee, EmployeeRegistrationData, ALLOWED_TABS_OPTIONS } from '../../api/hr';
 
 interface EmployeeRegistrationModalProps {
     onClose: () => void;
@@ -20,6 +20,8 @@ interface Step2Data {
     contact: string;
     position: string;
     hire_date: string;
+    annual_leave_days: number;
+    allowed_tabs: string[];
 }
 
 const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
@@ -44,6 +46,8 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
         contact: '',
         position: 'STAFF', // 기본값: 직원
         hire_date: '',
+        annual_leave_days: 24, // 기본 24일
+        allowed_tabs: [],
     });
 
     // 직책 옵션
@@ -66,7 +70,20 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
         const { name, value } = e.target;
         setStep2Data(prev => ({
             ...prev,
-            [name]: value,
+            [name]: name === 'annual_leave_days' ? parseInt(value) || 0 : value,
+        }));
+    };
+
+    // 허용된 탭 변경 처리
+    const handleAllowedTabsChange = (tabValue: string) => {
+        const currentTabs = step2Data.allowed_tabs;
+        const newTabs = currentTabs.includes(tabValue)
+            ? currentTabs.filter(tab => tab !== tabValue)
+            : [...currentTabs, tabValue];
+        
+        setStep2Data(prev => ({
+            ...prev,
+            allowed_tabs: newTabs
         }));
     };
 
@@ -101,6 +118,18 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(step2Data.email)) {
             setErrorMessage('올바른 이메일 형식을 입력해주세요.');
+            return false;
+        }
+
+        // 연차 일수 검증
+        if (step2Data.annual_leave_days < 0 || step2Data.annual_leave_days > 365) {
+            setErrorMessage('연차 일수는 0일에서 365일 사이여야 합니다.');
+            return false;
+        }
+
+        // 권한 검증 (MANAGER가 아닌 경우)
+        if (step2Data.position !== 'MANAGER' && step2Data.allowed_tabs.length === 0) {
+            setErrorMessage('최소 하나의 접근 권한을 선택해주세요.');
             return false;
         }
 
@@ -142,6 +171,8 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                 contact: step2Data.contact,
                 role: step2Data.position,
                 hire_date: step2Data.hire_date,
+                annual_leave_days: step2Data.annual_leave_days,
+                allowed_tabs: step2Data.position === 'MANAGER' ? ['INVENTORY', 'ORDER', 'SUPPLIER', 'HR'] : step2Data.allowed_tabs,
             };
 
             console.log('직원 등록 데이터:', registrationData);
@@ -156,12 +187,17 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                 name: step2Data.first_name,
                 username: step1Data.username, // API 호출 시 사용할 실제 username
                 role: step2Data.position,
-                position: step2Data.position === 'MANAGER' ? '대표' : '직원',
+                position: step2Data.position === 'STAFF' ? '직원' : step2Data.position === 'INTERN' ? '인턴' : '대표',
                 department: step2Data.position === 'MANAGER' ? '경영진' : '일반',
                 email: step2Data.email,
                 phone: step2Data.contact,
                 status: 'denied', // 새로 등록된 직원은 승인 대기 상태
                 hire_date: step2Data.hire_date,
+                annual_leave_days: step2Data.annual_leave_days,
+                allowed_tabs: registrationData.allowed_tabs,
+                remaining_leave_days: step2Data.annual_leave_days, // 초기에는 전체 연차가 남은 연차
+                vacation_days: [],
+                vacation_pending_days: [],
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             };
@@ -384,6 +420,48 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                                     <FiCalendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                                 </div>
                             </div>
+
+                            <div>
+                                <label htmlFor="annual_leave_days" className="block text-sm font-medium text-gray-700 mb-2">
+                                    연차 일수 <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    id="annual_leave_days"
+                                    name="annual_leave_days"
+                                    type="number"
+                                    min="0"
+                                    max="365"
+                                    value={step2Data.annual_leave_days}
+                                    onChange={handleStep2Change}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                                    placeholder="연차 일수를 입력하세요"
+                                />
+                            </div>
+
+                            {/* 권한 탭 관리 - STAFF/INTERN만 표시 */}
+                            {step2Data.position !== 'MANAGER' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        접근 권한 <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="space-y-2">
+                                        {ALLOWED_TABS_OPTIONS.map((tab) => (
+                                            <label key={tab.value} className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={step2Data.allowed_tabs.includes(tab.value)}
+                                                    onChange={() => handleAllowedTabsChange(tab.value)}
+                                                    className="mr-2 h-4 w-4 text-rose-600 focus:ring-rose-500 border-gray-300 rounded"
+                                                />
+                                                <span className="text-sm text-gray-700">{tab.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                    {step2Data.allowed_tabs.length === 0 && (
+                                        <p className="text-sm text-gray-500 mt-1">최소 하나의 권한을 선택해주세요</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
 

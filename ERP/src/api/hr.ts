@@ -55,7 +55,14 @@ export interface Employee {
     status: 'active' | 'terminated' | 'denied';
     contact: string;
     first_name: string;
+    is_active: boolean;
+    hire_date: string | null;
+    annual_leave_days: number;
+    allowed_tabs: string[];
+    remaining_leave_days: number;
     date_joined: string;
+    vacation_days: VacationDay[];
+    vacation_pending_days: VacationDay[];
 }
 
 // 프론트엔드에서 사용할 매핑된 Employee 타입 (HR 페이지에서 직접 정의)
@@ -65,13 +72,21 @@ export interface EmployeeUpdateData {
     email?: string;
     contact?: string;
     status?: 'APPROVED' | 'DENIED';
+    hire_date?: string;
+    annual_leave_days?: number;
+    allowed_tabs?: string[];
 }
 
 // PATCH 엔드포인트용 데이터 타입
 export interface EmployeePatchData {
     email?: string;
+    first_name?: string;
     contact?: string;
     is_active?: boolean;
+    annual_leave_days?: number;
+    allowed_tabs?: string[];
+    hire_date?: string;
+    role?: string;
 }
 
 // 직원 등록용 데이터 타입
@@ -83,7 +98,26 @@ export interface EmployeeRegistrationData {
     contact: string;
     role: string;
     hire_date: string;
+    annual_leave_days?: number;
+    allowed_tabs?: string[];
 }
+
+// 휴가 기록 타입
+export interface VacationDay {
+    start_date: string;
+    end_date: string;
+    leave_type: LeaveType;
+}
+
+// 허용된 탭 옵션
+export const ALLOWED_TABS_OPTIONS = [
+    { value: 'INVENTORY', label: '재고 관리' },
+    { value: 'ORDER', label: '발주 관리' },
+    { value: 'SUPPLIER', label: '업체 관리' },
+    { value: 'HR', label: 'HR 관리' },
+] as const;
+
+export type AllowedTab = typeof ALLOWED_TABS_OPTIONS[number]['value'];
 
 // ===== 휴가 관련 타입 정의 =====
 

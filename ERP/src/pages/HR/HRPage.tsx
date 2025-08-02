@@ -11,7 +11,7 @@ import VacationRequestModal from '../../components/modal/VacationRequestModal';
 import VacationManagementModal from '../../components/modal/VacationManagementModal';
 import { useEmployees, useUpdateEmployee, useTerminateEmployee } from '../../hooks/queries/useEmployees';
 import { useQueryClient } from '@tanstack/react-query';
-import { Employee, approveEmployee } from '../../api/hr';
+import { Employee, approveEmployee, patchEmployee } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
 
 // 직원 상태 타입
@@ -69,6 +69,8 @@ const mapRoleToKorean = (role: string): string => {
             return '대표';
         case 'STAFF':
             return '직원';
+        case 'INTERN':
+            return '인턴';
         default:
             return role;
     }
@@ -79,13 +81,18 @@ export interface MappedEmployee {
     id: number;
     name: string; // 화면 표시용 이름 (실제로는 first_name)
     username: string; // API 호출 시 사용할 실제 username
-    role: string; // 추가: 영문 role(MANAGER/STAFF)
+    role: string; // 추가: 영문 role(MANAGER/STAFF/INTERN)
     position: string;
     department: string;
     email: string;
     phone: string;
     status: 'active' | 'terminated' | 'denied';
     hire_date: string;
+    annual_leave_days: number;
+    allowed_tabs: string[];
+    remaining_leave_days: number;
+    vacation_days: any[];
+    vacation_pending_days: any[];
     created_at: string;
     updated_at: string;
 }
@@ -101,7 +108,12 @@ const mapEmployeeData = (emp: Employee): MappedEmployee => ({
     email: emp.email,
     phone: emp.contact || '',
     status: emp.status,
-    hire_date: emp.date_joined || '',
+    hire_date: emp.hire_date || emp.date_joined || '',
+    annual_leave_days: emp.annual_leave_days || 24,
+    allowed_tabs: emp.allowed_tabs || [],
+    remaining_leave_days: emp.remaining_leave_days || 0,
+    vacation_days: emp.vacation_days || [],
+    vacation_pending_days: emp.vacation_pending_days || [],
     created_at: '',
     updated_at: '',
 });
@@ -173,20 +185,26 @@ const HRPage: React.FC = () => {
         }
 
         try {
-            // 백엔드 API에 맞게 필드명 변경 (username은 수정 불가능하므로 제외)
+            // 백엔드 API에 맞게 필드명 변경 (PATCH API 스펙에 맞춤)
             const updateData = {
-                role: updatedEmployee.position === '대표' ? 'MANAGER' : 'STAFF',
                 email: updatedEmployee.email,
+                first_name: updatedEmployee.name,
                 contact: updatedEmployee.phone,
+                is_active: updatedEmployee.status === 'active',
+                annual_leave_days: updatedEmployee.annual_leave_days,
+                allowed_tabs: updatedEmployee.allowed_tabs,
+                hire_date: updatedEmployee.hire_date,
+                role: updatedEmployee.role,
             };
 
             console.log('직원 정보 수정 요청 데이터:', JSON.stringify(updateData, null, 2));
 
-            await updateEmployee.mutateAsync({
-                employeeId: updatedEmployee.id,
-                data: updateData,
-            });
+            // patchEmployee 사용 (PATCH 엔드포인트)
+            await patchEmployee(updatedEmployee.id, updateData);
 
+            // React Query 캐시 무효화하여 최신 데이터 가져오기
+            queryClient.invalidateQueries({ queryKey: ['employees'] });
+            
             // 로컬 상태 업데이트
             setEmployees((prev) =>
                 prev.map((emp) => (emp.id === updatedEmployee.id ? { ...emp, ...updatedEmployee } : emp))

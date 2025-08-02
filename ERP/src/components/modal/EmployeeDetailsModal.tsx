@@ -1,7 +1,9 @@
 // src/components/modals/EmployeeDetailsModal.tsx
 import React, { useState } from 'react';
-import { FiX, FiEdit, FiCheck, FiXCircle, FiFileText } from 'react-icons/fi';
+import { FiX, FiEdit, FiCheck, FiXCircle, FiFileText, FiCalendar } from 'react-icons/fi';
 import { MappedEmployee } from '../../pages/HR/HRPage';
+import { ALLOWED_TABS_OPTIONS, AllowedTab } from '../../api/hr';
+import VacationCalendar from '../calendar/VacationCalendar';
 
 interface EmployeeDetailsModalProps {
     employee: MappedEmployee;
@@ -33,12 +35,13 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedEmployee, setEditedEmployee] = useState<MappedEmployee>(employee);
+    const [showVacationCalendar, setShowVacationCalendar] = useState(false);
 
     React.useEffect(() => {
         setEditedEmployee(employee);
     }, [employee]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setEditedEmployee((prev: MappedEmployee) => ({
             ...prev,
@@ -46,9 +49,39 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
         }));
     };
 
+    const handleAllowedTabsChange = (tabValue: string) => {
+        if (editedEmployee.role === 'MANAGER') return; // MANAGER는 수정 불가
+        
+        const currentTabs = editedEmployee.allowed_tabs || [];
+        const newTabs = currentTabs.includes(tabValue)
+            ? currentTabs.filter(tab => tab !== tabValue)
+            : [...currentTabs, tabValue];
+        
+        setEditedEmployee(prev => ({
+            ...prev,
+            allowed_tabs: newTabs
+        }));
+    };
+
     const handleSave = async () => {
         if (!editedEmployee.email || !editedEmployee.phone) {
             alert('이메일과 전화번호를 입력해주세요.');
+            return;
+        }
+
+        if (!editedEmployee.name || !editedEmployee.hire_date) {
+            alert('이름과 입사일을 입력해주세요.');
+            return;
+        }
+
+        if (editedEmployee.annual_leave_days < 0 || editedEmployee.annual_leave_days > 365) {
+            alert('연차 일수는 0일에서 365일 사이여야 합니다.');
+            return;
+        }
+
+        // MANAGER가 아닌 경우 권한 체크
+        if (editedEmployee.role !== 'MANAGER' && (!editedEmployee.allowed_tabs || editedEmployee.allowed_tabs.length === 0)) {
+            alert('최소 하나의 접근 권한을 선택해주세요.');
             return;
         }
 
@@ -111,20 +144,42 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                         {/* 직급 */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">직급</label>
-                            <div className="flex justify-between items-center">
-                                <span className="text-gray-900">{employee.position}</span>
-                                {isEditing && (
-                                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                        수정 불가
-                                    </span>
-                                )}
-                            </div>
+                            {isEditing && isAdmin ? (
+                                <select
+                                    name="role"
+                                    value={editedEmployee.role}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                                >
+                                    <option value="STAFF">직원</option>
+                                    <option value="INTERN">인턴</option>
+                                </select>
+                            ) : (
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-900">{employee.position}</span>
+                                    {isEditing && !isAdmin && (
+                                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                            수정 불가
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* 입사일 */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">입사일</label>
-                            <span className="text-gray-900">{formatDateToKorean(employee.hire_date)}</span>
+                            {isEditing && isAdmin ? (
+                                <input
+                                    type="date"
+                                    name="hire_date"
+                                    value={editedEmployee.hire_date}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                                />
+                            ) : (
+                                <span className="text-gray-900">{formatDateToKorean(employee.hire_date)}</span>
+                            )}
                         </div>
 
                         {/* 이메일 */}
@@ -160,11 +215,75 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                                 <span className="text-gray-900">{employee.phone}</span>
                             )}
                         </div>
+
+                        {/* 연차 일수 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">연차 일수</label>
+                            {isEditing && isAdmin ? (
+                                <input
+                                    type="number"
+                                    name="annual_leave_days"
+                                    value={editedEmployee.annual_leave_days}
+                                    onChange={handleChange}
+                                    min="0"
+                                    max="365"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                                    placeholder="연차 일수를 입력하세요"
+                                />
+                            ) : (
+                                <span className="text-gray-900">{employee.annual_leave_days}일 (남은 연차: {employee.remaining_leave_days}일)</span>
+                            )}
+                        </div>
+
+                        {/* 권한 탭 관리 - MANAGER가 아닌 경우만 표시 */}
+                        {employee.role !== 'MANAGER' && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">접근 권한</label>
+                                {isEditing && isAdmin ? (
+                                    <div className="space-y-2">
+                                        {ALLOWED_TABS_OPTIONS.map((tab) => (
+                                            <label key={tab.value} className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={(editedEmployee.allowed_tabs || []).includes(tab.value)}
+                                                    onChange={() => handleAllowedTabsChange(tab.value)}
+                                                    className="mr-2 h-4 w-4 text-rose-600 focus:ring-rose-500 border-gray-300 rounded"
+                                                />
+                                                <span className="text-sm text-gray-700">{tab.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-wrap gap-1">
+                                        {(employee.allowed_tabs || []).map((tab) => {
+                                            const tabOption = ALLOWED_TABS_OPTIONS.find(opt => opt.value === tab);
+                                            return (
+                                                <span key={tab} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    {tabOption?.label || tab}
+                                                </span>
+                                            );
+                                        })}
+                                        {(!employee.allowed_tabs || employee.allowed_tabs.length === 0) && (
+                                            <span className="text-sm text-gray-500">권한이 설정되지 않았습니다</span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* 버튼 영역 */}
                     <div className="mt-6 pt-4 border-t border-gray-200">
                         <div className="space-y-3">
+                            {/* 휴가 캘린더 버튼 */}
+                            <button
+                                onClick={() => setShowVacationCalendar(true)}
+                                className="w-full px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 flex items-center justify-center text-sm"
+                            >
+                                <FiCalendar className="w-4 h-4 mr-2" />
+                                휴가 캘린더 보기
+                            </button>
+
                             {/* 근로계약서 버튼 */}
                             {isAdmin && (
                                 <button
@@ -216,6 +335,16 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                     </div>
                 </div>
             </div>
+            
+            {/* 휴가 캘린더 모달 */}
+            {showVacationCalendar && (
+                <VacationCalendar
+                    vacationDays={employee.vacation_days || []}
+                    vacationPendingDays={employee.vacation_pending_days || []}
+                    onClose={() => setShowVacationCalendar(false)}
+                    employeeName={employee.name}
+                />
+            )}
         </div>
     );
 };

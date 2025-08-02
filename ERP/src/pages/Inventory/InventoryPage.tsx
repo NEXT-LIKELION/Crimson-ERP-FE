@@ -12,10 +12,12 @@ import AddProductModal from "../../components/modal/AddProductModal";
 import { Product } from "../../types/product";
 import { useQueryClient } from "@tanstack/react-query";
 import { uploadInventoryExcel } from "../../api/upload";
+import { usePermissions } from "../../hooks/usePermissions";
 
 const InventoryPage = () => {
     const { data, isLoading, error, refetch } = useInventories();
     const queryClient = useQueryClient();
+    const permissions = usePermissions();
     const [searchParams, setSearchParams] = useSearchParams();
     const [isAddModalOpen, setAddModalOpen] = useState(false);
     const [productName, setProductName] = useState("");
@@ -187,12 +189,16 @@ const InventoryPage = () => {
             <div className="flex justify-between items-center mb-4">
                 <h1 className="text-2xl font-bold">재고 관리</h1>
                 <div className="flex space-x-2">
-                    <GreenButton text="상품 추가" icon={<FaPlus size={16} />} onClick={() => setAddModalOpen(true)} />
-                    <PrimaryButton
-                        text="POS 데이터 업로드"
-                        icon={<FaFileArrowUp size={16} />}
-                        onClick={handlePOSButtonClick}
-                    />
+                    {permissions.canCreate('INVENTORY') && (
+                        <GreenButton text="상품 추가" icon={<FaPlus size={16} />} onClick={() => setAddModalOpen(true)} />
+                    )}
+                    {permissions.canCreate('INVENTORY') && (
+                        <PrimaryButton
+                            text="POS 데이터 업로드"
+                            icon={<FaFileArrowUp size={16} />}
+                            onClick={handlePOSButtonClick}
+                        />
+                    )}
                     <input
                         ref={fileInputRef}
                         id="posUploadInput"

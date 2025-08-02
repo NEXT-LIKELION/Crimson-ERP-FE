@@ -14,6 +14,7 @@ import axios from '../../api/axios';
 import { deleteOrder, createOrder, fetchOrderById } from '../../api/orders';
 import { fetchInventories } from '../../api/inventory';
 import { fetchSuppliers } from '../../api/supplier';
+import { usePermissions } from '../../hooks/usePermissions';
         
 // 검색 필터 타입 정의
 interface SearchFilters {
@@ -64,6 +65,7 @@ function numberToKorean(num: number): string {
 
 const OrdersPage: React.FC = () => {
     // 모든 Hook 선언을 최상단에 위치시킴
+    const permissions = usePermissions();
     const [isOrderDetailModalOpen, setIsOrderDetailModalOpen] = useState<boolean>(false);
     const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState<boolean>(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
@@ -563,12 +565,14 @@ const OrdersPage: React.FC = () => {
                             삭제 되돌리기
                         </button>
                     )}
-                    <GreenButton
-                        text="새 발주 신청"
-                        icon={<FiPlus />}
-                        onClick={() => setIsNewOrderModalOpen(true)}
-                        aria-label="새 발주 신청"
-                    />
+                    {permissions.canCreate('ORDER') && (
+                        <GreenButton
+                            text="새 발주 신청"
+                            icon={<FiPlus />}
+                            onClick={() => setIsNewOrderModalOpen(true)}
+                            aria-label="새 발주 신청"
+                        />
+                    )}
                 </div>
             </div>
 

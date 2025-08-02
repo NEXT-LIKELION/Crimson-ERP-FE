@@ -8,6 +8,7 @@ import InventoryTable from '../../components/inventorytable/InventoryTable';
 import axios from '../../api/axios';
 import { fetchInventories } from '../../api/inventory';
 import { updateSupplierVariant } from '../../api/supplier';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface Supplier {
     id: number;
@@ -21,6 +22,7 @@ interface Supplier {
 const SupplierPage: React.FC = () => {
     const { data, isLoading, error } = useSuppliers();
     const createSupplier = useCreateSupplier();
+    const permissions = usePermissions();
     const [searchInput, setSearchInput] = useState('');
     const [search, setSearch] = useState('');
     const [isAddModalOpen, setAddModalOpen] = useState(false);
@@ -74,11 +76,13 @@ const SupplierPage: React.FC = () => {
                         size={22}
                         onClick={() => alert('다운로드 클릭(추후 구현)')}
                     />
-                    <GreenButton
-                        text="공급업체 추가"
-                        icon={<FaPlus size={16} />}
-                        onClick={() => setAddModalOpen(true)}
-                    />
+                    {permissions.canCreate('SUPPLIER') && (
+                        <GreenButton
+                            text="공급업체 추가"
+                            icon={<FaPlus size={16} />}
+                            onClick={() => setAddModalOpen(true)}
+                        />
+                    )}
                 </div>
             </div>
 
@@ -118,13 +122,15 @@ const SupplierPage: React.FC = () => {
                                             >
                                                 상세보기
                                             </button>
-                                            <button
-                                                className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded text-xs flex items-center"
-                                                onClick={() => setEditId(supplier.id)}
-                                            >
-                                                <MdOutlineEdit className="mr-1" />
-                                                수정
-                                            </button>
+                                            {permissions.canEdit('SUPPLIER') && (
+                                                <button
+                                                    className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded text-xs flex items-center"
+                                                    onClick={() => setEditId(supplier.id)}
+                                                >
+                                                    <MdOutlineEdit className="mr-1" />
+                                                    수정
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
