@@ -1,36 +1,55 @@
 import { api } from './axios';
 
 // 🔹 1. 발주 목록 조회 (GET /orders/)
-export const fetchOrders = () => api.get('/orders');
+export const fetchOrders = (params?: {
+    ordering?: string;
+    product_name?: string;
+    supplier?: string;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
+    page?: number;
+}) => api.get('/orders/', { params });
 
 // 🔹 2. 발주 생성 (POST /orders/)
 export const createOrder = (payload: {
     supplier: number;
+    manager_name: string;
     order_date: string;
     expected_delivery_date: string;
     status: string;
-    instruction_note: string;
-    note: string;
-    vat_included: boolean;
-    packaging_included: boolean;
-    manager_name: string;
+    instruction_note?: string;
+    note?: string;
+    vat_included?: boolean;
+    packaging_included?: boolean;
     items: {
         variant_code: string;
         quantity: number;
         unit_price: number;
-        remark: string;
-        spec: string;
+        unit?: string;
+        remark?: string;
+        spec?: string;
     }[];
 }) => api.post('/orders/', payload);
 
 // 🔹 3. 특정 발주 조회 (GET /orders/{order_id}/)
 export const fetchOrderById = (orderId: number) => api.get(`/orders/${orderId}/`);
 
-// 🔹 4. 발주 취소 (DELETE /orders/{order_id}/)
+// 🔹 4. 발주 삭제 (DELETE /orders/{order_id}/)
 export const deleteOrder = (orderId: number) => api.delete(`/orders/${orderId}/`);
 
-// 🔹 5. 발주 상태 변경 (PATCH /orders/{order_id}/status/)
+// 🔹 5. 발주 상태 변경 (PATCH /orders/{order_id}/)
 export const updateOrderStatus = (
     orderId: number,
-    payload: { status: '대기' | '발주완료' | '입고완료' } // 또는 서버에서 허용하는 상태
-) => api.patch(`/orders/${orderId}/status/`, payload);
+    payload: { status: string }
+) => api.patch(`/orders/${orderId}/`, payload);
+
+// 🔹 6. 발주 목록 Export (GET /orders/export/)
+export const exportOrders = (params?: {
+    ordering?: string;
+    product_name?: string;
+    supplier?: string;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
+}) => api.get('/orders/export/', { params });

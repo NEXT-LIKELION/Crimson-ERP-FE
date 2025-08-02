@@ -18,12 +18,20 @@ export interface Order {
     id: number;
     supplier: string;
     manager: string;
-    status: 'PENDING' | 'APPROVED' | 'CANCELLED';
+    status: OrderStatus;
     note: string;
     order_date: string;
+    expected_delivery_date?: string;
     total_quantity: number;
     total_price: number;
     product_names: string[];
+}
+
+export interface OrdersResponse {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: Order[];
 }
 
 interface OrdersState {

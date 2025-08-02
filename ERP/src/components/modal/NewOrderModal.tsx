@@ -4,6 +4,8 @@ import { FiX, FiPlus, FiTrash2, FiShoppingBag, FiCalendar, FiCheckCircle, FiAler
 import DateInput from '../input/DateInput';
 import SelectInput from '../input/SelectInput';
 import RadioButton from '../common/RadioButton';
+import AddProductModal from './AddProductModal';
+import AddSupplierModal from './AddSupplierModal';
 import { useOrdersStore, Order } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
 import { fetchSuppliers } from '../../api/supplier';
@@ -22,6 +24,7 @@ interface OrderItemPayload {
     variant: string | null;
     quantity: number;
     unit_price: number;
+    unit: string;
     remark: string;
     spec: string;
 }
@@ -39,6 +42,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             variant: null,
             quantity: 1,
             unit_price: 0,
+            unit: 'EA',
             remark: '',
             spec: '',
         },
@@ -46,11 +50,14 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     const [workInstructions, setWorkInstructions] = useState<string>(
         '로고 디자인은 첨부파일대로 적용해 주시기 바랍니다. 샘플 확인 후 본 생산 진행 예정입니다.'
     );
+    const [note, setNote] = useState<string>(''); // 발주 이유 (내부 공유용)
     const [includesTax, setIncludesTax] = useState<boolean>(true);
     const [hasPackaging, setHasPackaging] = useState<boolean>(true);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [formErrors, setFormErrors] = useState<string[]>([]);
     const [variantsByProduct, setVariantsByProduct] = useState<{ [productId: string]: any[] }>({});
+    const [isAddProductModalOpen, setIsAddProductModalOpen] = useState<boolean>(false);
+    const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState<boolean>(false);
     const { data: employeesData } = useEmployees();
     const employees = employeesData?.data || [];
     const user = useAuthStore((state) => state.user);
@@ -77,11 +84,13 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 variant: null,
                 quantity: 1,
                 unit_price: 0,
+                unit: 'EA',
                 remark: '',
                 spec: '',
             },
         ]);
         setWorkInstructions('로고 디자인은 첨부파일대로 적용해 주시기 바랍니다. 샘플 확인 후 본 생산 진행 예정입니다.');
+        setNote('');
         setIncludesTax(true);
         setHasPackaging(true);
         setFormErrors([]);
@@ -95,6 +104,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 variant: null,
                 quantity: 1,
                 unit_price: 0,
+                unit: 'EA',
                 remark: '',
                 spec: '',
             },
@@ -173,7 +183,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 expected_delivery_date: deliveryDate ? deliveryDate.toISOString().slice(0, 10) : '',
                 status: 'PENDING',
                 instruction_note: workInstructions,
-                note: '',
+                note: note,
                 vat_included: includesTax,
                 packaging_included: hasPackaging,
                 manager_name: user?.first_name || user?.username || '',
@@ -182,10 +192,10 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                     const variantObj =
                         product_id && variantsByProduct[product_id]?.find((v: any) => v.option === item.variant);
                     return {
-                        product_id: product_id,
                         variant_code: variantObj ? variantObj.variant_code : undefined,
                         quantity: item.quantity,
                         unit_price: includesTax ? item.unit_price : Math.round(item.unit_price * 1.1),
+                        unit: item.unit,
                         remark: item.remark,
                         spec: item.spec,
                     };
@@ -236,6 +246,22 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     const handleVariantChange = (idx: number, option: string) => {
         console.log('품목(variant) 선택:', option);
         handleItemChange(idx, 'variant', option);
+    };
+
+    // 신상품 추가 성공 핸들러
+    const handleProductAdded = async (newProduct: any) => {
+        // 상품 목록 다시 불러오기
+        const res = await fetchInventories();
+        setProducts(res.data);
+        setIsAddProductModalOpen(false);
+    };
+
+    // 새 공급자 추가 성공 핸들러
+    const handleSupplierAdded = async (newSupplier: any) => {
+        // 공급자 목록 다시 불러오기
+        const res = await fetchSuppliers();
+        setSuppliers(res.data);
+        setIsAddSupplierModalOpen(false);
     };
 
     if (!isOpen) return null;
@@ -289,12 +315,24 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                 <label className="block text-sm font-medium text-gray-700">
                                     공급업체 선택 <span className="text-red-500">*</span>
                                 </label>
-                                <SelectInput
-                                    defaultText="공급업체 선택"
-                                    options={suppliers.map((s: any) => s.name)}
-                                    value={supplierName}
-                                    onChange={handleSupplierChange}
-                                />
+                                <div className="flex gap-2">
+                                    <div className="flex-1">
+                                        <SelectInput
+                                            defaultText="공급업체 선택"
+                                            options={suppliers.map((s: any) => s.name)}
+                                            value={supplierName}
+                                            onChange={handleSupplierChange}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => setIsAddSupplierModalOpen(true)}
+                                        className="px-3 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 flex items-center"
+                                        disabled={isSubmitting}
+                                    >
+                                        <FiPlus className="w-4 h-4 mr-1" />
+                                        새 공급자
+                                    </button>
+                                </div>
                             </div>
                             <div className="space-y-1">
                                 <label className="block text-sm font-medium text-gray-700">담당자</label>
@@ -363,7 +401,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                         </div>
                                         <div className="w-32 px-3 py-2 flex items-center">
                                             <span className="text-xs font-medium text-gray-500 uppercase">
-                                                품목 <span className="text-red-500">*</span>
+                                                상세 <span className="text-red-500">*</span>
                                             </span>
                                         </div>
                                         <div className="w-32 px-3 py-2 flex items-center">
@@ -398,23 +436,33 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                 {/* Table Body */}
                                 <div className="bg-white">
                                     {items.map((item, idx) => (
-                                        <div key={idx} className="h-14 flex border-t border-gray-200">
+                                        <div key={idx} className="h-20 flex border-t border-gray-200">
                                             {/* 상품 드롭다운 */}
                                             <div className="w-32 px-3 py-3.5 flex items-center">
-                                                <SelectInput
-                                                    defaultText="상품 선택"
-                                                    options={products.map((p: any) => p.name)}
-                                                    value={(() => {
-                                                        const found = products.find(
-                                                            (p: any) => p.product_id === item.product_id
-                                                        );
-                                                        return found ? found.name : '';
-                                                    })()}
-                                                    onChange={(name: string) => {
-                                                        handleProductChange(idx, name);
-                                                    }}
-                                                    disabled={isSubmitting}
-                                                />
+                                                <div className="flex flex-col gap-1 w-full">
+                                                    <SelectInput
+                                                        defaultText="상품 선택"
+                                                        options={products.map((p: any) => p.name)}
+                                                        value={(() => {
+                                                            const found = products.find(
+                                                                (p: any) => p.product_id === item.product_id
+                                                            );
+                                                            return found ? found.name : '';
+                                                        })()}
+                                                        onChange={(name: string) => {
+                                                            handleProductChange(idx, name);
+                                                        }}
+                                                        disabled={isSubmitting}
+                                                    />
+                                                    <button
+                                                        onClick={() => setIsAddProductModalOpen(true)}
+                                                        className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center justify-center"
+                                                        disabled={isSubmitting}
+                                                    >
+                                                        <FiPlus className="w-3 h-3 mr-1" />
+                                                        신상품
+                                                    </button>
+                                                </div>
                                             </div>
                                             {/* 품목 드롭다운 */}
                                             <div className="w-32 px-3 py-3.5 flex items-center">
@@ -444,10 +492,14 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                                     disabled={isSubmitting}
                                                 />
                                             </div>
-                                            <div className="w-20 px-3 py-3.5 flex items-center justify-center">
-                                                <div className="px-3 py-1 bg-zinc-100 rounded-md border border-gray-300 w-11 text-center">
-                                                    <span className="text-sm">EA</span>
-                                                </div>
+                                            <div className="w-20 px-3 py-3.5 flex items-center">
+                                                <input
+                                                    type="text"
+                                                    value={item.unit}
+                                                    onChange={(e) => handleItemChange(idx, 'unit', e.target.value)}
+                                                    className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm text-center"
+                                                    disabled={isSubmitting}
+                                                />
                                             </div>
                                             <div className="w-24 px-3 py-3.5 flex items-center">
                                                 <input
@@ -577,8 +629,18 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                             <textarea
                                 value={workInstructions}
                                 onChange={(e) => setWorkInstructions(e.target.value)}
-                                className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md text-sm"
                                 placeholder="작업지시사항을 입력해주세요."
+                                disabled={isSubmitting}
+                            />
+                            <h3 className="text-base font-medium text-gray-900">
+                                발주 이유 (내부 공유용)
+                            </h3>
+                            <textarea
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                placeholder="발주 이유를 입력해주세요."
                                 disabled={isSubmitting}
                             />
                         </div>
@@ -611,6 +673,24 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                     </div>
                 </div>
             </div>
+
+            {/* 신상품 추가 모달 */}
+            {isAddProductModalOpen && (
+                <AddProductModal
+                    isOpen={isAddProductModalOpen}
+                    onClose={() => setIsAddProductModalOpen(false)}
+                    onSave={handleProductAdded}
+                />
+            )}
+
+            {/* 새 공급자 추가 모달 */}
+            {isAddSupplierModalOpen && (
+                <AddSupplierModal
+                    isOpen={isAddSupplierModalOpen}
+                    onClose={() => setIsAddSupplierModalOpen(false)}
+                    onSave={handleSupplierAdded}
+                />
+            )}
         </div>
     );
 };
