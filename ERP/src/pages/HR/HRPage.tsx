@@ -6,7 +6,9 @@ import SearchInput from '../../components/input/SearchInput';
 import SelectInput from '../../components/input/SelectInput';
 import EmployeeDetailsModal from '../../components/modal/EmployeeDetailsModal';
 import EmployeeContractModal from '../../components/modal/EmployeeContractModal';
+import EmployeeRegistrationModal from '../../components/modal/EmployeeRegistrationModal';
 import { useEmployees, useUpdateEmployee, useTerminateEmployee } from '../../hooks/queries/useEmployees';
+import { useQueryClient } from '@tanstack/react-query';
 import { Employee, approveEmployee } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
 
@@ -73,7 +75,8 @@ const mapRoleToKorean = (role: string): string => {
 // 프론트엔드에서 사용할 매핑된 Employee 타입
 export interface MappedEmployee {
     id: number;
-    name: string;
+    name: string; // 화면 표시용 이름 (실제로는 first_name)
+    username: string; // API 호출 시 사용할 실제 username
     role: string; // 추가: 영문 role(MANAGER/STAFF)
     position: string;
     department: string;
@@ -88,14 +91,15 @@ export interface MappedEmployee {
 // 백엔드 Employee를 프론트엔드 MappedEmployee로 변환
 const mapEmployeeData = (emp: Employee): MappedEmployee => ({
     id: emp.id,
-    name: emp.username,
-    role: emp.role, // 추가
+    name: emp.first_name || emp.username, // 이름이 있으면 first_name, 없으면 username 사용
+    username: emp.username, // API 호출 시 사용할 실제 username
+    role: emp.role,
     position: mapRoleToKorean(emp.role),
-    department: emp.role === 'MANAGER' ? '경영진' : '일반', // 부서 정보가 없으므로 role 기반으로 설정
+    department: emp.role === 'MANAGER' ? '경영진' : '일반',
     email: emp.email,
     phone: emp.contact || '',
-    status: emp.status, // status를 그대로 사용
-    hire_date: emp.date_joined,
+    status: emp.status,
+    hire_date: emp.date_joined || '',
     created_at: '',
     updated_at: '',
 });
@@ -109,6 +113,7 @@ const HRPage: React.FC = () => {
     const { data: employeesData, isLoading, error } = useEmployees();
     const updateEmployee = useUpdateEmployee();
     const terminateEmployee = useTerminateEmployee();
+    const queryClient = useQueryClient();
 
     // 직원 목록 상태
     const [employees, setEmployees] = useState<MappedEmployee[]>([]);
@@ -124,6 +129,7 @@ const HRPage: React.FC = () => {
     const [selectedEmployee, setSelectedEmployee] = useState<MappedEmployee | null>(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [showContractModal, setShowContractModal] = useState(false);
+    const [showEmployeeRegistrationModal, setShowEmployeeRegistrationModal] = useState(false);
 
     // API 데이터 로드
     useEffect(() => {
@@ -192,7 +198,7 @@ const HRPage: React.FC = () => {
         console.log('employee:', employee);
         console.log('isAdmin:', isAdmin, 'currentUser:', currentUser);
         const isTerminated = employee.status === 'terminated';
-        const isCurrentUser = currentUser?.username === employee.name; // 현재 로그인한 사용자와 같은지 확인
+        const isCurrentUser = currentUser?.username === employee.username; // 현재 로그인한 사용자와 같은지 확인
 
         // 상태에 따른 StatusBadge 컴포넌트 설정
         const getStatusBadge = (status: EmployeeStatus) => {
@@ -328,7 +334,7 @@ const HRPage: React.FC = () => {
                                         className="px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center text-sm font-medium hover:bg-green-100 hover:border-green-300 transition-all duration-200 shadow-sm"
                                         onClick={async () => {
                                             try {
-                                                await approveEmployee(employee.name, 'approved');
+                                                await approveEmployee(employee.username, 'approved');
                                                 setEmployees((prev) =>
                                                     prev.map((emp) =>
                                                         emp.id === employee.id
@@ -336,6 +342,8 @@ const HRPage: React.FC = () => {
                                                             : emp
                                                     )
                                                 );
+                                                // React Query 캐시 무효화
+                                                queryClient.invalidateQueries({ queryKey: ['employees'] });
                                                 alert('승인 완료!');
                                             } catch (e: any) {
                                                 alert(e?.response?.data?.error || '승인 실패');
@@ -349,7 +357,7 @@ const HRPage: React.FC = () => {
                                         className="px-3 py-1.5 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg flex items-center text-sm font-medium hover:bg-yellow-100 hover:border-yellow-300 transition-all duration-200 shadow-sm"
                                         onClick={async () => {
                                             try {
-                                                await approveEmployee(employee.name, 'denied');
+                                                await approveEmployee(employee.username, 'denied');
                                                 setEmployees((prev) =>
                                                     prev.map((emp) =>
                                                         emp.id === employee.id
@@ -357,6 +365,8 @@ const HRPage: React.FC = () => {
                                                             : emp
                                                     )
                                                 );
+                                                // React Query 캐시 무효화
+                                                queryClient.invalidateQueries({ queryKey: ['employees'] });
                                                 alert('거절 처리 완료!');
                                             } catch (e: any) {
                                                 alert(e?.response?.data?.error || '거절 실패');
@@ -400,6 +410,16 @@ const HRPage: React.FC = () => {
     const handleViewInfoTab = () => {
         setShowContractModal(false);
         setShowDetailsModal(true);
+    };
+
+    // 직원 등록 완료 핸들러
+    const handleEmployeeRegistrationComplete = (newEmployee: MappedEmployee) => {
+        // 로컬 상태 업데이트
+        setEmployees(prev => [...prev, newEmployee]);
+        setShowEmployeeRegistrationModal(false);
+        
+        // React Query 캐시 무효화하여 최신 데이터 가져오기
+        queryClient.invalidateQueries({ queryKey: ['employees'] });
     };
 
     if (isLoading)
@@ -451,6 +471,16 @@ const HRPage: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
+                            {/* 직원등록 버튼 - MANAGER만 표시 */}
+                            {isAdmin && (
+                                <button 
+                                    onClick={() => setShowEmployeeRegistrationModal(true)}
+                                    className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 flex items-center text-sm font-medium transition-colors shadow-sm"
+                                >
+                                    <FiUser className="w-4 h-4 mr-2" />
+                                    직원등록
+                                </button>
+                            )}
                             <div className="hidden sm:flex items-center text-sm text-gray-500">
                                 <div className="flex items-center mr-4">
                                     <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
@@ -585,6 +615,14 @@ const HRPage: React.FC = () => {
                     employee={selectedEmployee}
                     onClose={handleCloseModals}
                     onViewInfo={handleViewInfoTab}
+                />
+            )}
+
+            {/* 직원 등록 모달 - 관리자만 접근 가능 */}
+            {showEmployeeRegistrationModal && isAdmin && (
+                <EmployeeRegistrationModal
+                    onClose={() => setShowEmployeeRegistrationModal(false)}
+                    onRegisterComplete={handleEmployeeRegistrationComplete}
                 />
             )}
         </div>

@@ -25,31 +25,23 @@ export const fetchDashboardData = () => api.get('/');
 export const approveEmployee = (username: string, status: 'approved' | 'denied') =>
     api.post('/authentication/approve/', { username, status });
 
+// 직원 등록 (회원가입)
+export const registerEmployee = (data: EmployeeRegistrationData) =>
+    api.post('/authentication/signup/', data);
+
 // 백엔드 API 응답에 맞는 Employee 타입
 export interface Employee {
     id: number;
     username: string;
     email: string;
     role: string;
-    status: 'APPROVED' | 'DENIED';
+    status: 'active' | 'terminated' | 'denied';
     contact: string;
-    status: string;
     first_name: string;
+    date_joined: string;
 }
 
-// 프론트엔드에서 사용할 매핑된 Employee 타입
-export interface MappedEmployee {
-    id: number;
-    name: string;
-    position: string;
-    department: string;
-    email: string;
-    phone: string;
-    status: 'APPROVED' | 'DENIED';
-    hire_date: string;
-    created_at: string;
-    updated_at: string;
-}
+// 프론트엔드에서 사용할 매핑된 Employee 타입 (HR 페이지에서 직접 정의)
 
 export interface EmployeeUpdateData {
     role?: string;
@@ -63,6 +55,17 @@ export interface EmployeePatchData {
     email?: string;
     contact?: string;
     is_active?: boolean;
+}
+
+// 직원 등록용 데이터 타입
+export interface EmployeeRegistrationData {
+    username: string;
+    password: string;
+    first_name: string;
+    email: string;
+    contact: string;
+    role: string;
+    hire_date: string;
 }
 
 export interface DashboardData {

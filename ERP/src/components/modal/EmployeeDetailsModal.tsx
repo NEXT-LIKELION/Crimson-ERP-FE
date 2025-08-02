@@ -1,7 +1,7 @@
 // src/components/modals/EmployeeDetailsModal.tsx
 import React, { useState } from 'react';
 import { FiX, FiEdit, FiCheck, FiXCircle, FiFileText } from 'react-icons/fi';
-import { MappedEmployee } from '../../api/hr';
+import { MappedEmployee } from '../../pages/HR/HRPage';
 
 interface EmployeeDetailsModalProps {
     employee: MappedEmployee;
