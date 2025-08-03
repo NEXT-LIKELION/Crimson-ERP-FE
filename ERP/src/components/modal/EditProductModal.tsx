@@ -11,6 +11,14 @@ interface EditProductModalProps {
     onClose: () => void;
     product: any;
     onSave: (product: any) => void;
+    onStockAdjustClick?: (variant: {
+        variant_code: string;
+        product_id: string;
+        name: string;
+        option: string;
+        current_stock: number;
+        min_stock: number;
+    }) => void;
 }
 
 interface SupplierForm {
@@ -34,16 +42,13 @@ interface EditForm {
     suppliers: SupplierForm[];
 }
 
-const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModalProps) => {
+const EditProductModal = ({ isOpen, onClose, product, onSave, onStockAdjustClick }: EditProductModalProps) => {
     const { data: suppliersData, isLoading: isLoadingSuppliers } = useSuppliers();
     const supplierOptions = suppliersData?.data?.map((s: any) => s.name) || [];
     const [form, setForm] = useState<EditForm>({
         ...product,
         suppliers: product.suppliers || [{ supplier_name: "", cost_price: 0, is_primary: false }],
     });
-    const [adjustQty, setAdjustQty] = useState(0);
-    const [adjustType, setAdjustType] = useState("입고 (증가)");
-    const [adjustReason, setAdjustReason] = useState("신규 입고");
     const [errors, setErrors] = useState<string[]>([]);
 
     const handleRemoveSupplier = (index: number) => {
@@ -86,9 +91,6 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
             return;
         }
 
-        const adjustedStock = adjustType.includes("입고")
-            ? form.stock + adjustQty
-            : Math.max(0, form.stock - adjustQty);
 
         const filteredSuppliers = form.suppliers.filter((s) => s.supplier_name && s.supplier_name !== "선택");
 
@@ -98,7 +100,6 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
             name: form.name,
             option: form.option || "기본",
             price: Number(form.price), // 숫자로 변환
-            stock: adjustedStock,
             min_stock: Number(form.min_stock) || 0, // 최소재고가 없는 경우 0으로 설정
             description: form.description || "",
             memo: form.memo || "",
@@ -131,9 +132,6 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
                           }))
                         : [{ supplier_name: "", cost_price: 0, is_primary: false }],
             });
-            setAdjustQty(0);
-            setAdjustType("입고 (증가)");
-            setAdjustReason("신규 입고");
             setErrors([]);
         }
     }, [isOpen, product]);
@@ -205,12 +203,26 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
                                     onChange={(val) => handleChange("price", val)}
                                 />
                                 <TextInput label="매입가" value={avgCost?.toLocaleString() || ""} disabled />
-                                <TextInput
-                                    label="현재 재고"
-                                    type="number"
-                                    value={form.stock?.toString() || "0"}
-                                    onChange={(val) => handleChange("stock", Number(val))}
-                                />
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-700">현재 재고</label>
+                                    <div
+                                        onClick={() => onStockAdjustClick?.({
+                                            variant_code: form.variant_code || form.variant_id?.toString() || '',
+                                            product_id: form.product_id,
+                                            name: form.name,
+                                            option: form.option || '기본',
+                                            current_stock: form.stock || 0,
+                                            min_stock: form.min_stock || 0
+                                        })}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-blue-50 hover:bg-blue-100 cursor-pointer transition-colors focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        title="클릭하여 재고 조정"
+                                    >
+                                        {form.stock?.toString() || "0"}
+                                    </div>
+                                    <p className="text-xs text-blue-600 mt-1">
+                                        💡 재고 칸을 클릭하여 재고를 조정할 수 있습니다.
+                                    </p>
+                                </div>
                                 <TextInput
                                     label="최소 재고"
                                     value={form.min_stock?.toString() || "0"}
