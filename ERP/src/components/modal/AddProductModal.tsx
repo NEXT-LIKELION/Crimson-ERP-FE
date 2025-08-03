@@ -4,7 +4,7 @@ import TextInput from "../input/TextInput";
 import SelectInput from "../input/SelectInput";
 import { FaBoxArchive, FaClipboardList } from "react-icons/fa6";
 import { BsCoin } from "react-icons/bs";
-import { createInventoryVariant, fetchProductOptions } from "../../api/inventory";
+import { createInventoryVariant, fetchProductOptions, createProductWithVariant, fetchAllInventoriesForMerge } from "../../api/inventory";
 import { useSuppliers } from "../../hooks/queries/useSuppliers";
 import { useQuery } from "@tanstack/react-query";
 
@@ -25,6 +25,21 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
         enabled: isOpen,
     });
     const productOptions = productsData?.data?.map((p: any) => ({ value: p.product_id, label: `${p.product_id} - ${p.name}` })) || [];
+    
+    // 기존 데이터에서 카테고리 목록 추출
+    const { data: allInventoriesData } = useQuery({
+        queryKey: ['allInventories'],
+        queryFn: fetchAllInventoriesForMerge,
+        enabled: isOpen,
+    });
+    
+    // 동적 카테고리 옵션 생성 + 새 카테고리 추가 옵션
+    const existingCategories = allInventoriesData 
+        ? Array.from(new Set(allInventoriesData.map((item: any) => item.category).filter(Boolean)))
+        : ["일반", "한정", "신상품"]; // 로딩 중일 때 기본 카테고리
+    const categoryOptions = [...existingCategories, "직접 입력"];
+    
+    const [isCustomCategory, setIsCustomCategory] = useState(false);
 
     const [productType, setProductType] = useState<'new' | 'existing'>('new'); // 신상품 vs 기존상품 옵션 추가
     const [selectedProductId, setSelectedProductId] = useState<string>("");
@@ -37,7 +52,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
         min_stock: 0,
         description: "",
         memo: "",
-        suppliers: [{ name: "", cost_price: 0, is_primary: true }],
+        suppliers: [{ supplier_name: "", cost_price: 0, is_primary: true }],
     });
     const [errors, setErrors] = useState<string[]>([]);
 
@@ -45,6 +60,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
         if (isOpen) {
             setProductType('new');
             setSelectedProductId("");
+            setIsCustomCategory(false);
             setForm({
                 name: "",
                 category: "",
@@ -54,7 +70,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                 min_stock: 0,
                 description: "",
                 memo: "",
-                suppliers: [{ name: "", cost_price: 0, is_primary: true }],
+                suppliers: [{ supplier_name: "", cost_price: 0, is_primary: true }],
             });
             setErrors([]);
         }
@@ -62,6 +78,16 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
 
     const handleChange = (field: string, value: string | number) => {
         setForm((prev: any) => ({ ...prev, [field]: value }));
+    };
+
+    const handleCategoryChange = (value: string) => {
+        if (value === "직접 입력") {
+            setIsCustomCategory(true);
+            setForm((prev: any) => ({ ...prev, category: "" }));
+        } else {
+            setIsCustomCategory(false);
+            setForm((prev: any) => ({ ...prev, category: value }));
+        }
     };
 
     const handleSupplierChange = (index: number, field: string, value: any) => {
@@ -73,7 +99,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     const handleAddSupplier = () => {
         setForm((prev: any) => ({
             ...prev,
-            suppliers: [...prev.suppliers, { name: "", cost_price: 0, is_primary: false }],
+            suppliers: [...prev.suppliers, { supplier_name: "", cost_price: 0, is_primary: false }],
         }));
     };
 
@@ -91,7 +117,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
         // 공통 유효성 검사
         if (!form.option?.trim()) errs.push("옵션을 입력해주세요.");
         if (!form.price || isNaN(Number(form.price))) errs.push("판매가는 숫자여야 합니다.");
-        if (!form.suppliers || !form.suppliers[0]?.name) errs.push("공급업체 정보는 필수입니다.");
+        if (!form.suppliers || !form.suppliers[0]?.supplier_name) errs.push("공급업체 정보는 필수입니다.");
         
         // 상품 유형별 유효성 검사
         if (productType === 'new') {
@@ -105,11 +131,14 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
             return;
         }
 
-        // product_id 자동 생성 함수
-        const generateProductId = (name: string) => {
-            const timestamp = Date.now().toString().slice(-6);
-            const namePrefix = name.replace(/[^\w가-힣]/g, '').slice(0, 3).toUpperCase();
-            return `P${namePrefix}${timestamp}`;
+        // product_id 자동 생성 함수 (P0000XXX 형식)
+        const generateProductId = () => {
+            const randomNum = Math.floor(Math.random() * 900) + 100; // 100-999 랜덤
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const randomChar1 = chars.charAt(Math.floor(Math.random() * chars.length));
+            const randomChar2 = chars.charAt(Math.floor(Math.random() * chars.length));
+            const randomChar3 = chars.charAt(Math.floor(Math.random() * chars.length));
+            return `P0000${randomChar1}${randomChar2}${randomChar3}`;
         };
 
         try {
@@ -118,7 +147,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
             if (productType === 'new') {
                 // 새로운 상품
                 variantPayload = {
-                    product_id: generateProductId(form.name),
+                    product_id: generateProductId(),
                     name: form.name,
                     category: form.category,
                     option: form.option || "기본",
@@ -127,8 +156,8 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                     min_stock: Number(form.min_stock) || 0,
                     description: form.description || "",
                     memo: form.memo || "",
-                    suppliers: form.suppliers.filter((s: any) => s.name).map((s: any) => ({
-                        name: s.name,
+                    suppliers: form.suppliers.filter((s: any) => s.supplier_name).map((s: any) => ({
+                        name: s.supplier_name,
                         cost_price: Number(s.cost_price) || 0,
                         is_primary: s.is_primary,
                     })),
@@ -146,15 +175,15 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                     min_stock: Number(form.min_stock) || 0,
                     description: form.description || "",
                     memo: form.memo || "",
-                    suppliers: form.suppliers.filter((s: any) => s.name).map((s: any) => ({
-                        name: s.name,
+                    suppliers: form.suppliers.filter((s: any) => s.supplier_name).map((s: any) => ({
+                        name: s.supplier_name,
                         cost_price: Number(s.cost_price) || 0,
                         is_primary: s.is_primary,
                     })),
                 };
             }
 
-            const variantRes = await createInventoryVariant(variantPayload);
+            const variantRes = await createProductWithVariant(variantPayload);
 
             const newProduct = {
                 ...form,
@@ -262,10 +291,18 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                                         />
                                         <SelectInput
                                             label="카테고리"
-                                            value={form.category || ""}
-                                            options={["일반", "한정", "신상품", "기타"]}
-                                            onChange={(val) => handleChange("category", val)}
+                                            value={isCustomCategory ? "직접 입력" : (form.category || "")}
+                                            options={categoryOptions}
+                                            onChange={handleCategoryChange}
                                         />
+                                        {isCustomCategory && (
+                                            <TextInput
+                                                label="새 카테고리명"
+                                                value={form.category || ""}
+                                                onChange={(val) => handleChange("category", val)}
+                                                placeholder="새 카테고리를 입력하세요"
+                                            />
+                                        )}
                                     </>
                                 )}
                                 <TextInput
@@ -349,9 +386,9 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                                     </div>
                                     <SelectInput
                                         label="공급업체명"
-                                        value={supplier.name || ""}
+                                        value={supplier.supplier_name || ""}
                                         options={supplierOptions}
-                                        onChange={(val) => handleSupplierChange(index, "name", val)}
+                                        onChange={(val) => handleSupplierChange(index, "supplier_name", val)}
                                     />
                                     <TextInput
                                         label="매입가"

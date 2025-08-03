@@ -56,12 +56,16 @@ const InputField: React.FC<InputFieldProps> = ({
         setSalesSliderValues([min, max]);
     }, [minSales, maxSales]);
 
-    // props의 minStock, maxStock이 변경될 때 슬라이더 값 동기화
+    // props의 minStock, maxStock이 변경될 때 슬라이더 값 동기화 (외부에서 리셋할 때만)
     useEffect(() => {
         const min = minStock ? parseInt(minStock) : 0;
         const max = maxStock ? parseInt(maxStock) : 1000;
-        setStockSliderValues([min, max]);
-    }, [minStock, maxStock]);
+        
+        // 현재 슬라이더 값과 다를 때만 업데이트 (무한 루프 방지)
+        if (stockSliderValues[0] !== min || stockSliderValues[1] !== max) {
+            setStockSliderValues([min, max]);
+        }
+    }, [minStock, maxStock, stockSliderValues]);
 
     // 엔터키 입력 시 검색 실행
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -130,6 +134,8 @@ const InputField: React.FC<InputFieldProps> = ({
                         step={10}
                         value={stockSliderValues}
                         onChange={handleStockSliderChange}
+                        allowCross={false}
+                        pushable={0}
                         trackStyle={[{ backgroundColor: "#10b981" }]} // 초록색
                         handleStyle={[
                             { borderColor: "#10b981", backgroundColor: "#10b981" },

@@ -58,7 +58,7 @@ export const createInventoryItem = async (itemPayload: any) => {
 
 // 상품과 variant를 함께 생성하는 함수 (백엔드 구조에 따라 사용)
 export const createProductWithVariant = async (itemPayload: any) => {
-    const res = await api.post(`/inventory/products/`, itemPayload);
+    const res = await api.post(`/inventory/variants/`, itemPayload);
     return res.data;
 };
 

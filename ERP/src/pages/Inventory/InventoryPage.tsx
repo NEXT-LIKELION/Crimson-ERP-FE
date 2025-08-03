@@ -452,7 +452,7 @@ const InventoryPage = () => {
                         const minSalesValue = parseInt(minSales) || 0;
                         const maxSalesValue = parseInt(maxSales) || 5000000;
                         const minStockValue = parseInt(minStock) || 0;
-                        const maxStockValue = parseInt(maxStock) || 1000;
+                        const maxStockValue = maxStock ? parseInt(maxStock) : 1000;
 
                         if (minSalesValue > maxSalesValue) {
                             alert("판매합계 최소값이 최대값보다 클 수 없습니다.");
@@ -464,7 +464,6 @@ const InventoryPage = () => {
                             return;
                         }
 
-                        console.log("검색 실행:", { productName, category, status, minStock, maxStock, minSales, maxSales });
                         
                         const newFilters: any = {
                             page: 1,
@@ -480,7 +479,9 @@ const InventoryPage = () => {
                             newFilters.page = 1;
                         }
                         
-                        if (minStockValue !== 0 || maxStockValue !== 1000) {
+                        // 재고 필터는 기본값(0~1000)이 아닌 경우 적용
+                        const isDefaultStock = minStockValue === 0 && maxStockValue === 1000;
+                        if (!isDefaultStock) {
                             newFilters.min_stock = minStockValue;
                             newFilters.max_stock = maxStockValue;
                         }
@@ -489,7 +490,6 @@ const InventoryPage = () => {
                             newFilters.max_sales = maxSalesValue;
                         }
 
-                        console.log("적용될 필터:", newFilters);
 
                         setCurrentPage(1);
                         setAppliedFilters(newFilters);
