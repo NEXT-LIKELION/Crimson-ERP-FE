@@ -24,9 +24,9 @@ interface InventoryTableProps {
         next: string | null;
         previous: string | null;
     };
-    currentPage?: number;
-    onPageChange?: (page: number) => void;
-    onExportToExcel?: () => void;
+    currentPage: number;
+    onPageChange: (page: number) => void;
+    onExportToExcel: () => void;
 }
 
 // 정렬 가능한 헤더 컴포넌트

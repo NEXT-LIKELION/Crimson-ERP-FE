@@ -11,7 +11,7 @@ interface EditProductModalProps {
     onClose: () => void;
     product: any;
     onSave: (product: any) => void;
-    onStockAdjustClick?: (variant: {
+    onStockAdjustClick: (variant: {
         variant_code: string;
         product_id: string;
         name: string;
@@ -206,7 +206,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave, onStockAdjustClick
                                 <div className="space-y-1">
                                     <label className="block text-sm font-medium text-gray-700">현재 재고</label>
                                     <div
-                                        onClick={() => onStockAdjustClick?.({
+                                        onClick={() => onStockAdjustClick({
                                             variant_code: form.variant_code || form.variant_id?.toString() || '',
                                             product_id: form.product_id,
                                             name: form.name,

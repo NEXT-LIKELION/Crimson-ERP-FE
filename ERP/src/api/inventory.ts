@@ -1,26 +1,24 @@
 import api from './axios';
 
-export const fetchInventories = (params?: {
-    page?: number;
-    page_size?: number;
+interface InventoryFilterParams {
     name?: string;
     category?: string;
     min_stock?: number;
     max_stock?: number;
     min_sales?: number;
     max_sales?: number;
-}) => {
+}
+
+interface FetchInventoriesParams extends InventoryFilterParams {
+    page?: number;
+    page_size?: number;
+}
+
+export const fetchInventories = (params?: FetchInventoriesParams) => {
     return api.get('/inventory/variants/', { params });
 };
 
-export const fetchInventoriesForExport = (params?: {
-    name?: string;
-    category?: string;
-    min_stock?: number;
-    max_stock?: number;
-    min_sales?: number;
-    max_sales?: number;
-}) => {
+export const fetchInventoriesForExport = (params?: InventoryFilterParams) => {
     return api.get('/inventory/variants/export', { params });
 };
 export const updateInventoryItem = (productId: number, data: any) => {
@@ -98,10 +96,8 @@ export const fetchAllInventoriesForMerge = async () => {
             hasMoreData = response.data.next !== null;
             page++;
             
-            console.log(`페이지 ${page - 1} 로드: ${pageData.length}개, 누적: ${allData.length}개`);
         }
         
-        console.log('병합용 전체 데이터 로드 완료:', allData.length);
         return allData;
     } catch (error) {
         console.error('전체 데이터 로드 실패:', error);
@@ -177,7 +173,6 @@ export const fetchFilteredInventoriesForExport = async (appliedFilters: any) => 
             return true;
         });
         
-        console.log('필터 적용 - 전체 데이터:', allData.length, '필터링 후:', filteredData.length);
         return filteredData;
     } catch (error) {
         console.error('필터링된 데이터 로드 실패:', error);

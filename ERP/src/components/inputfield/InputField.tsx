@@ -6,6 +6,12 @@ import { MdSearch, MdRefresh } from "react-icons/md";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 
+// 슬라이더 범위 상수
+const SLIDER_CONFIG = {
+    STOCK: { min: 0, max: 1000 },
+    SALES: { min: 0, max: 5000000 }
+} as const;
+
 interface InputFieldProps {
     productName: string;
     onProductNameChange: (v: string) => void;
@@ -46,20 +52,20 @@ const InputField: React.FC<InputFieldProps> = ({
     onReset,
 }) => {
     // 슬라이더의 내부 상태 관리
-    const [salesSliderValues, setSalesSliderValues] = useState<[number, number]>([0, 5000000]);
-    const [stockSliderValues, setStockSliderValues] = useState<[number, number]>([0, 1000]);
+    const [salesSliderValues, setSalesSliderValues] = useState<[number, number]>([SLIDER_CONFIG.SALES.min, SLIDER_CONFIG.SALES.max]);
+    const [stockSliderValues, setStockSliderValues] = useState<[number, number]>([SLIDER_CONFIG.STOCK.min, SLIDER_CONFIG.STOCK.max]);
 
     // props의 minSales, maxSales가 변경될 때 슬라이더 값 동기화
     useEffect(() => {
-        const min = minSales ? parseInt(minSales) : 0;
-        const max = maxSales ? parseInt(maxSales) : 5000000;
+        const min = minSales ? parseInt(minSales) : SLIDER_CONFIG.SALES.min;
+        const max = maxSales ? parseInt(maxSales) : SLIDER_CONFIG.SALES.max;
         setSalesSliderValues([min, max]);
     }, [minSales, maxSales]);
 
     // props의 minStock, maxStock이 변경될 때 슬라이더 값 동기화 (외부에서 리셋할 때만)
     useEffect(() => {
-        const min = minStock ? parseInt(minStock) : 0;
-        const max = maxStock ? parseInt(maxStock) : 1000;
+        const min = minStock ? parseInt(minStock) : SLIDER_CONFIG.STOCK.min;
+        const max = maxStock ? parseInt(maxStock) : SLIDER_CONFIG.STOCK.max;
         
         // 현재 슬라이더 값과 다를 때만 업데이트 (무한 루프 방지)
         if (stockSliderValues[0] !== min || stockSliderValues[1] !== max) {
@@ -129,8 +135,8 @@ const InputField: React.FC<InputFieldProps> = ({
                     <p className="text-sm font-semibold text-gray-700 mb-1">재고수량</p>
                     <Slider
                         range
-                        min={0}
-                        max={1000}
+                        min={SLIDER_CONFIG.STOCK.min}
+                        max={SLIDER_CONFIG.STOCK.max}
                         step={10}
                         value={stockSliderValues}
                         onChange={handleStockSliderChange}
@@ -151,8 +157,8 @@ const InputField: React.FC<InputFieldProps> = ({
                     <p className="text-sm font-semibold text-gray-700 mb-1">판매합계</p>
                     <Slider
                         range
-                        min={0}
-                        max={5000000}
+                        min={SLIDER_CONFIG.SALES.min}
+                        max={SLIDER_CONFIG.SALES.max}
                         step={10000}
                         value={salesSliderValues}
                         onChange={handleSalesSliderChange}
