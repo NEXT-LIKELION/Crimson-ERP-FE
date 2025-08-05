@@ -17,11 +17,14 @@ import StockHistoryModal from "../../components/modal/StockHistoryModal";
 import { Product } from "../../types/product";
 import { useQueryClient } from "@tanstack/react-query";
 import { uploadInventoryExcel } from "../../api/upload";
+import { usePermissions } from "../../hooks/usePermissions";
 import * as XLSX from "xlsx";
 import { useAdjustStock } from "../../hooks/queries/useStockAdjustment";
 
+
 const InventoryPage = () => {
     const queryClient = useQueryClient();
+    const permissions = usePermissions();
     const [searchParams, setSearchParams] = useSearchParams();
     const [isAddModalOpen, setAddModalOpen] = useState(false);
     const [isMergeModalOpen, setMergeModalOpen] = useState(false);
@@ -412,6 +415,7 @@ const InventoryPage = () => {
             <div className="flex justify-between items-center mb-4">
                 <h1 className="text-2xl font-bold">재고 관리</h1>
                 <div className="flex space-x-2">
+                    {permissions.canCreate('INVENTORY') && (
                     <GreenButton text="상품 추가" icon={<FaPlus size={16} />} onClick={() => setAddModalOpen(true)} />
                     <SecondaryButton text="상품 병합" icon={<FaCodeBranch size={16} />} onClick={() => setMergeModalOpen(true)} />
                     <SecondaryButton text="재고 변경 이력" icon={<FaHistory size={16} />} onClick={() => setStockHistoryModalOpen(true)} />
@@ -420,6 +424,7 @@ const InventoryPage = () => {
                         icon={<FaFileArrowUp size={16} />}
                         onClick={handlePOSButtonClick}
                     />
+                      )}
                     <input
                         ref={fileInputRef}
                         id="posUploadInput"

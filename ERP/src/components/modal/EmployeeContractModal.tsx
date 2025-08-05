@@ -1,7 +1,7 @@
 // src/components/modals/EmployeeContractModal.tsx
 import React from 'react';
 import { FiX, FiUser, FiCalendar, FiPrinter, FiArrowLeft } from 'react-icons/fi';
-import { MappedEmployee } from '../../api/hr';
+import { MappedEmployee } from '../../pages/HR/HRPage';
 
 interface EmployeeContractModalProps {
     employee: MappedEmployee;

@@ -5,11 +5,12 @@ import { clearAuthCookies } from "../utils/cookies";
 interface User {
     id?: number;
     username: string;
-    role: string; // 영문 role(MANAGER/STAFF)
+    role: string; // 영문 role(MANAGER/STAFF/INTERN)
     first_name?: string;
     email?: string;
     contact?: string;
     status?: string;
+    allowed_tabs?: string[];
 }
 
 interface AuthState {

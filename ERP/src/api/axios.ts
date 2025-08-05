@@ -27,12 +27,28 @@ api.interceptors.request.use((config) => {
         const token = getCookie("accessToken");
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+        } else {
+            console.warn('No access token found in cookies');
         }
     }
 
     // FormData인 경우 Content-Type을 제거 (axios가 자동으로 boundary 설정)
     if (config.data instanceof FormData) {
         delete config.headers["Content-Type"];
+    }
+
+    // 휴가 관련 요청 로깅
+    if (config.url?.includes('/hr/vacation')) {
+        console.log('휴가 API 요청:', {
+            method: config.method,
+            url: config.url,
+            fullUrl: `${config.baseURL}${config.url}`,
+            data: config.data,
+            headers: {
+                Authorization: config.headers.Authorization ? 'Bearer ***' : 'None',
+                'Content-Type': config.headers['Content-Type']
+            }
+        });
     }
 
     return config;

@@ -510,18 +510,24 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             const { order, stock_changes } = response.data;
             console.log('서버에서 내려온 order.status:', order.status);
             setOrderDetail(order); // 상세정보 갱신
+            
+            // 상태 변경 메시지 생성
+            const statusText = newStatus === 'APPROVED' ? '승인됨' : 
+                              newStatus === 'CANCELLED' ? '취소됨' : 
+                              newStatus === 'COMPLETED' ? '입고 완료' : newStatus;
+            
             if (stock_changes && stock_changes.length > 0) {
-                /*alert(
-                    '재고가 변경되었습니다.\n' +
-                        stock_changes
-                            .map(
-                                (s: any) =>
-                                    `${s.name}(${s.option}): ${s.stock_before} → ${s.stock_after} (+${s.quantity})`
-                            )
-                            .join('\n')
-                );*/
+                // 재고 변경이 있는 경우
+                const stockMessage = stock_changes
+                    .map((s: any) => 
+                        `${s.name}(${s.option}): ${s.stock_before} → ${s.stock_after} (+${s.quantity})`
+                    )
+                    .join('\n');
+                alert(`상태가 ${statusText}로 변경되었습니다.\n\n재고가 변경되었습니다:\n${stockMessage}`);
+            } else {
+                // 재고 변경이 없는 경우
+                alert(`상태가 ${statusText}로 변경되었습니다.`);
             }
-            alert('상태가 변경되었습니다.');
         } catch (e: any) {
             alert(e.response?.data?.detail || '상태 변경 실패');
         }
@@ -766,7 +772,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                                 className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 transition"
                                 onClick={() => handleStatusChange('COMPLETED')}
                             >
-                                발주 완료
+                                입고 완료
                             </button>
                         )}
                     </div>

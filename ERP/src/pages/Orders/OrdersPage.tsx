@@ -7,13 +7,14 @@ import TextInput from '../../components/input/TextInput';
 import SelectInput from '../../components/input/SelectInput';
 import OrderDetailModal from '../../components/modal/OrderDetailModal';
 import NewOrderModal from '../../components/modal/NewOrderModal';
-import { Order, OrderStatus } from '../../store/ordersStore';
+import { Order, OrderStatus, OrdersResponse } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
 import { useOrder } from '../../hooks/queries/useOrder';
 import axios from '../../api/axios';
-import { deleteOrder, createOrder, fetchOrderById } from '../../api/orders';
+import { deleteOrder, createOrder, fetchOrderById, exportOrders } from '../../api/orders';
 import { fetchInventories } from '../../api/inventory';
 import { fetchSuppliers } from '../../api/supplier';
+import { usePermissions } from '../../hooks/usePermissions';
         
 // 검색 필터 타입 정의
 interface SearchFilters {
@@ -64,11 +65,12 @@ function numberToKorean(num: number): string {
 
 const OrdersPage: React.FC = () => {
     // 모든 Hook 선언을 최상단에 위치시킴
+    const permissions = usePermissions();
     const [isOrderDetailModalOpen, setIsOrderDetailModalOpen] = useState<boolean>(false);
     const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState<boolean>(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+    const [ordersResponse, setOrdersResponse] = useState<OrdersResponse | null>(null);
     const [orders, setOrders] = useState<Order[]>([]);
-    const [deletedOrders, setDeletedOrders] = useState<any[]>([]);
     const [searchInputs, setSearchInputs] = useState<SearchFilters>({
         orderId: "",
         supplier: "",
@@ -83,6 +85,7 @@ const OrdersPage: React.FC = () => {
     });
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+    const [isExporting, setIsExporting] = useState<boolean>(false);
     const [debugInfo, setDebugInfo] = useState<{
         lastFetch: string;
         dataLength: number;
@@ -121,7 +124,15 @@ const OrdersPage: React.FC = () => {
 
     useEffect(() => {
         if (data?.data) {
-            setOrders(data.data);
+            console.log("Setting orders data:", data.data);
+            if (data.data.results) {
+                // 페이지네이션된 응답
+                setOrdersResponse(data.data);
+                setOrders(Array.isArray(data.data.results) ? data.data.results : []);
+            } else {
+                // 기존 배열 응답 (호환성)
+                setOrders(Array.isArray(data.data) ? data.data : []);
+            }
         }
     }, [data]);
 
@@ -164,6 +175,10 @@ const OrdersPage: React.FC = () => {
 
     const filteredOrders = useMemo(() => {
         console.log("Filtering orders:", { orders, searchFilters }); // 디버깅 로그
+        if (!Array.isArray(orders)) {
+            console.warn("orders is not an array:", orders);
+            return [];
+        }
         let result = [...orders];
 
         if (searchFilters.orderId) {
@@ -454,61 +469,104 @@ const OrdersPage: React.FC = () => {
 
     const handleDeleteOrder = async (order: Order) => {
         if (window.confirm("정말 삭제하시겠습니까?")) {
-            // 상세 데이터 fetch
-            const res = await fetchOrderById(order.id);
-            setDeletedOrders((prev) => [...prev, res.data]); // 여러 개 저장
             await deleteOrder(order.id);
             await refetch(); // 서버에서 최신 목록 다시 받아오기
         }
     };
 
-    const handleUndoDelete = async () => {
-        if (deletedOrders.length > 0) {
-            const lastDeletedOrder = deletedOrders[deletedOrders.length - 1];
-            let supplierId = lastDeletedOrder.supplier_id;
-            if (!supplierId) {
-                if (typeof lastDeletedOrder.supplier === "number") {
-                    supplierId = lastDeletedOrder.supplier;
-                } else if (typeof lastDeletedOrder.supplier === "string") {
-                    supplierId = supplierNameToId[lastDeletedOrder.supplier];
-                }
-            }
-            if (!supplierId || typeof supplierId !== "number") {
-                alert("공급업체 id가 없어 복구할 수 없습니다.");
-                return;
-            }
-            const items = (lastDeletedOrder.items || []).map((item: any) => {
-                let code = item.variant_code;
-                if (!code && item.variant) {
-                    code = variantIdToCode[item.variant];
-                }
-                if (!code) {
-                    alert(`variant_code를 찾을 수 없습니다. (variant id: ${item.variant})`);
-                    throw new Error(`variant_code를 찾을 수 없습니다. (variant id: ${item.variant})`);
-                }
-                return {
-                    variant_code: code,
-                    quantity: item.quantity,
-                    unit_price: item.unit_price,
-                    remark: item.remark,
-                    spec: item.spec,
+    const handleExportToExcel = async () => {
+        setIsExporting(true);
+        try {
+            // 현재 필터 조건으로 export API 호출
+            const params: any = {};
+            
+            if (searchFilters.orderId) params.product_name = searchFilters.orderId;
+            if (searchFilters.supplier) params.supplier = searchFilters.supplier;
+            if (searchFilters.status !== "모든 상태") {
+                const statusMap: Record<string, string> = {
+                    '승인 대기': 'PENDING',
+                    승인됨: 'APPROVED',
+                    취소됨: 'CANCELLED',
+                    완료: 'COMPLETED',
                 };
-            });
-            const payload = {
-                supplier: supplierId,
-                order_date: lastDeletedOrder.order_date,
-                expected_delivery_date: lastDeletedOrder.expected_delivery_date,
-                status: lastDeletedOrder.status,
-                instruction_note: lastDeletedOrder.instruction_note,
-                note: lastDeletedOrder.note,
-                vat_included: lastDeletedOrder.vat_included,
-                packaging_included: lastDeletedOrder.packaging_included,
-                manager_name: lastDeletedOrder.manager || user?.first_name || user?.username || "",
-                items,
-            };
-            await createOrder(payload);
-            await refetch();
-            setDeletedOrders((prev) => prev.slice(0, -1)); // 마지막 삭제 주문 pop
+                params.status = statusMap[searchFilters.status];
+            }
+            
+            // 날짜 범위 처리
+            if (searchFilters.dateRange !== "전체 기간") {
+                const today = new Date();
+                let startDate: Date;
+                
+                switch (searchFilters.dateRange) {
+                    case "최근 1개월":
+                        startDate = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+                        break;
+                    case "최근 3개월":
+                        startDate = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
+                        break;
+                    case "최근 6개월":
+                        startDate = new Date(today.getFullYear(), today.getMonth() - 6, today.getDate());
+                        break;
+                    default:
+                        startDate = new Date(0);
+                }
+                
+                params.start_date = startDate.toISOString().split('T')[0];
+                params.end_date = today.toISOString().split('T')[0];
+            }
+
+            const response = await exportOrders(params);
+            const orders = response.data;
+
+            // 엑셀 데이터 생성
+            const excelData = [
+                ['발주번호', '공급업체', '담당자', '상태', '발주일', '예상납품일', '총수량', '총금액', '상품명', '비고'],
+                ...orders.map((order: any) => [
+                    order.id,
+                    order.supplier,
+                    order.manager,
+                    order.status === 'PENDING' ? '승인 대기' : 
+                    order.status === 'APPROVED' ? '승인됨' : 
+                    order.status === 'CANCELLED' ? '취소됨' : 
+                    order.status === 'COMPLETED' ? '완료' : order.status,
+                    order.order_date,
+                    order.expected_delivery_date || '',
+                    order.total_quantity,
+                    order.total_price,
+                    order.product_names ? order.product_names.join(', ') : '',
+                    order.note || ''
+                ])
+            ];
+
+            // 동적 import로 xlsx 라이브러리 로드
+            const XLSX = await import('xlsx');
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
+            
+            // 컬럼 너비 설정
+            ws['!cols'] = [
+                { wch: 10 }, // 발주번호
+                { wch: 15 }, // 공급업체
+                { wch: 10 }, // 담당자
+                { wch: 10 }, // 상태
+                { wch: 12 }, // 발주일
+                { wch: 12 }, // 예상납품일
+                { wch: 8 },  // 총수량
+                { wch: 12 }, // 총금액
+                { wch: 30 }, // 상품명
+                { wch: 20 }  // 비고
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, '발주목록');
+            
+            const today = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `발주목록_${today}.xlsx`);
+            
+        } catch (error) {
+            console.error('Excel export error:', error);
+            alert('엑셀 파일 생성 중 오류가 발생했습니다.');
+        } finally {
+            setIsExporting(false);
         }
     };
 
@@ -551,24 +609,29 @@ const OrdersPage: React.FC = () => {
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-gray-900">발주 관리</h1>
                 <div className="flex gap-2 items-center">
-                    {deletedOrders.length > 0 && (
-                        <button
-                            onClick={handleUndoDelete}
-                            className={`inline-flex items-center justify-center h-10 px-4 py-2 rounded-md text-white text-sm font-medium leading-tight bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 transition-colors duration-200 ease-in-out`}
-                            style={{ fontFamily: "inherit" }}
-                        >
-                            <span className="mr-2 w-4 h-4 flex items-center justify-center">
-                                <FiRotateCcw size={18} />
-                            </span>
-                            삭제 되돌리기
-                        </button>
+                    <button
+                        onClick={handleExportToExcel}
+                        className={`inline-flex items-center justify-center h-10 px-4 py-2 rounded-md text-white text-sm font-medium leading-tight transition-colors duration-200 ease-in-out ${
+                            isExporting 
+                                ? 'bg-gray-400 cursor-not-allowed' 
+                                : 'bg-green-600 hover:bg-green-700 active:bg-green-800'
+                        }`}
+                        disabled={isExporting}
+                        aria-label="엑셀로 내보내기"
+                    >
+                        <span className="mr-2 w-4 h-4 flex items-center justify-center">
+                            <FiDownload size={18} />
+                        </span>
+                        {isExporting ? '내보내는 중...' : '엑셀로 내보내기'}
+                    </button>
+                    {permissions.canCreate('ORDER') && (
+                        <GreenButton
+                            text="새 발주 신청"
+                            icon={<FiPlus />}
+                            onClick={() => setIsNewOrderModalOpen(true)}
+                            aria-label="새 발주 신청"
+                        />
                     )}
-                    <GreenButton
-                        text="새 발주 신청"
-                        icon={<FiPlus />}
-                        onClick={() => setIsNewOrderModalOpen(true)}
-                        aria-label="새 발주 신청"
-                    />
                 </div>
             </div>
 
