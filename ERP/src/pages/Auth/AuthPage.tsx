@@ -15,7 +15,6 @@ const AuthPage = () => {
     const loginStore = useAuthStore((state) => state.login);
 
     const loginMutation = useLogin((userData) => {
-        console.log('로그인 성공 - 사용자 데이터:', userData);
         alert('로그인 성공!');
         
         // useLogin 훅에서 이미 사용자 정보를 저장했으므로 바로 이동
