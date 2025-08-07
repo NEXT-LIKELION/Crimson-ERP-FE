@@ -22,6 +22,8 @@ interface SearchFilters {
     supplier: string;
     status: string;
     dateRange: string;
+    startDate: string;
+    endDate: string;
 }
 
 // order_date를 YYYY-MM-DD로 변환
@@ -76,12 +78,16 @@ const OrdersPage: React.FC = () => {
         supplier: "",
         status: "모든 상태",
         dateRange: "전체 기간",
+        startDate: "",
+        endDate: "",
     });
     const [searchFilters, setSearchFilters] = useState<SearchFilters>({
         orderId: "",
         supplier: "",
         status: "모든 상태",
         dateRange: "전체 기간",
+        startDate: "",
+        endDate: "",
     });
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [itemsPerPage, setItemsPerPage] = useState<number>(10);
@@ -210,7 +216,29 @@ const OrdersPage: React.FC = () => {
         }
 
         // 날짜 필터링
-        if (searchFilters.dateRange !== "전체 기간") {
+        if (searchFilters.dateRange === "커스텀 기간") {
+            // 커스텀 날짜 범위 처리
+            if (searchFilters.startDate || searchFilters.endDate) {
+                result = result.filter((order) => {
+                    if (!order.order_date) return false;
+                    const orderDate = new Date(order.order_date);
+                    
+                    let isValid = true;
+                    if (searchFilters.startDate) {
+                        const startDate = new Date(searchFilters.startDate);
+                        isValid = isValid && orderDate >= startDate;
+                    }
+                    if (searchFilters.endDate) {
+                        const endDate = new Date(searchFilters.endDate);
+                        endDate.setHours(23, 59, 59, 999); // 해당 날짜 끝까지 포함
+                        isValid = isValid && orderDate <= endDate;
+                    }
+                    
+                    return isValid;
+                });
+            }
+        } else if (searchFilters.dateRange !== "전체 기간") {
+            // 기존 고정 기간 처리
             const today = new Date();
             let startDate: Date;
 
@@ -423,11 +451,14 @@ const OrdersPage: React.FC = () => {
     }, []);
 
     const handleFilterChange = useCallback((key: keyof SearchFilters, value: string) => {
-        setSearchFilters((prev) => ({
-            ...prev,
-            [key]: value,
-        }));
-        setCurrentPage(1); // 필터 변경 시 첫 페이지로 리셋
+        setSearchFilters((prev) => {
+            const newFilters = {
+                ...prev,
+                [key]: value,
+            };
+            setCurrentPage(1); // 필터 변경 시 첫 페이지로 리셋
+            return newFilters;
+        });
     }, []);
 
     const handleInputChange = (key: keyof SearchFilters, value: string) => {
@@ -437,6 +468,12 @@ const OrdersPage: React.FC = () => {
     const handleSearch = () => {
         setSearchFilters(searchInputs);
         setCurrentPage(1);
+    };
+
+    const handleKeyDown = (event: React.KeyboardEvent) => {
+        if (event.key === 'Enter') {
+            handleSearch();
+        }
     };
 
     const renderStatusBadge = useCallback((status: OrderStatus) => {
@@ -648,7 +685,10 @@ const OrdersPage: React.FC = () => {
                             value={searchInputs.orderId}
                             onChange={(value) => handleInputChange("orderId", value)}
                             className="w-full"
-                            extra={{ id: "order-id-search" }}
+                            extra={{ 
+                                id: "order-id-search",
+                                onKeyDown: handleKeyDown
+                            }}
                         />
                     </div>
                     <div className="w-64 flex flex-col gap-1">
@@ -661,7 +701,10 @@ const OrdersPage: React.FC = () => {
                             value={searchInputs.supplier}
                             onChange={(value) => handleInputChange("supplier", value)}
                             className="w-full"
-                            extra={{ id: "supplier-search" }}
+                            extra={{ 
+                                id: "supplier-search",
+                                onKeyDown: handleKeyDown
+                            }}
                         />
                     </div>
                     <div className="w-64 flex flex-col gap-1">
@@ -684,7 +727,7 @@ const OrdersPage: React.FC = () => {
                         </label>
                         <SelectInput
                             defaultText="전체 기간"
-                            options={["전체 기간", "최근 1개월", "최근 3개월", "최근 6개월"]}
+                            options={["전체 기간", "최근 1개월", "최근 3개월", "최근 6개월", "커스텀 기간"]}
                             onChange={(value) => handleFilterChange("dateRange", value)}
                             extra={{
                                 id: "date-range-filter",
@@ -693,6 +736,37 @@ const OrdersPage: React.FC = () => {
                         />
                     </div>
                 </div>
+                {/* 커스텀 기간 선택 시 날짜 입력 필드 표시 */}
+                {searchInputs.dateRange === "커스텀 기간" && (
+                    <div className="flex items-end gap-4">
+                        <div className="w-64 flex flex-col gap-1">
+                            <label htmlFor="start-date" className="text-sm font-medium text-gray-700">
+                                시작 날짜
+                            </label>
+                            <input
+                                type="date"
+                                id="start-date"
+                                value={searchInputs.startDate}
+                                onChange={(e) => handleInputChange("startDate", e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                        </div>
+                        <div className="w-64 flex flex-col gap-1">
+                            <label htmlFor="end-date" className="text-sm font-medium text-gray-700">
+                                종료 날짜
+                            </label>
+                            <input
+                                type="date"
+                                id="end-date"
+                                value={searchInputs.endDate}
+                                onChange={(e) => handleInputChange("endDate", e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                        </div>
+                    </div>
+                )}
                 <div className="flex justify-end">
                     <PrimaryButton text="검색하기" icon={<FiSearch />} onClick={handleSearch} aria-label="주문 검색" />
                 </div>

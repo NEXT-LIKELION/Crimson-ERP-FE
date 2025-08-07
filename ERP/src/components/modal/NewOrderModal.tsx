@@ -266,10 +266,6 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
 
     if (!isOpen) return null;
 
-    if (!employees.length) {
-        return <div>직원 목록을 불러오는 중...</div>;
-    }
-
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="w-[900px] max-h-[90vh] bg-white rounded-lg shadow-xl overflow-auto">
@@ -336,12 +332,18 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                             </div>
                             <div className="space-y-1">
                                 <label className="block text-sm font-medium text-gray-700">담당자</label>
-                                <SelectInput
-                                    defaultText="담당자 선택"
-                                    options={employees.map((e: any) => e.first_name || e.username)}
-                                    value={user?.first_name || user?.username || ''}
-                                    onChange={() => {}}
-                                />
+                                {employees.length > 0 ? (
+                                    <SelectInput
+                                        defaultText="담당자 선택"
+                                        options={employees.map((e: any) => e.first_name || e.username)}
+                                        value={user?.first_name || user?.username || ''}
+                                        onChange={() => {}}
+                                    />
+                                ) : (
+                                    <div className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-500">
+                                        직원 목록 로딩 중...
+                                    </div>
+                                )}
                             </div>
                         </div>
                         {/* 오른쪽: 발주 정보 */}
