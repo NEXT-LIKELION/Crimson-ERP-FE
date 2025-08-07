@@ -145,7 +145,8 @@ const OrdersPage: React.FC = () => {
     useEffect(() => {
         fetchInventories().then((res) => {
             const mapping: Record<number, string> = {};
-            res.data.forEach((product: any) => {
+            const products = Array.isArray(res.data) ? res.data : [];
+            products.forEach((product: any) => {
                 (product.variants || []).forEach((variant: any) => {
                     if (variant.id && variant.variant_code) {
                         mapping[variant.id] = variant.variant_code;
@@ -153,16 +154,23 @@ const OrdersPage: React.FC = () => {
                 });
             });
             setVariantIdToCode(mapping);
+        }).catch((error) => {
+            console.error('Failed to fetch inventories:', error);
+            setVariantIdToCode({});
         });
     }, []);
 
     useEffect(() => {
         fetchSuppliers().then((res) => {
             const mapping: Record<string, number> = {};
-            res.data.forEach((supplier: any) => {
+            const suppliers = Array.isArray(res.data) ? res.data : [];
+            suppliers.forEach((supplier: any) => {
                 mapping[supplier.name] = supplier.id;
             });
             setSupplierNameToId(mapping);
+        }).catch((error) => {
+            console.error('Failed to fetch suppliers:', error);
+            setSupplierNameToId({});
         });
     }, []);
 
@@ -713,8 +721,9 @@ const OrdersPage: React.FC = () => {
                         </label>
                         <SelectInput
                             defaultText="모든 상태"
+                            value={searchInputs.status}
                             options={['모든 상태', '승인 대기', '승인됨', '취소됨', '완료']}
-                            onChange={(value) => handleFilterChange('status', value)}
+                            onChange={(value) => handleInputChange('status', value)}
                             extra={{
                                 id: "status-filter",
                                 "aria-label": "주문 상태 필터",
@@ -727,8 +736,9 @@ const OrdersPage: React.FC = () => {
                         </label>
                         <SelectInput
                             defaultText="전체 기간"
+                            value={searchInputs.dateRange}
                             options={["전체 기간", "최근 1개월", "최근 3개월", "최근 6개월", "커스텀 기간"]}
-                            onChange={(value) => handleFilterChange("dateRange", value)}
+                            onChange={(value) => handleInputChange("dateRange", value)}
                             extra={{
                                 id: "date-range-filter",
                                 "aria-label": "날짜 범위 필터",
