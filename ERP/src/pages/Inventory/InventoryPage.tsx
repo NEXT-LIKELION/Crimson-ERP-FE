@@ -416,15 +416,17 @@ const InventoryPage = () => {
                 <h1 className="text-2xl font-bold">재고 관리</h1>
                 <div className="flex space-x-2">
                     {permissions.canCreate('INVENTORY') && (
-                    <GreenButton text="상품 추가" icon={<FaPlus size={16} />} onClick={() => setAddModalOpen(true)} />
-                    <SecondaryButton text="상품 병합" icon={<FaCodeBranch size={16} />} onClick={() => setMergeModalOpen(true)} />
-                    <SecondaryButton text="재고 변경 이력" icon={<FaHistory size={16} />} onClick={() => setStockHistoryModalOpen(true)} />
-                    <PrimaryButton
-                        text="POS 데이터 업로드"
-                        icon={<FaFileArrowUp size={16} />}
-                        onClick={handlePOSButtonClick}
-                    />
-                      )}
+                        <>
+                            <GreenButton text="상품 추가" icon={<FaPlus size={16} />} onClick={() => setAddModalOpen(true)} />
+                            <SecondaryButton text="상품 병합" icon={<FaCodeBranch size={16} />} onClick={() => setMergeModalOpen(true)} />
+                            <SecondaryButton text="재고 변경 이력" icon={<FaHistory size={16} />} onClick={() => setStockHistoryModalOpen(true)} />
+                            <PrimaryButton
+                                text="POS 데이터 업로드"
+                                icon={<FaFileArrowUp size={16} />}
+                                onClick={handlePOSButtonClick}
+                            />
+                        </>
+                    )}
                     <input
                         ref={fileInputRef}
                         id="posUploadInput"
