@@ -1,17 +1,17 @@
 // src/components/modal/NewOrderModal.tsx
-import React, { useState, useEffect } from 'react';
-import { FiX, FiPlus, FiTrash2, FiShoppingBag, FiCalendar, FiCheckCircle, FiAlertTriangle } from 'react-icons/fi';
-import DateInput from '../input/DateInput';
-import SelectInput from '../input/SelectInput';
-import RadioButton from '../common/RadioButton';
-import AddProductModal from './AddProductModal';
-import AddSupplierModal from './AddSupplierModal';
-import { useOrdersStore, Order } from '../../store/ordersStore';
-import { useAuthStore } from '../../store/authStore';
-import { fetchSuppliers } from '../../api/supplier';
-import { fetchInventories, fetchVariantsByProductId } from '../../api/inventory';
-import { createOrder } from '../../api/orders';
-import { useEmployees } from '../../hooks/queries/useEmployees';
+import React, { useState, useEffect } from "react";
+import { FiX, FiPlus, FiTrash2, FiShoppingBag, FiCalendar, FiCheckCircle, FiAlertTriangle } from "react-icons/fi";
+import DateInput from "../input/DateInput";
+import SelectInput from "../input/SelectInput";
+import RadioButton from "../common/RadioButton";
+import AddProductModal from "./AddProductModal";
+import AddSupplierModal from "./AddSupplierModal";
+import { Order } from "../../store/ordersStore";
+import { useAuthStore } from "../../store/authStore";
+import { fetchSuppliers } from "../../api/supplier";
+import { fetchInventories, fetchVariantsByProductId } from "../../api/inventory";
+import { createOrder } from "../../api/orders";
+import { useEmployees } from "../../hooks/queries/useEmployees";
 
 interface NewOrderModalProps {
     isOpen: boolean;
@@ -33,7 +33,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     const [suppliers, setSuppliers] = useState<any[]>([]);
     const [products, setProducts] = useState<any[]>([]);
     const [supplier, setSupplier] = useState<number>(0);
-    const [supplierName, setSupplierName] = useState<string>('');
+    const [supplierName, setSupplierName] = useState<string>("");
     const [orderDate, setOrderDate] = useState<Date | null>(null); // 초기값 null
     const [deliveryDate, setDeliveryDate] = useState<Date | null>(null); // 초기값 null
     const [items, setItems] = useState<OrderItemPayload[]>([
@@ -42,15 +42,15 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             variant: null,
             quantity: 1,
             unit_price: 0,
-            unit: 'EA',
-            remark: '',
-            spec: '',
+            unit: "EA",
+            remark: "",
+            spec: "",
         },
     ]);
     const [workInstructions, setWorkInstructions] = useState<string>(
-        '로고 디자인은 첨부파일대로 적용해 주시기 바랍니다. 샘플 확인 후 본 생산 진행 예정입니다.'
+        "로고 디자인은 첨부파일대로 적용해 주시기 바랍니다. 샘플 확인 후 본 생산 진행 예정입니다."
     );
-    const [note, setNote] = useState<string>(''); // 발주 이유 (내부 공유용)
+    const [note, setNote] = useState<string>(""); // 발주 이유 (내부 공유용)
     const [includesTax, setIncludesTax] = useState<boolean>(true);
     const [hasPackaging, setHasPackaging] = useState<boolean>(true);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -62,8 +62,6 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     const employees = employeesData?.data || [];
     const user = useAuthStore((state) => state.user);
 
-    const { addOrder } = useOrdersStore();
-
     useEffect(() => {
         if (isOpen) {
             fetchSuppliers()
@@ -72,30 +70,30 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                     setSuppliers(supplierData);
                 })
                 .catch((error) => {
-                    console.error('Failed to fetch suppliers:', error);
+                    console.error("Failed to fetch suppliers:", error);
                     setSuppliers([]);
-                    setFormErrors(prev => [...prev, '공급업체 목록을 불러오는데 실패했습니다.']);
+                    setFormErrors((prev) => [...prev, "공급업체 목록을 불러오는데 실패했습니다."]);
                 });
-                
+
             fetchInventories()
                 .then((res) => {
                     const productData = Array.isArray(res.data) ? res.data : [];
                     setProducts(productData);
                 })
                 .catch((error) => {
-                    console.error('Failed to fetch inventories:', error);
+                    console.error("Failed to fetch inventories:", error);
                     setProducts([]);
-                    setFormErrors(prev => [...prev, '상품 목록을 불러오는데 실패했습니다.']);
+                    setFormErrors((prev) => [...prev, "상품 목록을 불러오는데 실패했습니다."]);
                 });
-                
+
             resetForm();
-            setSupplierName('');
+            setSupplierName("");
         }
     }, [isOpen]);
 
     const resetForm = () => {
         setSupplier(0);
-        setSupplierName('');
+        setSupplierName("");
         setOrderDate(null); // 초기값 null
         setDeliveryDate(null); // 초기값 null
         setItems([
@@ -104,13 +102,13 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 variant: null,
                 quantity: 1,
                 unit_price: 0,
-                unit: 'EA',
-                remark: '',
-                spec: '',
+                unit: "EA",
+                remark: "",
+                spec: "",
             },
         ]);
-        setWorkInstructions('로고 디자인은 첨부파일대로 적용해 주시기 바랍니다. 샘플 확인 후 본 생산 진행 예정입니다.');
-        setNote('');
+        setWorkInstructions("로고 디자인은 첨부파일대로 적용해 주시기 바랍니다. 샘플 확인 후 본 생산 진행 예정입니다.");
+        setNote("");
         setIncludesTax(true);
         setHasPackaging(true);
         setFormErrors([]);
@@ -124,9 +122,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 variant: null,
                 quantity: 1,
                 unit_price: 0,
-                unit: 'EA',
-                remark: '',
-                spec: '',
+                unit: "EA",
+                remark: "",
+                spec: "",
             },
         ]);
     };
@@ -135,7 +133,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         if (items.length > 1) {
             setItems(items.filter((_, i) => i !== idx));
         } else {
-            alert('최소 하나의 발주 항목이 필요합니다.');
+            alert("최소 하나의 발주 항목이 필요합니다.");
         }
     };
 
@@ -151,13 +149,13 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     const validateForm = (): boolean => {
         const errors: string[] = [];
         if (!supplier) {
-            errors.push('공급업체를 선택해주세요.');
+            errors.push("공급업체를 선택해주세요.");
         }
         if (!orderDate) {
-            errors.push('발주일자를 선택해주세요.');
+            errors.push("발주일자를 선택해주세요.");
         }
         if (!deliveryDate) {
-            errors.push('예상 납품일을 선택해주세요.');
+            errors.push("예상 납품일을 선택해주세요.");
         }
         items.forEach((item, index) => {
             if (!item.product_id) {
@@ -180,7 +178,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             }
         });
         if (!workInstructions.trim()) {
-            errors.push('작업지시사항을 입력해주세요.');
+            errors.push("작업지시사항을 입력해주세요.");
         }
         setFormErrors(errors);
         return errors.length === 0;
@@ -188,25 +186,25 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
 
     const handleSubmit = async () => {
         if (!supplier) {
-            setFormErrors(['공급업체를 선택해주세요.']);
+            setFormErrors(["공급업체를 선택해주세요."]);
             return;
         }
         if (!validateForm()) {
-            alert('필수 입력값을 모두 입력해주세요.');
+            alert("필수 입력값을 모두 입력해주세요.");
             return;
         }
         setIsSubmitting(true);
         try {
             const payload = {
                 supplier,
-                order_date: orderDate ? orderDate.toISOString().slice(0, 10) : '',
-                expected_delivery_date: deliveryDate ? deliveryDate.toISOString().slice(0, 10) : '',
-                status: 'PENDING',
+                order_date: orderDate ? orderDate.toISOString().slice(0, 10) : "",
+                expected_delivery_date: deliveryDate ? deliveryDate.toISOString().slice(0, 10) : "",
+                status: "PENDING",
                 instruction_note: workInstructions,
                 note: note,
                 vat_included: includesTax,
                 packaging_included: hasPackaging,
-                manager_name: user?.first_name || user?.username || '',
+                manager_name: user?.first_name || user?.username || "",
                 items: items.map((item) => {
                     const product_id = item.product_id;
                     const variantObj =
@@ -222,11 +220,11 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 }),
             };
             const res = await createOrder(payload);
-            alert('발주가 성공적으로 신청되었습니다.');
+            alert("발주가 성공적으로 신청되었습니다.");
             if (onSuccess) onSuccess(res.data);
             onClose();
         } catch (error) {
-            setFormErrors(['발주 신청 중 오류가 발생했습니다. 다시 시도해주세요.']);
+            setFormErrors(["발주 신청 중 오류가 발생했습니다. 다시 시도해주세요."]);
         } finally {
             setIsSubmitting(false);
         }
@@ -246,7 +244,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     // 2. 행별 상품 선택 핸들러
     const handleProductChange = async (idx: number, name: string) => {
         if (!Array.isArray(products)) return;
-        
+
         const found = products.find((p) => p.name === name);
         const product_id = found ? found.product_id : null;
         // 품목 캐시 없으면 fetch
@@ -255,28 +253,22 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 const res = await fetchVariantsByProductId(product_id);
                 setVariantsByProduct((prev) => ({ ...prev, [product_id]: res.data.variants || [] }));
             } catch (e) {
-                console.error('Failed to fetch variants:', e);
+                console.error("Failed to fetch variants:", e);
                 setVariantsByProduct((prev) => ({ ...prev, [product_id]: [] }));
             }
         }
         // 상품 바뀌면 품목, 규격 초기화
-        setItems(items.map((item, i) => (i === idx ? { ...item, product_id, variant: null, spec: '' } : item)));
+        setItems(items.map((item, i) => (i === idx ? { ...item, product_id, variant: null, spec: "" } : item)));
     };
 
-    // 필요하다면 아래와 같이 items의 product_id를 받아서 찾는 함수로 변경
-    const getVariantNameById = (product_id: string | null, id: number | null) => {
-        if (!product_id || !id) return '';
-        const found = variantsByProduct[product_id]?.find((v: any) => v.id === id);
-        return found ? found.option : '';
-    };
     // 5. 행별 품목 선택 핸들러
     const handleVariantChange = (idx: number, option: string) => {
-        console.log('품목(variant) 선택:', option);
-        handleItemChange(idx, 'variant', option);
+        console.log("품목(variant) 선택:", option);
+        handleItemChange(idx, "variant", option);
     };
 
     // 신상품 추가 성공 핸들러
-    const handleProductAdded = async (newProduct: any) => {
+    const handleProductAdded = async () => {
         try {
             // 상품 목록 다시 불러오기
             const res = await fetchInventories();
@@ -284,12 +276,12 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             setProducts(productData);
             setIsAddProductModalOpen(false);
         } catch (error) {
-            console.error('Failed to refresh products:', error);
+            console.error("Failed to refresh products:", error);
         }
     };
 
     // 새 공급자 추가 성공 핸들러
-    const handleSupplierAdded = async (newSupplier: any) => {
+    const handleSupplierAdded = async () => {
         try {
             // 공급자 목록 다시 불러오기
             const res = await fetchSuppliers();
@@ -297,7 +289,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             setSuppliers(supplierData);
             setIsAddSupplierModalOpen(false);
         } catch (error) {
-            console.error('Failed to refresh suppliers:', error);
+            console.error("Failed to refresh suppliers:", error);
         }
     };
 
@@ -386,8 +378,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                         className="px-3 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 flex items-center"
                                         disabled={isSubmitting}
                                     >
-                                        <FiPlus className="w-4 h-4 mr-1" />
-                                        새 공급자
+                                        <FiPlus className="w-4 h-4 mr-1" />새 공급자
                                     </button>
                                 </div>
                             </div>
@@ -405,7 +396,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                     <SelectInput
                                         defaultText="담당자 선택"
                                         options={employees.map((e: any) => e.first_name || e.username)}
-                                        value={user?.first_name || user?.username || ''}
+                                        value={user?.first_name || user?.username || ""}
                                         onChange={() => {}}
                                         disabled={isSubmitting}
                                     />
@@ -457,7 +448,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                         </div>
                         <div className="border border-gray-200 rounded-md overflow-hidden">
                             <div className="min-w-[952px]">
-                                {' '}
+                                {" "}
                                 {/* 기존보다 100px 넓힘 */}
                                 {/* Table Header */}
                                 <div className="bg-gray-50 h-8">
@@ -510,13 +501,17 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                                 <div className="flex flex-col gap-1 w-full">
                                                     <SelectInput
                                                         defaultText="상품 선택"
-                                                        options={Array.isArray(products) ? products.map((p: any) => p.name) : []}
+                                                        options={
+                                                            Array.isArray(products)
+                                                                ? products.map((p: any) => p.name)
+                                                                : []
+                                                        }
                                                         value={(() => {
-                                                            if (!Array.isArray(products)) return '';
+                                                            if (!Array.isArray(products)) return "";
                                                             const found = products.find(
                                                                 (p: any) => p.product_id === item.product_id
                                                             );
-                                                            return found ? found.name : '';
+                                                            return found ? found.name : "";
                                                         })()}
                                                         onChange={(name: string) => {
                                                             handleProductChange(idx, name);
@@ -547,7 +542,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                                     onChange={(option: string) => {
                                                         handleVariantChange(idx, option);
                                                     }}
-                                                    value={item.variant ?? ''}
+                                                    value={item.variant ?? ""}
                                                     disabled={isSubmitting || !item.product_id}
                                                 />
                                             </div>
@@ -555,7 +550,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                                 <input
                                                     type="text"
                                                     value={item.spec}
-                                                    onChange={(e) => handleItemChange(idx, 'spec', e.target.value)}
+                                                    onChange={(e) => handleItemChange(idx, "spec", e.target.value)}
                                                     placeholder="규격"
                                                     className="w-full px-2 pt-1.5 pb-1 border border-gray-300 rounded-md text-sm placeholder-gray-400"
                                                     disabled={isSubmitting}
@@ -565,7 +560,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                                 <input
                                                     type="text"
                                                     value={item.unit}
-                                                    onChange={(e) => handleItemChange(idx, 'unit', e.target.value)}
+                                                    onChange={(e) => handleItemChange(idx, "unit", e.target.value)}
                                                     className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm text-center"
                                                     disabled={isSubmitting}
                                                 />
@@ -575,7 +570,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                                     type="number"
                                                     value={item.quantity}
                                                     onChange={(e) =>
-                                                        handleItemChange(idx, 'quantity', parseInt(e.target.value) || 0)
+                                                        handleItemChange(idx, "quantity", parseInt(e.target.value) || 0)
                                                     }
                                                     className="w-20 px-2 py-1 border border-gray-300 rounded-md text-sm"
                                                     min="1"
@@ -589,7 +584,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                                     onChange={(e) =>
                                                         handleItemChange(
                                                             idx,
-                                                            'unit_price',
+                                                            "unit_price",
                                                             parseInt(e.target.value) || 0
                                                         )
                                                     }
@@ -613,7 +608,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                                 <input
                                                     type="text"
                                                     value={item.remark}
-                                                    onChange={(e) => handleItemChange(idx, 'remark', e.target.value)}
+                                                    onChange={(e) => handleItemChange(idx, "remark", e.target.value)}
                                                     placeholder="비고"
                                                     className="w-full px-2 pt-1.5 pb-1 border border-gray-300 rounded-md text-sm placeholder-gray-400"
                                                     disabled={isSubmitting}
@@ -702,9 +697,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                 placeholder="작업지시사항을 입력해주세요."
                                 disabled={isSubmitting}
                             />
-                            <h3 className="text-base font-medium text-gray-900">
-                                발주 이유 (내부 공유용)
-                            </h3>
+                            <h3 className="text-base font-medium text-gray-900">발주 이유 (내부 공유용)</h3>
                             <textarea
                                 value={note}
                                 onChange={(e) => setNote(e.target.value)}
@@ -732,11 +725,11 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                             <button
                                 onClick={handleSubmit}
                                 className={`px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm text-sm font-medium ${
-                                    isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+                                    isSubmitting ? "opacity-70 cursor-not-allowed" : ""
                                 }`}
                                 disabled={isSubmitting}
                             >
-                                {isSubmitting ? '처리 중...' : '발주 신청'}
+                                {isSubmitting ? "처리 중..." : "발주 신청"}
                             </button>
                         </div>
                     </div>

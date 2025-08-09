@@ -1,18 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-    fetchEmployees,
-    fetchEmployee,
-    patchEmployee,
-    terminateEmployee,
-    type Employee,
-    type EmployeeUpdateData,
-    type EmployeePatchData,
-} from '../../api/hr';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchEmployees, fetchEmployee, patchEmployee, terminateEmployee, type EmployeePatchData } from "../../api/hr";
 
 // 직원 목록 조회 훅
 export const useEmployees = () =>
     useQuery({
-        queryKey: ['employees'],
+        queryKey: ["employees"],
         queryFn: fetchEmployees,
         staleTime: 1000 * 60 * 5, // 5분
         gcTime: 1000 * 60 * 10, // 10분
@@ -21,7 +13,7 @@ export const useEmployees = () =>
 // 직원 상세 조회 훅
 export const useEmployee = (employeeId: number) =>
     useQuery({
-        queryKey: ['employee', employeeId],
+        queryKey: ["employee", employeeId],
         queryFn: () => fetchEmployee(employeeId),
         staleTime: 1000 * 30, // 30초
         gcTime: 1000 * 60 * 5, // 5분
@@ -35,8 +27,8 @@ export const useUpdateEmployee = () => {
         mutationFn: ({ employeeId, data }: { employeeId: number; data: EmployeePatchData }) =>
             patchEmployee(employeeId, data),
         onSuccess: (_, { employeeId }) => {
-            queryClient.invalidateQueries({ queryKey: ['employees'] });
-            queryClient.invalidateQueries({ queryKey: ['employee', employeeId] });
+            queryClient.invalidateQueries({ queryKey: ["employees"] });
+            queryClient.invalidateQueries({ queryKey: ["employee", employeeId] });
         },
     });
 };
@@ -49,8 +41,8 @@ export const usePatchEmployee = () => {
         mutationFn: ({ employeeId, data }: { employeeId: number; data: EmployeePatchData }) =>
             patchEmployee(employeeId, data),
         onSuccess: (_, { employeeId }) => {
-            queryClient.invalidateQueries({ queryKey: ['employees'] });
-            queryClient.invalidateQueries({ queryKey: ['employee', employeeId] });
+            queryClient.invalidateQueries({ queryKey: ["employees"] });
+            queryClient.invalidateQueries({ queryKey: ["employee", employeeId] });
         },
     });
 };
@@ -62,8 +54,8 @@ export const useTerminateEmployee = () => {
     return useMutation({
         mutationFn: terminateEmployee,
         onSuccess: (_, employeeId) => {
-            queryClient.invalidateQueries({ queryKey: ['employees'] });
-            queryClient.invalidateQueries({ queryKey: ['employee', employeeId] });
+            queryClient.invalidateQueries({ queryKey: ["employees"] });
+            queryClient.invalidateQueries({ queryKey: ["employee", employeeId] });
         },
     });
 };

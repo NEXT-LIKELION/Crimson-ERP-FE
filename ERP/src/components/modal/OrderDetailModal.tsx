@@ -1,14 +1,11 @@
 // src/components/modal/OrderDetailModal.tsx
-import React, { useEffect, useState, useRef } from 'react';
-import { FiX, FiPrinter, FiDownload, FiCheck } from 'react-icons/fi';
-import { useOrdersStore } from '../../store/ordersStore';
-import axios from '../../api/axios';
-import { fetchSuppliers } from '../../api/supplier';
-import XlsxPopulate from 'xlsx-populate/browser/xlsx-populate';
-import { saveAs } from 'file-saver';
-
-// xlsx-populate 타입 선언 (임시)
-declare module 'xlsx-populate/browser/xlsx-populate';
+import React, { useEffect, useState, useRef } from "react";
+import { FiX, FiPrinter, FiDownload, FiCheck } from "react-icons/fi";
+import { useOrdersStore } from "../../store/ordersStore";
+import axios from "../../api/axios";
+import { fetchSuppliers } from "../../api/supplier";
+import XlsxPopulate from "xlsx-populate/browser/xlsx-populate";
+import { saveAs } from "file-saver";
 
 interface OrderDetailModalProps {
     orderId: number;
@@ -45,14 +42,14 @@ interface OrderDetail {
 
 // 숫자 → 한글 금액 변환 함수 (간단 버전, 억/만/천/백/십/일 단위)
 function numberToKorean(num: number): string {
-    if (num === 0) return '영원정';
-    const hanA = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
-    const danA = ['', '십', '백', '천'];
-    const unitA = ['', '만', '억', '조', '경'];
-    let result = '';
+    if (num === 0) return "영원정";
+    const hanA = ["", "일", "이", "삼", "사", "오", "육", "칠", "팔", "구"];
+    const danA = ["", "십", "백", "천"];
+    const unitA = ["", "만", "억", "조", "경"];
+    let result = "";
     let unit = 0;
     while (num > 0) {
-        let str = '';
+        let str = "";
         let part = num % 10000;
         num = Math.floor(num / 10000);
         if (part > 0) {
@@ -67,7 +64,7 @@ function numberToKorean(num: number): string {
         }
         unit++;
     }
-    return result + '원정';
+    return result + "원정";
 }
 
 const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
@@ -111,7 +108,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
             // 필수 필드 검증 (id, supplier, items 등)
             if (!orderData.id || !orderData.supplier || !orderData.items) {
-                throw new Error('필수 주문 정보가 누락되었습니다.');
+                throw new Error("필수 주문 정보가 누락되었습니다.");
             }
 
             // OrderDetail 형식으로 변환
@@ -132,8 +129,8 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
             setOrderDetail(orderDetail);
         } catch (error) {
-            console.error('주문 상세정보 조회 실패:', error);
-            alert('주문 상세정보를 불러오는데 실패했습니다.');
+            console.error("주문 상세정보 조회 실패:", error);
+            alert("주문 상세정보를 불러오는데 실패했습니다.");
         } finally {
             setIsLoading(false);
         }
@@ -146,10 +143,10 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             await axios.put(`/api/orders/${orderDetail.id}/approve`);
 
             // 로컬 상태 업데이트
-            updateOrder(orderDetail.id, { status: 'APPROVED' });
+            updateOrder(orderDetail.id, { status: "APPROVED" });
 
             // 성공 메시지
-            alert('발주가 성공적으로 승인되었습니다.');
+            alert("발주가 성공적으로 승인되었습니다.");
 
             // 성공 콜백 호출
             if (onApproveSuccess) {
@@ -158,16 +155,16 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
             onClose();
         } catch (error) {
-            console.error('발주 승인 실패:', error);
-            alert('발주 승인 중 오류가 발생했습니다.');
+            console.error("발주 승인 실패:", error);
+            alert("발주 승인 중 오류가 발생했습니다.");
         }
     };
 
     const handlePrintOrder = () => {
         // 인쇄 기능 구현
-        const printWindow = window.open('', '_blank');
+        const printWindow = window.open("", "_blank");
         if (!printWindow) {
-            alert('팝업이 차단되었습니다. 팝업 차단을 해제해주세요.');
+            alert("팝업이 차단되었습니다. 팝업 차단을 해제해주세요.");
             return;
         }
 
@@ -355,11 +352,11 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                                     <td style="text-align: center;">${item.quantity}</td>
                                     <td class="amount">${item.unit_price.toLocaleString()}</td>
                                     <td class="amount">${(item.quantity * item.unit_price).toLocaleString()}</td>
-                                    <td>${item.remark || ''}</td>
+                                    <td>${item.remark || ""}</td>
                                 </tr>
                             `
                                 )
-                                .join('')}
+                                .join("")}
                             <tr class="total-row">
                                 <td colspan="4" style="text-align: center;">합계</td>
                                 <td style="text-align: center;">${orderDetail.items.reduce(
@@ -380,13 +377,13 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                     <div>
                         <div class="label">작업지시사항:</div>
                         <div class="work-instruction">
-                            ${orderDetail.instruction_note || ''}
+                            ${orderDetail.instruction_note || ""}
                         </div>
                     </div>
                     
                     <div class="packaging">
                         <span class="label">포장:</span>
-                        <span class="packaging-value">${orderDetail.packaging_included ? '있음' : '없음'}</span>
+                        <span class="packaging-value">${orderDetail.packaging_included ? "있음" : "없음"}</span>
                     </div>
                     
                     <div class="note-section">
@@ -407,13 +404,13 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
     const handleDownloadExcel = async () => {
         if (!orderDetail || !supplierDetail) {
-            alert('주문 정보 또는 공급업체 정보가 없습니다.');
+            alert("주문 정보 또는 공급업체 정보가 없습니다.");
             return;
         }
 
         try {
             // 1. 템플릿 파일 fetch (blob → arrayBuffer)
-            const response = await fetch('/data/template.xlsx');
+            const response = await fetch("/data/template.xlsx");
             const arrayBuffer = await response.arrayBuffer();
 
             // 2. xlsx-populate로 workbook 로드
@@ -421,43 +418,43 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             const sheet = workbook.sheet(0);
 
             // 3. 셀 값 매핑 (스타일/병합/수식 유지)
-            sheet.cell('I10').value(orderDetail.manager);
-            sheet.cell('I11').value(supplierDetail.name);
-            sheet.cell('W11').value(supplierDetail.contact);
-            sheet.cell('I12').value(supplierDetail.manager);
-            sheet.cell('W12').value(supplierDetail.email);
+            sheet.cell("I10").value(orderDetail.manager);
+            sheet.cell("I11").value(supplierDetail.name);
+            sheet.cell("W11").value(supplierDetail.contact);
+            sheet.cell("I12").value(supplierDetail.manager);
+            sheet.cell("W12").value(supplierDetail.email);
 
-            sheet.cell('E16').value(orderDetail.order_date);
+            sheet.cell("E16").value(orderDetail.order_date);
             sheet
-                .cell('Q16')
+                .cell("Q16")
                 .value(
-                    orderDetail.expected_delivery_date ? `납품일자: ${orderDetail.expected_delivery_date}` : '납품일자:'
+                    orderDetail.expected_delivery_date ? `납품일자: ${orderDetail.expected_delivery_date}` : "납품일자:"
                 );
-            sheet.cell('E17').value('고려대학교 100주년기념관(크림슨스토어)');
+            sheet.cell("E17").value("고려대학교 100주년기념관(크림슨스토어)");
 
             const totalAmount = orderDetail.items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
-            sheet.cell('G18').value(numberToKorean(totalAmount));
-            sheet.cell('Q18').value(`${totalAmount.toLocaleString()})`);
+            sheet.cell("G18").value(numberToKorean(totalAmount));
+            sheet.cell("Q18").value(`${totalAmount.toLocaleString()})`);
 
             // 부가세 체크박스 LinkedCell: 포함(AG18), 비포함(AH18)
             sheet
-                .cell('AG18')
+                .cell("AG18")
                 .value(orderDetail.vat_included ? true : false)
-                .style('numberFormat', ';;;'); // 포함(숨김)
+                .style("numberFormat", ";;;"); // 포함(숨김)
             sheet
-                .cell('AH18')
+                .cell("AH18")
                 .value(orderDetail.vat_included ? false : true)
-                .style('numberFormat', ';;;'); // 비포함(숨김)
+                .style("numberFormat", ";;;"); // 비포함(숨김)
             // 포장 체크박스는 기존 LinkedCell(Z101 등) 사용
-            sheet.cell('AB31').value(orderDetail.packaging_included ? true : false); // 포장 체크박스 LinkedCell
+            sheet.cell("AB31").value(orderDetail.packaging_included ? true : false); // 포장 체크박스 LinkedCell
             // sheet.cell('AA18').value(orderDetail.vat_included ? '■' : '□'); // ← 문자 체크박스는 주석처리
             // sheet.cell('AD18').value(orderDetail.vat_included ? '□' : '■');
             // sheet.cell('Z31').value(orderDetail.packaging_included ? '■' : '□');
             // sheet.cell('AA31').value(orderDetail.packaging_included ? '□' : '■');
 
             // 작업지시/비고
-            sheet.cell('A30').value(orderDetail.instruction_note || '');
-            sheet.cell('A33').value(orderDetail.note || '');
+            sheet.cell("A30").value(orderDetail.instruction_note || "");
+            sheet.cell("A33").value(orderDetail.note || "");
 
             // 4. 품목 테이블 (행 복제 및 데이터 입력)
             const startRow = 21;
@@ -476,11 +473,11 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                 const row = startRow + idx;
                 sheet.cell(`C${row}`).value(item.item_name);
                 sheet.cell(`H${row}`).value(item.spec);
-                sheet.cell(`K${row}`).value('EA');
+                sheet.cell(`K${row}`).value("EA");
                 sheet.cell(`N${row}`).value(item.quantity);
                 sheet.cell(`Q${row}`).value(item.unit_price);
                 sheet.cell(`X${row}`).value(item.quantity * item.unit_price);
-                sheet.cell(`AD${row}`).value(item.remark || '');
+                sheet.cell(`AD${row}`).value(item.remark || "");
             });
 
             // 불필요한 빈 행을 셀 값 초기화로 대체 (브라우저 환경 호환)
@@ -488,8 +485,8 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             if (orderDetail.items.length < templateRows) {
                 for (let i = orderDetail.items.length; i < templateRows; i++) {
                     const row = startRow + i;
-                    ['C', 'H', 'K', 'N', 'Q', 'X', 'AD'].forEach((col) => {
-                        sheet.cell(`${col}${row}`).value('');
+                    ["C", "H", "K", "N", "Q", "X", "AD"].forEach((col) => {
+                        sheet.cell(`${col}${row}`).value("");
                     });
                 }
             }
@@ -498,8 +495,8 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             const blob = await workbook.outputAsync();
             saveAs(blob, `(주)고대미래_발주서_${orderDetail.id}.xlsx`);
         } catch (error) {
-            console.error('엑셀 다운로드 실패:', error);
-            alert('엑셀 파일 생성 중 오류가 발생했습니다.');
+            console.error("엑셀 다운로드 실패:", error);
+            alert("엑셀 파일 생성 중 오류가 발생했습니다.");
         }
     };
 
@@ -508,28 +505,31 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         try {
             const response = await axios.patch(`/orders/${orderDetail.id}/`, { status: newStatus });
             const { order, stock_changes } = response.data;
-            console.log('서버에서 내려온 order.status:', order.status);
+            console.log("서버에서 내려온 order.status:", order.status);
             setOrderDetail(order); // 상세정보 갱신
-            
+
             // 상태 변경 메시지 생성
-            const statusText = newStatus === 'APPROVED' ? '승인됨' : 
-                              newStatus === 'CANCELLED' ? '취소됨' : 
-                              newStatus === 'COMPLETED' ? '입고 완료' : newStatus;
-            
+            const statusText =
+                newStatus === "APPROVED"
+                    ? "승인됨"
+                    : newStatus === "CANCELLED"
+                    ? "취소됨"
+                    : newStatus === "COMPLETED"
+                    ? "입고 완료"
+                    : newStatus;
+
             if (stock_changes && stock_changes.length > 0) {
                 // 재고 변경이 있는 경우
                 const stockMessage = stock_changes
-                    .map((s: any) => 
-                        `${s.name}(${s.option}): ${s.stock_before} → ${s.stock_after} (+${s.quantity})`
-                    )
-                    .join('\n');
+                    .map((s: any) => `${s.name}(${s.option}): ${s.stock_before} → ${s.stock_after} (+${s.quantity})`)
+                    .join("\n");
                 alert(`상태가 ${statusText}로 변경되었습니다.\n\n재고가 변경되었습니다:\n${stockMessage}`);
             } else {
                 // 재고 변경이 없는 경우
                 alert(`상태가 ${statusText}로 변경되었습니다.`);
             }
         } catch (e: any) {
-            alert(e.response?.data?.detail || '상태 변경 실패');
+            alert(e.response?.data?.detail || "상태 변경 실패");
         }
     };
 
@@ -596,17 +596,17 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                             <div className="px-5 my-5">
                                 <div className="space-y-1">
                                     <p>
-                                        <span className="font-bold">수신:</span>{' '}
+                                        <span className="font-bold">수신:</span>{" "}
                                         {supplierDetail?.name || orderDetail.supplier}
                                     </p>
                                     <p>
-                                        <span className="font-bold">전화:</span> {supplierDetail?.contact || '-'}
+                                        <span className="font-bold">전화:</span> {supplierDetail?.contact || "-"}
                                     </p>
                                     <p>
-                                        <span className="font-bold">담당자:</span> {supplierDetail?.manager || '-'}
+                                        <span className="font-bold">담당자:</span> {supplierDetail?.manager || "-"}
                                     </p>
                                     <p>
-                                        <span className="font-bold">이메일:</span> {supplierDetail?.email || '-'}
+                                        <span className="font-bold">이메일:</span> {supplierDetail?.email || "-"}
                                     </p>
                                 </div>
                             </div>
@@ -625,7 +625,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                                         <span className="font-bold">발주일자:</span> {orderDetail.order_date}
                                     </p>
                                     <p>
-                                        <span className="font-bold">납품일자:</span>{' '}
+                                        <span className="font-bold">납품일자:</span>{" "}
                                         {orderDetail.expected_delivery_date}
                                     </p>
                                     <p>
@@ -635,13 +635,13 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                                 </div>
                                 <div className="w-1/2 space-y-1">
                                     <p>
-                                        <span className="font-bold">구매비용:</span> 일금{' '}
+                                        <span className="font-bold">구매비용:</span> 일금{" "}
                                         {numberToKorean(
                                             orderDetail.items.reduce(
                                                 (total, item) => total + item.quantity * item.unit_price,
                                                 0
                                             )
-                                        )}{' '}
+                                        )}{" "}
                                         (₩ $
                                         {orderDetail.items
                                             .reduce((total, item) => total + item.quantity * item.unit_price, 0)
@@ -693,7 +693,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                                                 <td className="border border-stone-300 p-2 text-right">
                                                     {(item.quantity * item.unit_price).toLocaleString()}
                                                 </td>
-                                                <td className="border border-stone-300 p-2">{item.remark || ''}</td>
+                                                <td className="border border-stone-300 p-2">{item.remark || ""}</td>
                                             </tr>
                                         ))}
                                         <tr>
@@ -725,7 +725,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                                     <span className="font-bold">작업지시사항:</span>
                                 </div>
                                 <div className="border border-gray-300 p-3 min-h-16">
-                                    <p>{orderDetail.instruction_note || ''}</p>
+                                    <p>{orderDetail.instruction_note || ""}</p>
                                 </div>
                             </div>
 
@@ -733,7 +733,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                             <div className="px-5 my-5 flex items-center">
                                 <span className="font-bold mr-6">포장:</span>
                                 <div className="bg-zinc-100 px-3 py-1 rounded-md border border-gray-300">
-                                    <span>{orderDetail.packaging_included ? '있음' : '없음'}</span>
+                                    <span>{orderDetail.packaging_included ? "있음" : "없음"}</span>
                                 </div>
                             </div>
 
@@ -751,34 +751,32 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                 <div className="px-4 py-4 flex justify-between items-end">
                     {/* 좌측: 상태 변경 버튼 그룹 (대표만 가능) */}
                     <div className="flex gap-3">
-                        {isManager && orderDetail.status !== 'APPROVED' && (
+                        {isManager && orderDetail.status !== "APPROVED" && (
                             <button
                                 className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
-                                onClick={() => handleStatusChange('APPROVED')}
+                                onClick={() => handleStatusChange("APPROVED")}
                             >
                                 발주 승인
                             </button>
                         )}
-                        {isManager && orderDetail.status !== 'CANCELLED' && (
+                        {isManager && orderDetail.status !== "CANCELLED" && (
                             <button
                                 className="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600 transition"
-                                onClick={() => handleStatusChange('CANCELLED')}
+                                onClick={() => handleStatusChange("CANCELLED")}
                             >
                                 발주 취소
                             </button>
                         )}
-                        {isManager && orderDetail.status !== 'COMPLETED' && (
+                        {isManager && orderDetail.status !== "COMPLETED" && (
                             <button
                                 className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 transition"
-                                onClick={() => handleStatusChange('COMPLETED')}
+                                onClick={() => handleStatusChange("COMPLETED")}
                             >
                                 입고 완료
                             </button>
                         )}
                         {!isManager && (
-                            <div className="px-4 py-2 text-sm text-gray-500">
-                                상태 변경은 대표만 가능합니다.
-                            </div>
+                            <div className="px-4 py-2 text-sm text-gray-500">상태 변경은 대표만 가능합니다.</div>
                         )}
                     </div>
                     {/* 우측: PDF/인쇄/승인 버튼 */}

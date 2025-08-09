@@ -1,12 +1,12 @@
-import React from 'react';
-import {useState} from 'react';
-import { MdOutlineEdit, MdOutlineHistory } from 'react-icons/md';
-import StatusBadge from '../common/StatusBadge'
+import React from "react";
+import { useState } from "react";
+import StatusBadge from "../common/StatusBadge";
 
 // 데이터 행의 타입 정의
-interface TableRow {
-    [key: string]: string | boolean;
-}
+export type TableCell = string | number | boolean;
+export type TableRow = {
+    [key: string]: string | number | boolean;
+};
 
 interface TableProps {
     columns: string[];
@@ -14,26 +14,26 @@ interface TableProps {
 }
 
 //재고 수치 - 배지 색상 매핑함수
-const mapStockBadge = (stockStr: string) : 'rejected' | 'pending' | 'neutral' => {
-    const [current, max] = stockStr.split('/').map(s => parseInt(s.trim()));
+const mapStockBadge = (stockStr: string): "rejected" | "pending" | "neutral" => {
+    const [current, max] = stockStr.split("/").map((s) => parseInt(s.trim()));
     const ratio = current / max;
 
-    if (ratio <= 0.2) return 'rejected';
-    if (ratio <= 0.5) return 'pending';
-    return 'neutral';
-}
+    if (ratio <= 0.2) return "rejected";
+    if (ratio <= 0.5) return "pending";
+    return "neutral";
+};
 
 //상태 배지 색상 지정
-const mapStatusToBadge = (status: string): 'pending' | 'approved' | 'active' | 'neutral' => {
+const mapStatusToBadge = (status: string): "pending" | "approved" | "active" | "neutral" => {
     switch (status) {
-        case '승인 대기':
-            return 'pending';
-        case '승인됨':
-            return 'approved';
-        case '입고 완료':
-            return 'active';
+        case "승인 대기":
+            return "pending";
+        case "승인됨":
+            return "approved";
+        case "입고 완료":
+            return "active";
         default:
-            return 'neutral';
+            return "neutral";
     }
 };
 
@@ -44,14 +44,14 @@ const Table: React.FC<TableProps> = ({ columns, data }) => {
     const getRowBackgroundColor = (index: number, row: TableRow): string => {
         // 호버 상태인 경우
         if (hoveredRow === index) {
-            return 'bg-[#F9FAFB]';
+            return "bg-[#F9FAFB]";
         }
         // "승인 대기" 상태의 경우 강조 배경색
         if (Object.values(row).includes("승인 대기")) {
-            return 'bg-[#FFFBEB]';
+            return "bg-[#FFFBEB]";
         }
         // 기본 행인 경우
-        return 'bg-[#FFFFFF]';
+        return "bg-[#FFFFFF]";
     };
 
     return (
@@ -82,7 +82,7 @@ const Table: React.FC<TableProps> = ({ columns, data }) => {
                                 const value = row[col];
 
                                 // 현재 재고 배지 적용
-                                if (col === '현재 재고' && typeof value === 'string') {
+                                if (col === "현재 재고" && typeof value === "string") {
                                     const theme = mapStockBadge(value);
                                     return (
                                         <td
@@ -95,7 +95,7 @@ const Table: React.FC<TableProps> = ({ columns, data }) => {
                                 }
 
                                 // 상태 배지 적용
-                                if (col === '상태' && typeof value === 'string') {
+                                if (col === "상태" && typeof value === "string") {
                                     const theme = mapStatusToBadge(value);
                                     return (
                                         <td
@@ -113,7 +113,7 @@ const Table: React.FC<TableProps> = ({ columns, data }) => {
                                         key={colIndex}
                                         className="h-[40px] p-3 border border-[#E5E7EB] text-[#6B7280] font-light"
                                     >
-                                        {value?.toString() ?? '-'}
+                                        {value?.toString() ?? "-"}
                                     </td>
                                 );
                             })}

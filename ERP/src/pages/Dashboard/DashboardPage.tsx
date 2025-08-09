@@ -1,9 +1,9 @@
-import Table from '../../components/table/table';
-import { HiArchiveBox } from 'react-icons/hi2';
-import { IoClipboard } from 'react-icons/io5';
-import { IoPeopleSharp } from 'react-icons/io5';
-import { Link } from 'react-router-dom';
-import { useDashboard } from '../../hooks/queries/useDashboard';
+import Table from "../../components/table/table";
+import { HiArchiveBox } from "react-icons/hi2";
+import { IoClipboard } from "react-icons/io5";
+import { IoPeopleSharp } from "react-icons/io5";
+import { Link } from "react-router-dom";
+import { useDashboard } from "../../hooks/queries/useDashboard";
 
 const DashboardPage = () => {
     const { data: dashboardData, isLoading, error } = useDashboard();
@@ -29,25 +29,29 @@ const DashboardPage = () => {
     }
 
     // 재고 부족 상품 테이블 데이터
-    const lowStockColumns = ['제품코드', '제품명', '옵션', '현재 재고', '최소 재고'];
-    const lowStockData = dashboardData?.top_low_stock.map((item) => ({
-        ['제품코드']: item.variant_code,
-        ['제품명']: item.product_name,
-        ['옵션']: item.option,
-        ['현재 재고']: item.stock,
-        ['최소 재고']: item.min_stock,
-    })) || [];
+    const lowStockColumns = ["제품코드", "제품명", "옵션", "현재 재고", "최소 재고"];
+    const lowStockData =
+        dashboardData?.top_low_stock.map((item) => ({
+            ["제품코드"]: item.variant_code,
+            ["제품명"]: item.product_name,
+            ["옵션"]: item.option,
+            ["현재 재고"]: item.stock,
+            ["최소 재고"]: item.min_stock,
+        })) || [];
 
     // 최근 발주 현황 테이블 데이터
-    const recentOrdersColumns = ['발주번호', '업체', '발주일', '예상 입고일', '담당자', '상태'];
-    const recentOrdersData = dashboardData?.recent_orders.map((item) => ({
-        ['발주번호']: item.order_id,
-        ['업체']: item.supplier,
-        ['발주일']: item.order_date,
-        ['예상 입고일']: item.expected_delivery_date,
-        ['담당자']: item.manager,
-        ['상태']: item.status,
-    })) || [];
+    const recentOrdersColumns = ["발주번호", "업체", "발주일", "예상 입고일", "담당자", "상태"];
+    const recentOrdersData =
+        dashboardData?.recent_orders.map((item) => ({
+            ["발주번호"]: item.order_id,
+            ["업체"]: item.supplier,
+            ["발주일"]: item.order_date,
+            ["예상 입고일"]: item.expected_delivery_date,
+            ["담당자"]: item.manager,
+            ["상태"]: item.status,
+        })) || [];
+
+    const vacations = dashboardData?.recent_vacations ?? [];
 
     return (
         <div className="p-6">
@@ -170,7 +174,10 @@ const DashboardPage = () => {
                     </div>
                     <div className="space-y-3">
                         {dashboardData?.top_sales.slice(0, 3).map((item, index) => (
-                            <div key={item.variant_code} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <div
+                                key={item.variant_code}
+                                className="flex justify-between items-center p-3 bg-gray-50 rounded"
+                            >
                                 <div>
                                     <div className="font-medium text-gray-900">{item.product_name}</div>
                                     <div className="text-sm text-gray-500">{item.option}</div>
@@ -191,8 +198,8 @@ const DashboardPage = () => {
                     <h2 className="text-lg font-medium text-gray-900">최근 휴가 현황</h2>
                 </div>
                 <div className="space-y-3">
-                    {dashboardData?.recent_vacations.length > 0 ? (
-                        dashboardData.recent_vacations.map((vacation, index) => (
+                    {vacations.length > 0 ? (
+                        vacations.map((vacation, index) => (
                             <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
                                 <div>
                                     <div className="font-medium text-gray-900">{vacation.employee}</div>
@@ -209,9 +216,7 @@ const DashboardPage = () => {
                             </div>
                         ))
                     ) : (
-                        <div className="text-center text-gray-500 py-4">
-                            최근 휴가 신청이 없습니다.
-                        </div>
+                        <div className="text-center text-gray-500 py-4">최근 휴가 신청이 없습니다.</div>
                     )}
                 </div>
                 <div className="flex items-center space-x-1 text-indigo-600 hover:text-indigo-800 cursor-pointer mt-4">

@@ -1,16 +1,16 @@
 // src/routes/index.tsx
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import PrivateRoute from './PrivateRoute';
+import { Routes, Route } from "react-router-dom";
+import PrivateRoute from "./PrivateRoute";
 
-import InventoryPage from '../pages/Inventory/InventoryPage';
-import OrdersPage from '../pages/Orders/OrdersPage';
-import AlertsPage from '../pages/Alerts/AlertsPage';
-import HRPage from '../pages/HR/HRPage';
-import AuthPage from '../pages/Auth/AuthPage';
-import DashboardPage from '../pages/Dashboard/DashboardPage';
-import NotFound from '../pages/Notfound';
-import Layout from '../layout';
-import SupplierPage from '../pages/Supplier/SupplierPage';
+import InventoryPage from "../pages/Inventory/InventoryPage";
+import OrdersPage from "../pages/Orders/OrdersPage";
+import AlertsPage from "../pages/Alerts/AlertsPage";
+import HRPage from "../pages/HR/HRPage";
+import AuthPage from "../pages/Auth/AuthPage";
+import DashboardPage from "../pages/Dashboard/DashboardPage";
+import NotFound from "../pages/Notfound";
+import Layout from "../layout";
+import SupplierPage from "../pages/Supplier/SupplierPage";
 
 const AppRoutes = () => {
     return (
