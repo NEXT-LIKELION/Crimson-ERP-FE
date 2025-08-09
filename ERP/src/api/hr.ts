@@ -6,9 +6,6 @@ export const fetchEmployees = () => api.get('/hr/employees/');
 // 직원 상세 조회
 export const fetchEmployee = (employeeId: number) => api.get(`/hr/employees/${employeeId}/`);
 
-// 직원 정보 수정 (PUT)
-export const updateEmployee = (employeeId: number, data: EmployeeUpdateData) =>
-    api.put(`/hr/employees/${employeeId}/`, data);
 
 // 직원 정보 부분 수정 (PATCH)
 export const patchEmployee = (employeeId: number, data: EmployeePatchData) =>
@@ -46,13 +43,13 @@ export const reviewVacation = (vacationId: number, status: VacationStatus) => {
     return api.patch(`/hr/vacations/review/${vacationId}/`, { status });
 };
 
-// 백엔드 API 응답에 맞는 Employee 타입
+// 백엔드 API 응답에 맞는 Employee 타입 (API 스펙 기준)
 export interface Employee {
     id: number;
     username: string;
     email: string;
     role: string;
-    status: 'active' | 'terminated' | 'denied';
+    status: 'active' | 'terminated';
     contact: string;
     first_name: string;
     is_active: boolean;
@@ -60,25 +57,14 @@ export interface Employee {
     annual_leave_days: number;
     allowed_tabs: string[];
     remaining_leave_days: number;
-    date_joined: string;
     vacation_days: VacationDay[];
     vacation_pending_days: VacationDay[];
 }
 
 // 프론트엔드에서 사용할 매핑된 Employee 타입 (HR 페이지에서 직접 정의)
 
+// PATCH /hr/employees/{employee_id}/ 엔드포인트용 데이터 타입 (API 스펙 기준)
 export interface EmployeeUpdateData {
-    role?: string;
-    email?: string;
-    contact?: string;
-    status?: 'APPROVED' | 'DENIED';
-    hire_date?: string;
-    annual_leave_days?: number;
-    allowed_tabs?: string[];
-}
-
-// PATCH 엔드포인트용 데이터 타입
-export interface EmployeePatchData {
     email?: string;
     first_name?: string;
     contact?: string;
@@ -88,6 +74,9 @@ export interface EmployeePatchData {
     hire_date?: string;
     role?: string;
 }
+
+// EmployeePatchData는 EmployeeUpdateData와 동일 (하위 호환성을 위해 유지)
+export type EmployeePatchData = EmployeeUpdateData;
 
 // 직원 등록용 데이터 타입
 export interface EmployeeRegistrationData {

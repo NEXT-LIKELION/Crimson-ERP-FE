@@ -230,7 +230,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
             onClick={handleBackdropClick}
         >
             <div
-                className="w-full max-w-md bg-white rounded-xl shadow-lg border border-gray-200"
+                className="w-full max-w-md bg-white rounded-xl shadow-lg border border-gray-200 max-h-[90vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* 헤더 */}
@@ -271,7 +271,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                 </div>
 
                 {/* 콘텐츠 */}
-                <div className="p-6">
+                <div className="flex-1 overflow-y-auto p-6">
                     {currentStep === 1 ? (
                         /* 1단계: 계정 정보 */
                         <div className="space-y-4">
@@ -465,15 +465,17 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                         </div>
                     )}
 
-                    {/* 에러 메시지 */}
-                    {errorMessage && (
-                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-sm text-red-800">{errorMessage}</p>
-                        </div>
-                    )}
+                </div>
 
-                    {/* 버튼 영역 */}
-                    <div className="mt-6 pt-4 border-t border-gray-200">
+                {/* 에러 메시지 */}
+                {errorMessage && (
+                    <div className="mx-6 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-800">{errorMessage}</p>
+                    </div>
+                )}
+
+                {/* 버튼 영역 - 고정 위치 */}
+                <div className="flex-shrink-0 p-6 pt-4 border-t border-gray-200">
                         {currentStep === 1 ? (
                             <div className="flex gap-3">
                                 <button
@@ -517,7 +519,6 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                                 </button>
                             </div>
                         )}
-                    </div>
                 </div>
             </div>
         </div>

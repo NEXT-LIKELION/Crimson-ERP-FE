@@ -749,9 +749,9 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
                 {/* Footer */}
                 <div className="px-4 py-4 flex justify-between items-end">
-                    {/* 좌측: 상태 변경 버튼 그룹 */}
+                    {/* 좌측: 상태 변경 버튼 그룹 (대표만 가능) */}
                     <div className="flex gap-3">
-                        {orderDetail.status !== 'APPROVED' && (
+                        {isManager && orderDetail.status !== 'APPROVED' && (
                             <button
                                 className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
                                 onClick={() => handleStatusChange('APPROVED')}
@@ -759,7 +759,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                                 발주 승인
                             </button>
                         )}
-                        {orderDetail.status !== 'CANCELLED' && (
+                        {isManager && orderDetail.status !== 'CANCELLED' && (
                             <button
                                 className="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600 transition"
                                 onClick={() => handleStatusChange('CANCELLED')}
@@ -767,13 +767,18 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                                 발주 취소
                             </button>
                         )}
-                        {orderDetail.status !== 'COMPLETED' && (
+                        {isManager && orderDetail.status !== 'COMPLETED' && (
                             <button
                                 className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 transition"
                                 onClick={() => handleStatusChange('COMPLETED')}
                             >
                                 입고 완료
                             </button>
+                        )}
+                        {!isManager && (
+                            <div className="px-4 py-2 text-sm text-gray-500">
+                                상태 변경은 대표만 가능합니다.
+                            </div>
                         )}
                     </div>
                     {/* 우측: PDF/인쇄/승인 버튼 */}

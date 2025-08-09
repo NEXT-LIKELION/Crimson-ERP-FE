@@ -58,7 +58,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     const [variantsByProduct, setVariantsByProduct] = useState<{ [productId: string]: any[] }>({});
     const [isAddProductModalOpen, setIsAddProductModalOpen] = useState<boolean>(false);
     const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState<boolean>(false);
-    const { data: employeesData } = useEmployees();
+    const { data: employeesData, isLoading: isEmployeesLoading, error: employeesError } = useEmployees();
     const employees = employeesData?.data || [];
     const user = useAuthStore((state) => state.user);
 
@@ -66,8 +66,28 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
 
     useEffect(() => {
         if (isOpen) {
-            fetchSuppliers().then((res) => setSuppliers(res.data));
-            fetchInventories().then((res) => setProducts(res.data));
+            fetchSuppliers()
+                .then((res) => {
+                    const supplierData = Array.isArray(res.data) ? res.data : [];
+                    setSuppliers(supplierData);
+                })
+                .catch((error) => {
+                    console.error('Failed to fetch suppliers:', error);
+                    setSuppliers([]);
+                    setFormErrors(prev => [...prev, '공급업체 목록을 불러오는데 실패했습니다.']);
+                });
+                
+            fetchInventories()
+                .then((res) => {
+                    const productData = Array.isArray(res.data) ? res.data : [];
+                    setProducts(productData);
+                })
+                .catch((error) => {
+                    console.error('Failed to fetch inventories:', error);
+                    setProducts([]);
+                    setFormErrors(prev => [...prev, '상품 목록을 불러오는데 실패했습니다.']);
+                });
+                
             resetForm();
             setSupplierName('');
         }
@@ -215,12 +235,18 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     // 공급업체 선택 핸들러
     const handleSupplierChange = (name: string) => {
         setSupplierName(name);
+        if (!Array.isArray(suppliers)) {
+            setSupplier(0);
+            return;
+        }
         const found = suppliers.find((s) => s.name === name);
         setSupplier(found ? found.id : 0);
     };
 
     // 2. 행별 상품 선택 핸들러
     const handleProductChange = async (idx: number, name: string) => {
+        if (!Array.isArray(products)) return;
+        
         const found = products.find((p) => p.name === name);
         const product_id = found ? found.product_id : null;
         // 품목 캐시 없으면 fetch
@@ -229,6 +255,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 const res = await fetchVariantsByProductId(product_id);
                 setVariantsByProduct((prev) => ({ ...prev, [product_id]: res.data.variants || [] }));
             } catch (e) {
+                console.error('Failed to fetch variants:', e);
                 setVariantsByProduct((prev) => ({ ...prev, [product_id]: [] }));
             }
         }
@@ -250,29 +277,45 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
 
     // 신상품 추가 성공 핸들러
     const handleProductAdded = async (newProduct: any) => {
-        // 상품 목록 다시 불러오기
-        const res = await fetchInventories();
-        setProducts(res.data);
-        setIsAddProductModalOpen(false);
+        try {
+            // 상품 목록 다시 불러오기
+            const res = await fetchInventories();
+            const productData = Array.isArray(res.data) ? res.data : [];
+            setProducts(productData);
+            setIsAddProductModalOpen(false);
+        } catch (error) {
+            console.error('Failed to refresh products:', error);
+        }
     };
 
     // 새 공급자 추가 성공 핸들러
     const handleSupplierAdded = async (newSupplier: any) => {
-        // 공급자 목록 다시 불러오기
-        const res = await fetchSuppliers();
-        setSuppliers(res.data);
-        setIsAddSupplierModalOpen(false);
+        try {
+            // 공급자 목록 다시 불러오기
+            const res = await fetchSuppliers();
+            const supplierData = Array.isArray(res.data) ? res.data : [];
+            setSuppliers(supplierData);
+            setIsAddSupplierModalOpen(false);
+        } catch (error) {
+            console.error('Failed to refresh suppliers:', error);
+        }
     };
 
     if (!isOpen) return null;
 
-    if (!employees.length) {
-        return <div>직원 목록을 불러오는 중...</div>;
-    }
-
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="w-[900px] max-h-[90vh] bg-white rounded-lg shadow-xl overflow-auto">
+            <div className="relative w-[900px] max-h-[90vh] bg-white rounded-lg shadow-xl overflow-auto">
+                {/* 전체 로딩 상태 표시 */}
+                {isEmployeesLoading && (
+                    <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-20 rounded-lg">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                            <p className="text-lg font-medium text-gray-800">잠시만 기다려주세요</p>
+                            <p className="text-sm text-gray-600 mt-1">직원 데이터를 불러오는 중입니다...</p>
+                        </div>
+                    </div>
+                )}
                 {/* Header */}
                 <div className="px-4 py-4 border-b border-gray-200 flex justify-between items-center">
                     <div className="flex items-center">
@@ -286,6 +329,20 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
 
                 {/* Content */}
                 <div className="p-6 space-y-6">
+                    {/* 에러 상태 표시 */}
+                    {employeesError && (
+                        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                            <div className="flex items-start">
+                                <FiAlertTriangle className="w-5 h-5 text-red-600 mt-0.5 mr-2" />
+                                <div>
+                                    <h3 className="text-sm font-medium text-red-800">직원 데이터 로딩 오류</h3>
+                                    <p className="mt-1 text-sm text-red-700">
+                                        직원 목록을 불러오는 중 오류가 발생했습니다. 일부 기능이 제한될 수 있습니다.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     {/* 폼 오류 메시지 표시 */}
                     {formErrors.length > 0 && (
                         <div className="bg-red-50 border border-red-200 rounded-md p-4">
@@ -319,7 +376,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                     <div className="flex-1">
                                         <SelectInput
                                             defaultText="공급업체 선택"
-                                            options={suppliers.map((s: any) => s.name)}
+                                            options={Array.isArray(suppliers) ? suppliers.map((s: any) => s.name) : []}
                                             value={supplierName}
                                             onChange={handleSupplierChange}
                                         />
@@ -336,12 +393,23 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                             </div>
                             <div className="space-y-1">
                                 <label className="block text-sm font-medium text-gray-700">담당자</label>
-                                <SelectInput
-                                    defaultText="담당자 선택"
-                                    options={employees.map((e: any) => e.first_name || e.username)}
-                                    value={user?.first_name || user?.username || ''}
-                                    onChange={() => {}}
-                                />
+                                {isEmployeesLoading ? (
+                                    <div className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-500">
+                                        직원 목록 로딩 중...
+                                    </div>
+                                ) : employeesError ? (
+                                    <div className="px-3 py-2 border border-gray-300 rounded-md text-sm text-red-500">
+                                        직원 목록을 불러올 수 없습니다
+                                    </div>
+                                ) : (
+                                    <SelectInput
+                                        defaultText="담당자 선택"
+                                        options={employees.map((e: any) => e.first_name || e.username)}
+                                        value={user?.first_name || user?.username || ''}
+                                        onChange={() => {}}
+                                        disabled={isSubmitting}
+                                    />
+                                )}
                             </div>
                         </div>
                         {/* 오른쪽: 발주 정보 */}
@@ -442,8 +510,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                                                 <div className="flex flex-col gap-1 w-full">
                                                     <SelectInput
                                                         defaultText="상품 선택"
-                                                        options={products.map((p: any) => p.name)}
+                                                        options={Array.isArray(products) ? products.map((p: any) => p.name) : []}
                                                         value={(() => {
+                                                            if (!Array.isArray(products)) return '';
                                                             const found = products.find(
                                                                 (p: any) => p.product_id === item.product_id
                                                             );
