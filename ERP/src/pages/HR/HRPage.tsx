@@ -1,49 +1,49 @@
 // src/pages/HR/HRPage.tsx
-import React, { useState, useEffect } from 'react';
-import { FiSearch, FiUser, FiUsers, FiCalendar, FiTrash2, FiEye, FiPlusCircle, FiClipboard } from 'react-icons/fi';
-import StatusBadge from '../../components/common/StatusBadge';
-import SearchInput from '../../components/input/SearchInput';
-import SelectInput from '../../components/input/SelectInput';
-import EmployeeDetailsModal from '../../components/modal/EmployeeDetailsModal';
-import EmployeeContractModal from '../../components/modal/EmployeeContractModal';
-import EmployeeRegistrationModal from '../../components/modal/EmployeeRegistrationModal';
-import VacationRequestModal from '../../components/modal/VacationRequestModal';
-import VacationManagementModal from '../../components/modal/VacationManagementModal';
-import { useEmployees, useUpdateEmployee, useTerminateEmployee } from '../../hooks/queries/useEmployees';
-import { useQueryClient } from '@tanstack/react-query';
-import { Employee, approveEmployee, patchEmployee } from '../../api/hr';
-import { useAuthStore } from '../../store/authStore';
+import React, { useState, useEffect } from "react";
+import { FiSearch, FiUser, FiUsers, FiCalendar, FiTrash2, FiEye, FiPlusCircle, FiClipboard } from "react-icons/fi";
+import StatusBadge from "../../components/common/StatusBadge";
+import SearchInput from "../../components/input/SearchInput";
+import SelectInput from "../../components/input/SelectInput";
+import EmployeeDetailsModal from "../../components/modal/EmployeeDetailsModal";
+import EmployeeContractModal from "../../components/modal/EmployeeContractModal";
+import EmployeeRegistrationModal from "../../components/modal/EmployeeRegistrationModal";
+import VacationRequestModal from "../../components/modal/VacationRequestModal";
+import VacationManagementModal from "../../components/modal/VacationManagementModal";
+import { useEmployees, useTerminateEmployee } from "../../hooks/queries/useEmployees";
+import { useQueryClient } from "@tanstack/react-query";
+import { Employee, approveEmployee, patchEmployee } from "../../api/hr";
+import { useAuthStore } from "../../store/authStore";
 
 // 직원 상태 타입
-type EmployeeStatus = 'active' | 'terminated' | 'denied';
+type EmployeeStatus = "active" | "terminated" | "denied";
 
 // 랜덤 이모지 생성 함수
 const getRandomEmoji = (employeeId: number): string => {
     const emojis = [
-        '👨‍💼',
-        '👩‍💼',
-        '🧑‍💼',
-        '👨‍💻',
-        '👩‍💻',
-        '🧑‍💻',
-        '👨‍🔧',
-        '👩‍🔧',
-        '🧑‍🔧',
-        '👨‍🎨',
-        '👩‍🎨',
-        '🧑‍🎨',
-        '👨‍🍳',
-        '👩‍🍳',
-        '🧑‍🍳',
-        '👨‍⚕️',
-        '👩‍⚕️',
-        '🧑‍⚕️',
-        '👨‍🏫',
-        '👩‍🏫',
-        '🧑‍🏫',
-        '👨‍🎓',
-        '👩‍🎓',
-        '🧑‍🎓',
+        "👨‍💼",
+        "👩‍💼",
+        "🧑‍💼",
+        "👨‍💻",
+        "👩‍💻",
+        "🧑‍💻",
+        "👨‍🔧",
+        "👩‍🔧",
+        "🧑‍🔧",
+        "👨‍🎨",
+        "👩‍🎨",
+        "🧑‍🎨",
+        "👨‍🍳",
+        "👩‍🍳",
+        "🧑‍🍳",
+        "👨‍⚕️",
+        "👩‍⚕️",
+        "🧑‍⚕️",
+        "👨‍🏫",
+        "👩‍🏫",
+        "🧑‍🏫",
+        "👨‍🎓",
+        "👩‍🎓",
+        "🧑‍🎓",
     ];
     // employeeId를 시드로 사용하여 일관된 이모지 반환
     return emojis[employeeId % emojis.length];
@@ -51,13 +51,13 @@ const getRandomEmoji = (employeeId: number): string => {
 
 // 날짜 형식 변환 함수 (ISO 8601 형식 지원)
 const formatDateToKorean = (dateString: string): string => {
-    if (!dateString) return '';
+    if (!dateString) return "";
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
 
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
 
     return `${year}년 ${month}월 ${day}일`;
 };
@@ -65,12 +65,12 @@ const formatDateToKorean = (dateString: string): string => {
 // Role 매핑 함수
 const mapRoleToKorean = (role: string): string => {
     switch (role) {
-        case 'MANAGER':
-            return '대표';
-        case 'STAFF':
-            return '직원';
-        case 'INTERN':
-            return '인턴';
+        case "MANAGER":
+            return "대표";
+        case "STAFF":
+            return "직원";
+        case "INTERN":
+            return "인턴";
         default:
             return role;
     }
@@ -86,7 +86,7 @@ export interface MappedEmployee {
     department: string;
     email: string;
     phone: string;
-    status: 'active' | 'terminated' | 'denied';
+    status: "active" | "terminated" | "denied";
     hire_date: string;
     annual_leave_days: number;
     allowed_tabs: string[];
@@ -104,31 +104,30 @@ const mapEmployeeData = (emp: Employee): MappedEmployee => ({
     username: emp.username, // API 호출 시 사용할 실제 username
     role: emp.role,
     position: mapRoleToKorean(emp.role),
-    department: emp.role === 'MANAGER' ? '경영진' : '일반',
+    department: emp.role === "MANAGER" ? "경영진" : "일반",
     email: emp.email,
-    phone: emp.contact || '',
+    phone: emp.contact || "",
     status: emp.status,
-    hire_date: emp.hire_date || emp.date_joined || '',
+    hire_date: emp.hire_date || "",
     annual_leave_days: emp.annual_leave_days || 24,
     allowed_tabs: emp.allowed_tabs || [],
     remaining_leave_days: emp.remaining_leave_days || 0,
     vacation_days: emp.vacation_days || [],
     vacation_pending_days: emp.vacation_pending_days || [],
-    created_at: '',
-    updated_at: '',
+    created_at: "",
+    updated_at: "",
 });
 
 const HRPage: React.FC = () => {
     // 현재 로그인한 사용자 정보
     const currentUser = useAuthStore((state) => state.user);
-    const isAdmin = currentUser?.role === 'MANAGER';
-    
-    console.log('HR 페이지 - 현재 사용자 정보:', currentUser);
-    console.log('HR 페이지 - 관리자 여부:', isAdmin);
+    const isAdmin = currentUser?.role === "MANAGER";
+
+    console.log("HR 페이지 - 현재 사용자 정보:", currentUser);
+    console.log("HR 페이지 - 관리자 여부:", isAdmin);
 
     // API 훅 사용
     const { data: employeesData, isLoading, error } = useEmployees();
-    const updateEmployee = useUpdateEmployee();
     const terminateEmployee = useTerminateEmployee();
     const queryClient = useQueryClient();
 
@@ -136,11 +135,11 @@ const HRPage: React.FC = () => {
     const [employees, setEmployees] = useState<MappedEmployee[]>([]);
 
     // 검색어 상태
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState("");
     // 직급 필터 상태
-    const [positionFilter, setPositionFilter] = useState('');
+    const [positionFilter, setPositionFilter] = useState("");
     // 상태 필터 상태
-    const [statusFilter, setStatusFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState("");
 
     // 모달 상태 관리
     const [selectedEmployee, setSelectedEmployee] = useState<MappedEmployee | null>(null);
@@ -168,10 +167,10 @@ const HRPage: React.FC = () => {
 
         // 직급 필터링
         const matchesPosition =
-            positionFilter === '' || positionFilter === '전체' ? true : employee.position === positionFilter;
+            positionFilter === "" || positionFilter === "전체" ? true : employee.position === positionFilter;
 
         // 상태 필터링
-        const matchesStatus = statusFilter === '' ? true : employee.status === statusFilter;
+        const matchesStatus = statusFilter === "" ? true : employee.status === statusFilter;
 
         return matchesSearch && matchesPosition && matchesStatus;
     });
@@ -180,7 +179,7 @@ const HRPage: React.FC = () => {
     const handleUpdateEmployee = async (updatedEmployee: MappedEmployee) => {
         // 관리자 권한 확인
         if (!isAdmin) {
-            alert('직원 정보를 수정할 권한이 없습니다.');
+            alert("직원 정보를 수정할 권한이 없습니다.");
             return;
         }
 
@@ -190,49 +189,49 @@ const HRPage: React.FC = () => {
                 email: updatedEmployee.email,
                 first_name: updatedEmployee.name,
                 contact: updatedEmployee.phone,
-                is_active: updatedEmployee.status === 'active',
+                is_active: updatedEmployee.status === "active",
                 annual_leave_days: updatedEmployee.annual_leave_days,
                 allowed_tabs: updatedEmployee.allowed_tabs,
                 hire_date: updatedEmployee.hire_date,
                 role: updatedEmployee.role,
             };
 
-            console.log('직원 정보 수정 요청 데이터:', JSON.stringify(updateData, null, 2));
+            console.log("직원 정보 수정 요청 데이터:", JSON.stringify(updateData, null, 2));
 
             // patchEmployee 사용 (PATCH 엔드포인트)
             await patchEmployee(updatedEmployee.id, updateData);
 
             // React Query 캐시 무효화하여 최신 데이터 가져오기
-            queryClient.invalidateQueries({ queryKey: ['employees'] });
-            
+            queryClient.invalidateQueries({ queryKey: ["employees"] });
+
             // 로컬 상태 업데이트
             setEmployees((prev) =>
                 prev.map((emp) => (emp.id === updatedEmployee.id ? { ...emp, ...updatedEmployee } : emp))
             );
             setSelectedEmployee(updatedEmployee);
         } catch (error: any) {
-            console.error('직원 정보 업데이트 실패:', error);
-            console.error('업데이트 응답 데이터:', error.response?.data);
-            console.error('업데이트 상태 코드:', error.response?.status);
+            console.error("직원 정보 업데이트 실패:", error);
+            console.error("업데이트 응답 데이터:", error.response?.data);
+            console.error("업데이트 상태 코드:", error.response?.status);
             throw error; // 에러를 다시 던져서 모달에서 처리하도록 함
         }
     };
 
     // 직원 카드 컴포넌트
     const EmployeeCard: React.FC<{ employee: MappedEmployee }> = ({ employee }) => {
-        console.log('employee:', employee);
-        console.log('isAdmin:', isAdmin, 'currentUser:', currentUser);
-        const isTerminated = employee.status === 'terminated';
+        console.log("employee:", employee);
+        console.log("isAdmin:", isAdmin, "currentUser:", currentUser);
+        const isTerminated = employee.status === "terminated";
         const isCurrentUser = currentUser?.username === employee.username; // 현재 로그인한 사용자와 같은지 확인
 
         // 상태에 따른 StatusBadge 컴포넌트 설정
         const getStatusBadge = (status: EmployeeStatus) => {
             switch (status) {
-                case 'active':
+                case "active":
                     return <StatusBadge text="재직중" theme="active" />;
-                case 'terminated':
+                case "terminated":
                     return <StatusBadge text="퇴사" theme="rejected" />;
-                case 'denied':
+                case "denied":
                     return <StatusBadge text="승인 대기" theme="pending" />;
                 default:
                     return <StatusBadge text="재직중" theme="active" />;
@@ -249,7 +248,7 @@ const HRPage: React.FC = () => {
         const handleTerminateEmployee = async () => {
             // 관리자 권한 확인
             if (!isAdmin) {
-                alert('직원을 퇴사 처리할 권한이 없습니다.');
+                alert("직원을 퇴사 처리할 권한이 없습니다.");
                 return;
             }
 
@@ -259,16 +258,16 @@ const HRPage: React.FC = () => {
 
                     // 로컬 상태 업데이트 - 해당 직원의 status를 'terminated'로 변경
                     setEmployees((prev) =>
-                        prev.map((emp) => (emp.id === employee.id ? { ...emp, status: 'terminated' as const } : emp))
+                        prev.map((emp) => (emp.id === employee.id ? { ...emp, status: "terminated" as const } : emp))
                     );
 
-                    alert('퇴사 처리가 완료되었습니다.');
+                    alert("퇴사 처리가 완료되었습니다.");
                 } catch (error: any) {
-                    console.error('퇴사 처리 실패:', error);
-                    console.error('퇴사 처리 응답 데이터:', error.response?.data);
-                    console.error('퇴사 처리 상태 코드:', error.response?.status);
+                    console.error("퇴사 처리 실패:", error);
+                    console.error("퇴사 처리 응답 데이터:", error.response?.data);
+                    console.error("퇴사 처리 상태 코드:", error.response?.status);
 
-                    let errorMessage = '퇴사 처리에 실패했습니다.';
+                    let errorMessage = "퇴사 처리에 실패했습니다.";
                     if (error.response?.data?.message) {
                         errorMessage += ` 오류: ${error.response.data.message}`;
                     }
@@ -278,14 +277,14 @@ const HRPage: React.FC = () => {
         };
 
         // 퇴사한 직원인 경우 카드 전체를 흐리게 처리
-        const cardOpacity = isTerminated ? 'opacity-60' : 'opacity-100';
-        const textOpacity = isTerminated ? 'text-gray-400' : 'text-gray-900';
-        const subTextOpacity = isTerminated ? 'text-gray-300' : 'text-gray-600';
+        const cardOpacity = isTerminated ? "opacity-60" : "opacity-100";
+        const textOpacity = isTerminated ? "text-gray-400" : "text-gray-900";
+        const subTextOpacity = isTerminated ? "text-gray-300" : "text-gray-600";
 
         return (
             <div
                 className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 ${cardOpacity} ${
-                    isTerminated ? 'bg-gray-50' : ''
+                    isTerminated ? "bg-gray-50" : ""
                 }`}
             >
                 {/* 카드 상단 영역 */}
@@ -294,7 +293,7 @@ const HRPage: React.FC = () => {
                         {/* 프로필 이모지 */}
                         <div
                             className={`pointer-events-none w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center text-5xl ${
-                                isTerminated ? 'grayscale' : ''
+                                isTerminated ? "grayscale" : ""
                             }`}
                         >
                             {getRandomEmoji(employee.id)}
@@ -306,7 +305,7 @@ const HRPage: React.FC = () => {
                                 <div>
                                     <h3
                                         className={`mb-10 text-lg font-semibold truncate ${textOpacity} ${
-                                            isTerminated ? 'line-through' : ''
+                                            isTerminated ? "line-through" : ""
                                         }`}
                                     >
                                         {employee.name}
@@ -343,7 +342,7 @@ const HRPage: React.FC = () => {
                             상세보기
                         </button>
                         {/* 퇴사 버튼: 관리자만 보이고, 재직중이고, 본인이 아닌 경우에만 표시 */}
-                        {isAdmin && employee.status === 'active' && !isCurrentUser && (
+                        {isAdmin && employee.status === "active" && !isCurrentUser && (
                             <button
                                 className="px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center text-sm font-medium hover:bg-red-100 hover:border-red-300 transition-all duration-200 shadow-sm"
                                 onClick={handleTerminateEmployee}
@@ -352,26 +351,26 @@ const HRPage: React.FC = () => {
                                 퇴사
                             </button>
                         )}
-                        {isAdmin && employee.role === 'STAFF' && !isTerminated && (
+                        {isAdmin && employee.role === "STAFF" && !isTerminated && (
                             <>
-                                {employee.status === 'denied' ? (
+                                {employee.status === "denied" ? (
                                     <button
                                         className="px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center text-sm font-medium hover:bg-green-100 hover:border-green-300 transition-all duration-200 shadow-sm"
                                         onClick={async () => {
                                             try {
-                                                await approveEmployee(employee.username, 'approved');
+                                                await approveEmployee(employee.username, "approved");
                                                 setEmployees((prev) =>
                                                     prev.map((emp) =>
                                                         emp.id === employee.id
-                                                            ? { ...emp, status: 'active' as const }
+                                                            ? { ...emp, status: "active" as const }
                                                             : emp
                                                     )
                                                 );
                                                 // React Query 캐시 무효화
-                                                queryClient.invalidateQueries({ queryKey: ['employees'] });
-                                                alert('승인 완료!');
+                                                queryClient.invalidateQueries({ queryKey: ["employees"] });
+                                                alert("승인 완료!");
                                             } catch (e: any) {
-                                                alert(e?.response?.data?.error || '승인 실패');
+                                                alert(e?.response?.data?.error || "승인 실패");
                                             }
                                         }}
                                     >
@@ -382,19 +381,19 @@ const HRPage: React.FC = () => {
                                         className="px-3 py-1.5 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg flex items-center text-sm font-medium hover:bg-yellow-100 hover:border-yellow-300 transition-all duration-200 shadow-sm"
                                         onClick={async () => {
                                             try {
-                                                await approveEmployee(employee.username, 'denied');
+                                                await approveEmployee(employee.username, "denied");
                                                 setEmployees((prev) =>
                                                     prev.map((emp) =>
                                                         emp.id === employee.id
-                                                            ? { ...emp, status: 'denied' as const }
+                                                            ? { ...emp, status: "denied" as const }
                                                             : emp
                                                     )
                                                 );
                                                 // React Query 캐시 무효화
-                                                queryClient.invalidateQueries({ queryKey: ['employees'] });
-                                                alert('거절 처리 완료!');
+                                                queryClient.invalidateQueries({ queryKey: ["employees"] });
+                                                alert("거절 처리 완료!");
                                             } catch (e: any) {
-                                                alert(e?.response?.data?.error || '거절 실패');
+                                                alert(e?.response?.data?.error || "거절 실패");
                                             }
                                         }}
                                     >
@@ -410,14 +409,14 @@ const HRPage: React.FC = () => {
     };
 
     // 직급 옵션 (필터링에 사용)
-    const positionOptions = ['전체', '대표', '직원'];
+    const positionOptions = ["전체", "대표", "직원"];
 
     // 상태 옵션 (필터링에 사용)
     const statusOptions = [
-        { value: '', label: '전체' },
-        { value: 'active', label: '재직중' },
-        { value: 'terminated', label: '퇴사' },
-        { value: 'denied', label: '승인 대기' },
+        { value: "", label: "전체" },
+        { value: "active", label: "재직중" },
+        { value: "terminated", label: "퇴사" },
+        { value: "denied", label: "승인 대기" },
     ];
 
     // 모달 제어 함수
@@ -440,11 +439,11 @@ const HRPage: React.FC = () => {
     // 직원 등록 완료 핸들러
     const handleEmployeeRegistrationComplete = (newEmployee: MappedEmployee) => {
         // 로컬 상태 업데이트
-        setEmployees(prev => [...prev, newEmployee]);
+        setEmployees((prev) => [...prev, newEmployee]);
         setShowEmployeeRegistrationModal(false);
-        
+
         // React Query 캐시 무효화하여 최신 데이터 가져오기
-        queryClient.invalidateQueries({ queryKey: ['employees'] });
+        queryClient.invalidateQueries({ queryKey: ["employees"] });
     };
 
     if (isLoading)
@@ -499,21 +498,21 @@ const HRPage: React.FC = () => {
                             {/* 휴가 관련 버튼 */}
                             <div className="flex items-center gap-2">
                                 {/* 휴가 신청 버튼 - 모든 사용자 */}
-                                <button 
+                                <button
                                     onClick={() => setShowVacationRequestModal(true)}
                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center text-sm font-medium transition-colors shadow-sm"
                                 >
                                     <FiPlusCircle className="w-4 h-4 mr-2" />
                                     휴가신청
                                 </button>
-                                
+
                                 {/* 휴가 관리 버튼 */}
-                                <button 
+                                <button
                                     onClick={() => setShowVacationManagementModal(true)}
                                     className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center text-sm font-medium transition-colors shadow-sm"
                                 >
                                     <FiClipboard className="w-4 h-4 mr-2" />
-                                    {isAdmin ? '휴가관리' : '내 휴가'}
+                                    {isAdmin ? "휴가관리" : "내 휴가"}
                                 </button>
                             </div>
 
@@ -522,7 +521,7 @@ const HRPage: React.FC = () => {
 
                             {/* 직원등록 버튼 - MANAGER만 표시 */}
                             {isAdmin && (
-                                <button 
+                                <button
                                     onClick={() => setShowEmployeeRegistrationModal(true)}
                                     className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 flex items-center text-sm font-medium transition-colors shadow-sm"
                                 >
@@ -530,15 +529,15 @@ const HRPage: React.FC = () => {
                                     직원등록
                                 </button>
                             )}
-                            
+
                             <div className="hidden sm:flex items-center text-sm text-gray-500">
                                 <div className="flex items-center mr-4">
                                     <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
-                                    재직: {employees.filter((emp) => emp.status === 'active').length}명
+                                    재직: {employees.filter((emp) => emp.status === "active").length}명
                                 </div>
                                 <div className="flex items-center">
                                     <div className="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
-                                    퇴사: {employees.filter((emp) => emp.status === 'terminated').length}명
+                                    퇴사: {employees.filter((emp) => emp.status === "terminated").length}명
                                 </div>
                             </div>
                         </div>
@@ -570,7 +569,7 @@ const HRPage: React.FC = () => {
                             <SelectInput
                                 defaultText="모든 직급"
                                 options={positionOptions}
-                                onChange={(value) => setPositionFilter(value === '전체' ? '' : value)}
+                                onChange={(value) => setPositionFilter(value === "전체" ? "" : value)}
                             />
                         </div>
 
@@ -582,7 +581,7 @@ const HRPage: React.FC = () => {
                                 options={statusOptions.map((option) => option.label)}
                                 onChange={(value) => {
                                     const selectedOption = statusOptions.find((option) => option.label === value);
-                                    setStatusFilter(selectedOption ? selectedOption.value : '');
+                                    setStatusFilter(selectedOption ? selectedOption.value : "");
                                 }}
                             />
                         </div>
@@ -610,9 +609,9 @@ const HRPage: React.FC = () => {
                                 )}
                                 <button
                                     onClick={() => {
-                                        setSearchQuery('');
-                                        setPositionFilter('');
-                                        setStatusFilter('');
+                                        setSearchQuery("");
+                                        setPositionFilter("");
+                                        setStatusFilter("");
                                     }}
                                     className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors"
                                 >
@@ -637,12 +636,12 @@ const HRPage: React.FC = () => {
                             <FiUsers className="w-10 h-10 text-gray-400" />
                         </div>
                         <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                            {employees.length === 0 ? '직원 정보가 없습니다' : '검색 결과가 없습니다'}
+                            {employees.length === 0 ? "직원 정보가 없습니다" : "검색 결과가 없습니다"}
                         </h3>
                         <p className="text-gray-600 mb-6">
                             {employees.length === 0
-                                ? '직원 정보를 불러올 수 없습니다.'
-                                : '다른 검색 조건으로 시도해보세요.'}
+                                ? "직원 정보를 불러올 수 없습니다."
+                                : "다른 검색 조건으로 시도해보세요."}
                         </p>
                     </div>
                 )}
@@ -690,9 +689,7 @@ const HRPage: React.FC = () => {
 
             {/* 휴가 관리 모달 */}
             {showVacationManagementModal && (
-                <VacationManagementModal
-                    onClose={() => setShowVacationManagementModal(false)}
-                />
+                <VacationManagementModal onClose={() => setShowVacationManagementModal(false)} />
             )}
         </div>
     );

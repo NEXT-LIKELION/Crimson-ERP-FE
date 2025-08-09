@@ -1,9 +1,9 @@
 // src/components/modals/EmployeeDetailsModal.tsx
-import React, { useState } from 'react';
-import { FiX, FiEdit, FiCheck, FiXCircle, FiFileText, FiCalendar } from 'react-icons/fi';
-import { MappedEmployee } from '../../pages/HR/HRPage';
-import { ALLOWED_TABS_OPTIONS, AllowedTab } from '../../api/hr';
-import VacationCalendar from '../calendar/VacationCalendar';
+import React, { useState } from "react";
+import { FiX, FiEdit, FiCheck, FiXCircle, FiFileText, FiCalendar } from "react-icons/fi";
+import { MappedEmployee } from "../../pages/HR/HRPage";
+import { ALLOWED_TABS_OPTIONS } from "../../api/hr";
+import VacationCalendar from "../calendar/VacationCalendar";
 
 interface EmployeeDetailsModalProps {
     employee: MappedEmployee;
@@ -15,13 +15,13 @@ interface EmployeeDetailsModalProps {
 
 // 날짜 형식 변환 함수
 const formatDateToKorean = (dateString: string): string => {
-    if (!dateString) return '';
+    if (!dateString) return "";
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
 
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
 
     return `${year}년 ${month}월 ${day}일`;
 };
@@ -50,48 +50,51 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
     };
 
     const handleAllowedTabsChange = (tabValue: string) => {
-        if (editedEmployee.role === 'MANAGER') return; // MANAGER는 수정 불가
-        
+        if (editedEmployee.role === "MANAGER") return; // MANAGER는 수정 불가
+
         const currentTabs = editedEmployee.allowed_tabs || [];
         const newTabs = currentTabs.includes(tabValue)
-            ? currentTabs.filter(tab => tab !== tabValue)
+            ? currentTabs.filter((tab) => tab !== tabValue)
             : [...currentTabs, tabValue];
-        
-        setEditedEmployee(prev => ({
+
+        setEditedEmployee((prev) => ({
             ...prev,
-            allowed_tabs: newTabs
+            allowed_tabs: newTabs,
         }));
     };
 
     const handleSave = async () => {
         if (!editedEmployee.email || !editedEmployee.phone) {
-            alert('이메일과 전화번호를 입력해주세요.');
+            alert("이메일과 전화번호를 입력해주세요.");
             return;
         }
 
         if (!editedEmployee.name || !editedEmployee.hire_date) {
-            alert('이름과 입사일을 입력해주세요.');
+            alert("이름과 입사일을 입력해주세요.");
             return;
         }
 
         if (editedEmployee.annual_leave_days < 0 || editedEmployee.annual_leave_days > 365) {
-            alert('연차 일수는 0일에서 365일 사이여야 합니다.');
+            alert("연차 일수는 0일에서 365일 사이여야 합니다.");
             return;
         }
 
         // MANAGER가 아닌 경우 권한 체크
-        if (editedEmployee.role !== 'MANAGER' && (!editedEmployee.allowed_tabs || editedEmployee.allowed_tabs.length === 0)) {
-            alert('최소 하나의 접근 권한을 선택해주세요.');
+        if (
+            editedEmployee.role !== "MANAGER" &&
+            (!editedEmployee.allowed_tabs || editedEmployee.allowed_tabs.length === 0)
+        ) {
+            alert("최소 하나의 접근 권한을 선택해주세요.");
             return;
         }
 
         try {
             await onUpdateEmployee(editedEmployee);
             setIsEditing(false);
-            alert('직원 정보가 성공적으로 업데이트되었습니다.');
+            alert("직원 정보가 성공적으로 업데이트되었습니다.");
         } catch (error) {
-            console.error('직원 정보 업데이트 실패:', error);
-            alert('직원 정보 업데이트에 실패했습니다. 다시 시도해주세요.');
+            console.error("직원 정보 업데이트 실패:", error);
+            alert("직원 정보 업데이트에 실패했습니다. 다시 시도해주세요.");
         }
     };
 
@@ -110,7 +113,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
     return (
         <div
             className="fixed inset-0 flex items-center justify-center z-50 p-4"
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+            style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
             onClick={handleBackdropClick}
         >
             <div
@@ -231,12 +234,14 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                                     placeholder="연차 일수를 입력하세요"
                                 />
                             ) : (
-                                <span className="text-gray-900">{employee.annual_leave_days}일 (남은 연차: {employee.remaining_leave_days}일)</span>
+                                <span className="text-gray-900">
+                                    {employee.annual_leave_days}일 (남은 연차: {employee.remaining_leave_days}일)
+                                </span>
                             )}
                         </div>
 
                         {/* 권한 탭 관리 - MANAGER가 아닌 경우만 표시 */}
-                        {employee.role !== 'MANAGER' && (
+                        {employee.role !== "MANAGER" && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">접근 권한</label>
                                 {isEditing && isAdmin ? (
@@ -256,9 +261,12 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                                 ) : (
                                     <div className="flex flex-wrap gap-1">
                                         {(employee.allowed_tabs || []).map((tab) => {
-                                            const tabOption = ALLOWED_TABS_OPTIONS.find(opt => opt.value === tab);
+                                            const tabOption = ALLOWED_TABS_OPTIONS.find((opt) => opt.value === tab);
                                             return (
-                                                <span key={tab} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                <span
+                                                    key={tab}
+                                                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                                >
                                                     {tabOption?.label || tab}
                                                 </span>
                                             );
@@ -335,7 +343,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                     </div>
                 </div>
             </div>
-            
+
             {/* 휴가 캘린더 모달 */}
             {showVacationCalendar && (
                 <VacationCalendar

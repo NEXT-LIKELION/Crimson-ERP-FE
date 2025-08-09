@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import GreenButton from '../../components/button/GreenButton';
-import { FaPlus } from 'react-icons/fa6';
-import { MdOutlineDownload, MdFilterList, MdOutlineEdit } from 'react-icons/md';
-import { useSuppliers, useCreateSupplier, useSupplierById, useUpdateSupplier } from '../../hooks/queries/useSuppliers';
-import AddSupplierModal from '../../components/modal/AddSupplierModal';
-import InventoryTable from '../../components/inventorytable/InventoryTable';
-import axios from '../../api/axios';
-import { fetchInventories } from '../../api/inventory';
-import { updateSupplierVariant } from '../../api/supplier';
-import { usePermissions } from '../../hooks/usePermissions';
+import React, { useState, useEffect } from "react";
+import GreenButton from "../../components/button/GreenButton";
+import { FaPlus } from "react-icons/fa6";
+import { MdOutlineDownload, MdFilterList, MdOutlineEdit } from "react-icons/md";
+import { useSuppliers, useCreateSupplier, useSupplierById, useUpdateSupplier } from "../../hooks/queries/useSuppliers";
+import AddSupplierModal from "../../components/modal/AddSupplierModal";
+import { fetchInventories } from "../../api/inventory";
+import { updateSupplierVariant } from "../../api/supplier";
+import { usePermissions } from "../../hooks/usePermissions";
 
 interface Supplier {
     id: number;
@@ -23,8 +21,8 @@ const SupplierPage: React.FC = () => {
     const { data, isLoading, error } = useSuppliers();
     const createSupplier = useCreateSupplier();
     const permissions = usePermissions();
-    const [searchInput, setSearchInput] = useState('');
-    const [search, setSearch] = useState('');
+    const [searchInput, setSearchInput] = useState("");
+    const [search, setSearch] = useState("");
     const [isAddModalOpen, setAddModalOpen] = useState(false);
     const [detailId, setDetailId] = useState<number | null>(null);
     const [editId, setEditId] = useState<number | null>(null);
@@ -69,14 +67,14 @@ const SupplierPage: React.FC = () => {
                     <MdFilterList
                         className="cursor-pointer hover:text-gray-700 text-gray-500"
                         size={22}
-                        onClick={() => alert('필터 클릭(추후 구현)')}
+                        onClick={() => alert("필터 클릭(추후 구현)")}
                     />
                     <MdOutlineDownload
                         className="cursor-pointer hover:text-gray-700 text-gray-500"
                         size={22}
-                        onClick={() => alert('다운로드 클릭(추후 구현)')}
+                        onClick={() => alert("다운로드 클릭(추후 구현)")}
                     />
-                    {permissions.canCreate('SUPPLIER') && (
+                    {permissions.canCreate("SUPPLIER") && (
                         <GreenButton
                             text="공급업체 추가"
                             icon={<FaPlus size={16} />}
@@ -122,7 +120,7 @@ const SupplierPage: React.FC = () => {
                                             >
                                                 상세보기
                                             </button>
-                                            {permissions.canEdit('SUPPLIER') && (
+                                            {permissions.canEdit("SUPPLIER") && (
                                                 <button
                                                     className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded text-xs flex items-center"
                                                     onClick={() => setEditId(supplier.id)}
@@ -147,7 +145,7 @@ const SupplierPage: React.FC = () => {
                     try {
                         await createSupplier.mutateAsync(form);
                     } catch (error: any) {
-                        alert(error?.response?.data?.detail || '공급업체 추가 중 오류가 발생했습니다.');
+                        alert(error?.response?.data?.detail || "공급업체 추가 중 오류가 발생했습니다.");
                     }
                 }}
             />
@@ -196,7 +194,7 @@ const SupplierDetailModal = ({
     // variant_code 기반으로 상태 관리 및 핸들러 수정
     const handleEditChange = (
         code: string,
-        field: 'cost_price' | 'is_primary',
+        field: "cost_price" | "is_primary",
         value: any,
         original: { cost_price: number; is_primary: boolean }
     ) => {
@@ -216,7 +214,7 @@ const SupplierDetailModal = ({
     const handleSave = async (variant: any) => {
         const code = variant.variant_code;
         if (!code) {
-            alert('variant_code가 없습니다.');
+            alert("variant_code가 없습니다.");
             return;
         }
         const edit = variantEdits[code] || { cost_price: variant.cost_price, is_primary: variant.is_primary };
@@ -226,9 +224,9 @@ const SupplierDetailModal = ({
                 cost_price: edit.cost_price,
                 is_primary: edit.is_primary,
             }); // 백엔드에서 처리하는 것이므로 파라미터 순서 중요
-            alert('저장되었습니다.');
+            alert("저장되었습니다.");
         } catch (e) {
-            alert('저장 실패');
+            alert("저장 실패");
         } finally {
             setSavingId(null);
         }
@@ -293,7 +291,7 @@ const SupplierDetailModal = ({
                                                     className="border rounded px-2 py-1 w-24 text-right"
                                                     value={edit.cost_price}
                                                     onChange={(e) =>
-                                                        handleEditChange(code, 'cost_price', Number(e.target.value), {
+                                                        handleEditChange(code, "cost_price", Number(e.target.value), {
                                                             cost_price: variant.cost_price,
                                                             is_primary: variant.is_primary,
                                                         })
@@ -305,7 +303,7 @@ const SupplierDetailModal = ({
                                                     type="checkbox"
                                                     checked={edit.is_primary}
                                                     onChange={(e) =>
-                                                        handleEditChange(code, 'is_primary', e.target.checked, {
+                                                        handleEditChange(code, "is_primary", e.target.checked, {
                                                             cost_price: variant.cost_price,
                                                             is_primary: variant.is_primary,
                                                         })
@@ -318,7 +316,7 @@ const SupplierDetailModal = ({
                                                     onClick={() => handleSave(variant)}
                                                     disabled={savingId === code}
                                                 >
-                                                    {savingId === code ? '저장중...' : '저장'}
+                                                    {savingId === code ? "저장중..." : "저장"}
                                                 </button>
                                             </td>
                                         </tr>

@@ -1,7 +1,4 @@
-import React from 'react';
-
-
-export default function AlertsPage(){
+export default function AlertsPage() {
     return (
         <div>
             <h1>Alerts</h1>
