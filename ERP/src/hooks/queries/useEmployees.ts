@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     fetchEmployees,
     fetchEmployee,
-    updateEmployee,
     patchEmployee,
     terminateEmployee,
     type Employee,
