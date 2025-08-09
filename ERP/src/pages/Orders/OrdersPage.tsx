@@ -156,6 +156,7 @@ const OrdersPage: React.FC = () => {
             setVariantIdToCode(mapping);
         }).catch((error) => {
             console.error('Failed to fetch inventories:', error);
+            alert('상품 데이터를 불러오는데 실패했습니다.');
             setVariantIdToCode({});
         });
     }, []);
@@ -170,6 +171,7 @@ const OrdersPage: React.FC = () => {
             setSupplierNameToId(mapping);
         }).catch((error) => {
             console.error('Failed to fetch suppliers:', error);
+            alert('공급업체 데이터를 불러오는데 실패했습니다.');
             setSupplierNameToId({});
         });
     }, []);
@@ -459,14 +461,11 @@ const OrdersPage: React.FC = () => {
     }, []);
 
     const handleFilterChange = useCallback((key: keyof SearchFilters, value: string) => {
-        setSearchFilters((prev) => {
-            const newFilters = {
-                ...prev,
-                [key]: value,
-            };
-            setCurrentPage(1); // 필터 변경 시 첫 페이지로 리셋
-            return newFilters;
-        });
+        setSearchFilters((prev) => ({
+            ...prev,
+            [key]: value,
+        }));
+        setCurrentPage(1); // 필터 변경 시 첫 페이지로 리셋
     }, []);
 
     const handleInputChange = (key: keyof SearchFilters, value: string) => {

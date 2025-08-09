@@ -74,6 +74,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 .catch((error) => {
                     console.error('Failed to fetch suppliers:', error);
                     setSuppliers([]);
+                    setFormErrors(prev => [...prev, '공급업체 목록을 불러오는데 실패했습니다.']);
                 });
                 
             fetchInventories()
@@ -84,6 +85,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 .catch((error) => {
                     console.error('Failed to fetch inventories:', error);
                     setProducts([]);
+                    setFormErrors(prev => [...prev, '상품 목록을 불러오는데 실패했습니다.']);
                 });
                 
             resetForm();
