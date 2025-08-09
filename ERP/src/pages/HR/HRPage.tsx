@@ -1,15 +1,15 @@
 // src/pages/HR/HRPage.tsx
 import React, { useState, useEffect } from 'react';
-import { FiSearch, FiUser, FiUsers, FiCalendar, FiTrash2, FiEye, FiPlusCircle, FiClipboard } from 'react-icons/fi';
+import { FiUser, FiUsers, FiCalendar, FiTrash2, FiEye, FiPlusCircle, FiClipboard } from 'react-icons/fi';
 import StatusBadge from '../../components/common/StatusBadge';
-import SearchInput from '../../components/input/SearchInput';
-import SelectInput from '../../components/input/SelectInput';
 import EmployeeDetailsModal from '../../components/modal/EmployeeDetailsModal';
 import EmployeeContractModal from '../../components/modal/EmployeeContractModal';
 import EmployeeRegistrationModal from '../../components/modal/EmployeeRegistrationModal';
 import VacationRequestModal from '../../components/modal/VacationRequestModal';
 import VacationManagementModal from '../../components/modal/VacationManagementModal';
-import { useEmployees, useUpdateEmployee, useTerminateEmployee } from '../../hooks/queries/useEmployees';
+import OrganizationVacationCalendar from '../../components/calendar/OrganizationVacationCalendar';
+import { useEmployees, useTerminateEmployee } from '../../hooks/queries/useEmployees';
+import { useVacations } from '../../hooks/queries/useVacations';
 import { useQueryClient } from '@tanstack/react-query';
 import { Employee, approveEmployee, patchEmployee } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
@@ -108,7 +108,7 @@ const mapEmployeeData = (emp: Employee): MappedEmployee => ({
     email: emp.email,
     phone: emp.contact || '',
     status: emp.status,
-    hire_date: emp.hire_date || emp.date_joined || '',
+    hire_date: emp.hire_date || '',
     annual_leave_days: emp.annual_leave_days || 24,
     allowed_tabs: emp.allowed_tabs || [],
     remaining_leave_days: emp.remaining_leave_days || 0,
@@ -128,19 +128,13 @@ const HRPage: React.FC = () => {
 
     // API 훅 사용
     const { data: employeesData, isLoading, error } = useEmployees();
-    const updateEmployee = useUpdateEmployee();
+    const { data: vacationsData } = useVacations();
     const terminateEmployee = useTerminateEmployee();
     const queryClient = useQueryClient();
 
     // 직원 목록 상태
     const [employees, setEmployees] = useState<MappedEmployee[]>([]);
 
-    // 검색어 상태
-    const [searchQuery, setSearchQuery] = useState('');
-    // 직급 필터 상태
-    const [positionFilter, setPositionFilter] = useState('');
-    // 상태 필터 상태
-    const [statusFilter, setStatusFilter] = useState('');
 
     // 모달 상태 관리
     const [selectedEmployee, setSelectedEmployee] = useState<MappedEmployee | null>(null);
@@ -149,6 +143,7 @@ const HRPage: React.FC = () => {
     const [showEmployeeRegistrationModal, setShowEmployeeRegistrationModal] = useState(false);
     const [showVacationRequestModal, setShowVacationRequestModal] = useState(false);
     const [showVacationManagementModal, setShowVacationManagementModal] = useState(false);
+    const [showOrganizationCalendarModal, setShowOrganizationCalendarModal] = useState(false);
 
     // API 데이터 로드
     useEffect(() => {
@@ -158,23 +153,6 @@ const HRPage: React.FC = () => {
         }
     }, [employeesData]);
 
-    // 필터링된 직원 목록
-    const filteredEmployees = employees.filter((employee) => {
-        // 검색어 필터링
-        const matchesSearch = searchQuery
-            ? employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              employee.id.toString().includes(searchQuery.toLowerCase())
-            : true;
-
-        // 직급 필터링
-        const matchesPosition =
-            positionFilter === '' || positionFilter === '전체' ? true : employee.position === positionFilter;
-
-        // 상태 필터링
-        const matchesStatus = statusFilter === '' ? true : employee.status === statusFilter;
-
-        return matchesSearch && matchesPosition && matchesStatus;
-    });
 
     // 직원 정보 업데이트
     const handleUpdateEmployee = async (updatedEmployee: MappedEmployee) => {
@@ -409,16 +387,6 @@ const HRPage: React.FC = () => {
         );
     };
 
-    // 직급 옵션 (필터링에 사용)
-    const positionOptions = ['전체', '대표', '직원'];
-
-    // 상태 옵션 (필터링에 사용)
-    const statusOptions = [
-        { value: '', label: '전체' },
-        { value: 'active', label: '재직중' },
-        { value: 'terminated', label: '퇴사' },
-        { value: 'denied', label: '승인 대기' },
-    ];
 
     // 모달 제어 함수
     const handleCloseModals = () => {
@@ -515,6 +483,17 @@ const HRPage: React.FC = () => {
                                     <FiClipboard className="w-4 h-4 mr-2" />
                                     {isAdmin ? '휴가관리' : '내 휴가'}
                                 </button>
+
+                                {/* 조직 휴가 캘린더 버튼 - MANAGER만 표시 */}
+                                {isAdmin && (
+                                    <button 
+                                        onClick={() => setShowOrganizationCalendarModal(true)}
+                                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center text-sm font-medium transition-colors shadow-sm"
+                                    >
+                                        <FiCalendar className="w-4 h-4 mr-2" />
+                                        조직 캘린더
+                                    </button>
+                                )}
                             </div>
 
                             {/* 구분선 */}
@@ -530,108 +509,20 @@ const HRPage: React.FC = () => {
                                     직원등록
                                 </button>
                             )}
-                            
-                            <div className="hidden sm:flex items-center text-sm text-gray-500">
-                                <div className="flex items-center mr-4">
-                                    <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
-                                    재직: {employees.filter((emp) => emp.status === 'active').length}명
-                                </div>
-                                <div className="flex items-center">
-                                    <div className="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
-                                    퇴사: {employees.filter((emp) => emp.status === 'terminated').length}명
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* 검색 및 필터 영역 */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                            <FiSearch className="w-5 h-5 mr-2 text-gray-600" />
-                            직원 검색 및 필터
-                        </h2>
-                        <div className="text-sm text-gray-500">
-                            검색 결과: <span className="font-semibold text-gray-900">{filteredEmployees.length}명</span>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        {/* 검색 입력 */}
-                        <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">직원 검색</label>
-                            <SearchInput placeholder="검색하세요" onSearch={(query) => setSearchQuery(query)} />
-                        </div>
-
-                        {/* 직급 필터 */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">직급 필터</label>
-                            <SelectInput
-                                defaultText="모든 직급"
-                                options={positionOptions}
-                                onChange={(value) => setPositionFilter(value === '전체' ? '' : value)}
-                            />
-                        </div>
-
-                        {/* 상태 필터 */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">상태 필터</label>
-                            <SelectInput
-                                defaultText="모든 상태"
-                                options={statusOptions.map((option) => option.label)}
-                                onChange={(value) => {
-                                    const selectedOption = statusOptions.find((option) => option.label === value);
-                                    setStatusFilter(selectedOption ? selectedOption.value : '');
-                                }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* 필터 요약 */}
-                    {(searchQuery || positionFilter || statusFilter) && (
-                        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                            <p className="text-sm text-gray-600 mb-2">적용된 필터:</p>
-                            <div className="flex flex-wrap gap-2">
-                                {searchQuery && (
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        검색: {searchQuery}
-                                    </span>
-                                )}
-                                {positionFilter && (
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        직급: {positionFilter}
-                                    </span>
-                                )}
-                                {statusFilter && (
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                        상태: {statusOptions.find((option) => option.value === statusFilter)?.label}
-                                    </span>
-                                )}
-                                <button
-                                    onClick={() => {
-                                        setSearchQuery('');
-                                        setPositionFilter('');
-                                        setStatusFilter('');
-                                    }}
-                                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors"
-                                >
-                                    필터 초기화
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
 
                 {/* 직원 카드 그리드 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredEmployees.map((employee) => (
+                    {employees.map((employee) => (
                         <EmployeeCard key={employee.id} employee={employee} />
                     ))}
                 </div>
 
                 {/* 결과가 없을 경우 메시지 */}
-                {filteredEmployees.length === 0 && (
+                {employees.length === 0 && (
                     <div className="bg-white p-12 rounded-xl text-center border border-gray-200 shadow-sm">
                         <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
                             <FiUsers className="w-10 h-10 text-gray-400" />
@@ -692,6 +583,19 @@ const HRPage: React.FC = () => {
             {showVacationManagementModal && (
                 <VacationManagementModal
                     onClose={() => setShowVacationManagementModal(false)}
+                />
+            )}
+
+            {/* 조직 휴가 캘린더 모달 - 관리자만 접근 가능 */}
+            {showOrganizationCalendarModal && isAdmin && (
+                <OrganizationVacationCalendar
+                    onClose={() => setShowOrganizationCalendarModal(false)}
+                    allVacations={vacationsData?.data || []}
+                    employees={employees.map(emp => ({
+                        id: emp.id,
+                        name: emp.name,
+                        position: emp.position
+                    }))}
                 />
             )}
         </div>
