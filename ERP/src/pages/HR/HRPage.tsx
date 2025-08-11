@@ -1,9 +1,7 @@
 // src/pages/HR/HRPage.tsx
 import React, { useState, useEffect } from "react";
-import { FiSearch, FiUser, FiUsers, FiCalendar, FiTrash2, FiEye, FiPlusCircle, FiClipboard } from "react-icons/fi";
+import { FiUser, FiUsers, FiCalendar, FiTrash2, FiEye, FiPlusCircle, FiClipboard } from "react-icons/fi";
 import StatusBadge from "../../components/common/StatusBadge";
-import SearchInput from "../../components/input/SearchInput";
-import SelectInput from "../../components/input/SelectInput";
 import EmployeeDetailsModal from "../../components/modal/EmployeeDetailsModal";
 import EmployeeContractModal from "../../components/modal/EmployeeContractModal";
 import EmployeeRegistrationModal from "../../components/modal/EmployeeRegistrationModal";
@@ -134,12 +132,6 @@ const HRPage: React.FC = () => {
     // 직원 목록 상태
     const [employees, setEmployees] = useState<MappedEmployee[]>([]);
 
-    // 검색어 상태
-    const [searchQuery, setSearchQuery] = useState("");
-    // 직급 필터 상태
-    const [positionFilter, setPositionFilter] = useState("");
-    // 상태 필터 상태
-    const [statusFilter, setStatusFilter] = useState("");
 
     // 모달 상태 관리
     const [selectedEmployee, setSelectedEmployee] = useState<MappedEmployee | null>(null);
@@ -157,23 +149,6 @@ const HRPage: React.FC = () => {
         }
     }, [employeesData]);
 
-    // 필터링된 직원 목록
-    const filteredEmployees = employees.filter((employee) => {
-        // 검색어 필터링
-        const matchesSearch = searchQuery
-            ? employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              employee.id.toString().includes(searchQuery.toLowerCase())
-            : true;
-
-        // 직급 필터링
-        const matchesPosition =
-            positionFilter === "" || positionFilter === "전체" ? true : employee.position === positionFilter;
-
-        // 상태 필터링
-        const matchesStatus = statusFilter === "" ? true : employee.status === statusFilter;
-
-        return matchesSearch && matchesPosition && matchesStatus;
-    });
 
     // 직원 정보 업데이트
     const handleUpdateEmployee = async (updatedEmployee: MappedEmployee) => {
@@ -408,16 +383,6 @@ const HRPage: React.FC = () => {
         );
     };
 
-    // 직급 옵션 (필터링에 사용)
-    const positionOptions = ["전체", "대표", "직원"];
-
-    // 상태 옵션 (필터링에 사용)
-    const statusOptions = [
-        { value: "", label: "전체" },
-        { value: "active", label: "재직중" },
-        { value: "terminated", label: "퇴사" },
-        { value: "denied", label: "승인 대기" },
-    ];
 
     // 모달 제어 함수
     const handleCloseModals = () => {
@@ -530,119 +495,26 @@ const HRPage: React.FC = () => {
                                 </button>
                             )}
 
-                            <div className="hidden sm:flex items-center text-sm text-gray-500">
-                                <div className="flex items-center mr-4">
-                                    <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
-                                    재직: {employees.filter((emp) => emp.status === "active").length}명
-                                </div>
-                                <div className="flex items-center">
-                                    <div className="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
-                                    퇴사: {employees.filter((emp) => emp.status === "terminated").length}명
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* 검색 및 필터 영역 */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                            <FiSearch className="w-5 h-5 mr-2 text-gray-600" />
-                            직원 검색 및 필터
-                        </h2>
-                        <div className="text-sm text-gray-500">
-                            검색 결과: <span className="font-semibold text-gray-900">{filteredEmployees.length}명</span>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        {/* 검색 입력 */}
-                        <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">직원 검색</label>
-                            <SearchInput placeholder="검색하세요" onSearch={(query) => setSearchQuery(query)} />
-                        </div>
-
-                        {/* 직급 필터 */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">직급 필터</label>
-                            <SelectInput
-                                defaultText="모든 직급"
-                                options={positionOptions}
-                                onChange={(value) => setPositionFilter(value === "전체" ? "" : value)}
-                            />
-                        </div>
-
-                        {/* 상태 필터 */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">상태 필터</label>
-                            <SelectInput
-                                defaultText="모든 상태"
-                                options={statusOptions.map((option) => option.label)}
-                                onChange={(value) => {
-                                    const selectedOption = statusOptions.find((option) => option.label === value);
-                                    setStatusFilter(selectedOption ? selectedOption.value : "");
-                                }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* 필터 요약 */}
-                    {(searchQuery || positionFilter || statusFilter) && (
-                        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                            <p className="text-sm text-gray-600 mb-2">적용된 필터:</p>
-                            <div className="flex flex-wrap gap-2">
-                                {searchQuery && (
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        검색: {searchQuery}
-                                    </span>
-                                )}
-                                {positionFilter && (
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        직급: {positionFilter}
-                                    </span>
-                                )}
-                                {statusFilter && (
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                        상태: {statusOptions.find((option) => option.value === statusFilter)?.label}
-                                    </span>
-                                )}
-                                <button
-                                    onClick={() => {
-                                        setSearchQuery("");
-                                        setPositionFilter("");
-                                        setStatusFilter("");
-                                    }}
-                                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors"
-                                >
-                                    필터 초기화
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
 
                 {/* 직원 카드 그리드 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredEmployees.map((employee) => (
+                    {employees.map((employee) => (
                         <EmployeeCard key={employee.id} employee={employee} />
                     ))}
                 </div>
 
                 {/* 결과가 없을 경우 메시지 */}
-                {filteredEmployees.length === 0 && (
+                {employees.length === 0 && (
                     <div className="bg-white p-12 rounded-xl text-center border border-gray-200 shadow-sm">
                         <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
                             <FiUsers className="w-10 h-10 text-gray-400" />
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                            {employees.length === 0 ? "직원 정보가 없습니다" : "검색 결과가 없습니다"}
-                        </h3>
-                        <p className="text-gray-600 mb-6">
-                            {employees.length === 0
-                                ? "직원 정보를 불러올 수 없습니다."
-                                : "다른 검색 조건으로 시도해보세요."}
-                        </p>
+                        <h3 className="text-xl font-semibold text-gray-900 mb-3">직원 정보가 없습니다</h3>
+                        <p className="text-gray-600 mb-6">직원 정보를 불러올 수 없습니다.</p>
                     </div>
                 )}
             </div>
