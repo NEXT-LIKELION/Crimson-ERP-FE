@@ -11,7 +11,7 @@ import VacationRequestModal from "../../components/modal/VacationRequestModal";
 import VacationManagementModal from "../../components/modal/VacationManagementModal";
 import { useEmployees, useTerminateEmployee } from "../../hooks/queries/useEmployees";
 import { useQueryClient } from "@tanstack/react-query";
-import { Employee, approveEmployee, patchEmployee } from "../../api/hr";
+import { EmployeeList, approveEmployee, patchEmployee } from "../../api/hr";
 import { useAuthStore } from "../../store/authStore";
 
 // 직원 상태 타입
@@ -97,8 +97,8 @@ export interface MappedEmployee {
     updated_at: string;
 }
 
-// 백엔드 Employee를 프론트엔드 MappedEmployee로 변환
-const mapEmployeeData = (emp: Employee): MappedEmployee => ({
+// 백엔드 EmployeeList를 프론트엔드 MappedEmployee로 변환
+const mapEmployeeData = (emp: EmployeeList): MappedEmployee => ({
     id: emp.id,
     name: emp.first_name || emp.username, // 이름이 있으면 first_name, 없으면 username 사용
     username: emp.username, // API 호출 시 사용할 실제 username
@@ -109,11 +109,11 @@ const mapEmployeeData = (emp: Employee): MappedEmployee => ({
     phone: emp.contact || "",
     status: emp.status,
     hire_date: emp.hire_date || "",
-    annual_leave_days: emp.annual_leave_days || 24,
-    allowed_tabs: emp.allowed_tabs || [],
-    remaining_leave_days: emp.remaining_leave_days || 0,
-    vacation_days: emp.vacation_days || [],
-    vacation_pending_days: emp.vacation_pending_days || [],
+    annual_leave_days: 0, // 목록 조회에서는 제공되지 않음
+    allowed_tabs: [], // 목록 조회에서는 제공되지 않음
+    remaining_leave_days: parseInt(emp.remaining_leave_days) || 0,
+    vacation_days: [], // 목록 조회에서는 제공되지 않음
+    vacation_pending_days: [], // 목록 조회에서는 제공되지 않음
     created_at: "",
     updated_at: "",
 });
@@ -152,7 +152,7 @@ const HRPage: React.FC = () => {
     // API 데이터 로드
     useEffect(() => {
         if (employeesData?.data) {
-            const mapped = employeesData.data.map((emp: Employee) => mapEmployeeData(emp));
+            const mapped = employeesData.data.map((emp: EmployeeList) => mapEmployeeData(emp));
             setEmployees(mapped);
         }
     }, [employeesData]);

@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchEmployees, fetchEmployee, patchEmployee, terminateEmployee, type EmployeePatchData } from "../../api/hr";
+import { fetchEmployees, fetchEmployee, patchEmployee, terminateEmployee, type EmployeePatchData, type EmployeeList, type EmployeeDetail } from "../../api/hr";
 
 // 직원 목록 조회 훅
 export const useEmployees = () =>
-    useQuery({
+    useQuery<{data: EmployeeList[]}>({
         queryKey: ["employees"],
         queryFn: fetchEmployees,
         staleTime: 1000 * 60 * 5, // 5분
@@ -12,7 +12,7 @@ export const useEmployees = () =>
 
 // 직원 상세 조회 훅
 export const useEmployee = (employeeId: number) =>
-    useQuery({
+    useQuery<{data: EmployeeDetail}>({
         queryKey: ["employee", employeeId],
         queryFn: () => fetchEmployee(employeeId),
         staleTime: 1000 * 30, // 30초

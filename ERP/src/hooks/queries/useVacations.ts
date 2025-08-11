@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchVacations, createVacation, reviewVacation, type VacationStatus } from "../../api/hr";
+import { fetchVacations, createVacation, reviewVacation, type VacationStatus, type VacationRequest, type VacationCreateData } from "../../api/hr";
 
 // 휴가 목록 조회 훅
 export const useVacations = () =>
-    useQuery({
+    useQuery<{data: VacationRequest[]}>({
         queryKey: ["vacations"],
         queryFn: fetchVacations,
         staleTime: 1000 * 60 * 2, // 2분
@@ -14,13 +14,13 @@ export const useVacations = () =>
 export const useCreateVacation = () => {
     const queryClient = useQueryClient();
 
-    return useMutation({
+    return useMutation<{data: VacationRequest}, Error, VacationCreateData>({
         mutationFn: createVacation,
         onSuccess: () => {
             // 휴가 목록 새로고침
             queryClient.invalidateQueries({ queryKey: ["vacations"] });
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             console.error("휴가 신청 실패:", error);
         },
     });
@@ -30,14 +30,14 @@ export const useCreateVacation = () => {
 export const useReviewVacation = () => {
     const queryClient = useQueryClient();
 
-    return useMutation({
+    return useMutation<{data: VacationRequest}, Error, { vacationId: number; status: VacationStatus }>({
         mutationFn: ({ vacationId, status }: { vacationId: number; status: VacationStatus }) =>
             reviewVacation(vacationId, status),
         onSuccess: () => {
             // 휴가 목록 새로고침
             queryClient.invalidateQueries({ queryKey: ["vacations"] });
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             console.error("휴가 처리 실패:", error);
         },
     });
