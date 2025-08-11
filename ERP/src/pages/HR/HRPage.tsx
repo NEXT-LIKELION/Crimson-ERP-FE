@@ -7,6 +7,7 @@ import EmployeeContractModal from "../../components/modal/EmployeeContractModal"
 import EmployeeRegistrationModal from "../../components/modal/EmployeeRegistrationModal";
 import VacationRequestModal from "../../components/modal/VacationRequestModal";
 import VacationManagementModal from "../../components/modal/VacationManagementModal";
+import OrganizationVacationCalendar from "../../components/calendar/OrganizationVacationCalendar";
 import { useEmployees, useTerminateEmployee } from "../../hooks/queries/useEmployees";
 import { useQueryClient } from "@tanstack/react-query";
 import { EmployeeList, approveEmployee, patchEmployee } from "../../api/hr";
@@ -140,6 +141,7 @@ const HRPage: React.FC = () => {
     const [showEmployeeRegistrationModal, setShowEmployeeRegistrationModal] = useState(false);
     const [showVacationRequestModal, setShowVacationRequestModal] = useState(false);
     const [showVacationManagementModal, setShowVacationManagementModal] = useState(false);
+    const [showOrganizationVacationCalendar, setShowOrganizationVacationCalendar] = useState(false);
 
     // API 데이터 로드
     useEffect(() => {
@@ -479,6 +481,17 @@ const HRPage: React.FC = () => {
                                     <FiClipboard className="w-4 h-4 mr-2" />
                                     {isAdmin ? "휴가관리" : "내 휴가"}
                                 </button>
+
+                                {/* 조직 휴가 캘린더 버튼 - 관리자만 표시 */}
+                                {isAdmin && (
+                                    <button
+                                        onClick={() => setShowOrganizationVacationCalendar(true)}
+                                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center text-sm font-medium transition-colors shadow-sm"
+                                    >
+                                        <FiCalendar className="w-4 h-4 mr-2" />
+                                        조직 캘린더
+                                    </button>
+                                )}
                             </div>
 
                             {/* 구분선 */}
@@ -562,6 +575,11 @@ const HRPage: React.FC = () => {
             {/* 휴가 관리 모달 */}
             {showVacationManagementModal && (
                 <VacationManagementModal onClose={() => setShowVacationManagementModal(false)} />
+            )}
+
+            {/* 조직 휴가 캘린더 모달 */}
+            {showOrganizationVacationCalendar && (
+                <OrganizationVacationCalendar onClose={() => setShowOrganizationVacationCalendar(false)} />
             )}
         </div>
     );
