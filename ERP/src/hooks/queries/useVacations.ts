@@ -16,9 +16,17 @@ export const useCreateVacation = () => {
 
     return useMutation<{data: VacationRequest}, Error, VacationCreateData>({
         mutationFn: createVacation,
-        onSuccess: () => {
+        onSuccess: (data) => {
             // 휴가 목록 새로고침
             queryClient.invalidateQueries({ queryKey: ["vacations"] });
+            
+            // 해당 직원의 정보도 새로고침 (휴가 데이터 갱신을 위해)
+            if (data?.data?.employee) {
+                queryClient.invalidateQueries({ queryKey: ["employee", data.data.employee] });
+            }
+            
+            // 전체 직원 목록도 새로고침
+            queryClient.invalidateQueries({ queryKey: ["employees"] });
         },
         onError: (error: Error) => {
             console.error("휴가 신청 실패:", error);
@@ -33,9 +41,17 @@ export const useReviewVacation = () => {
     return useMutation<{data: VacationRequest}, Error, { vacationId: number; status: VacationStatus }>({
         mutationFn: ({ vacationId, status }: { vacationId: number; status: VacationStatus }) =>
             reviewVacation(vacationId, status),
-        onSuccess: () => {
+        onSuccess: (data) => {
             // 휴가 목록 새로고침
             queryClient.invalidateQueries({ queryKey: ["vacations"] });
+            
+            // 해당 직원의 정보도 새로고침 (휴가 데이터 갱신을 위해)
+            if (data?.data?.employee) {
+                queryClient.invalidateQueries({ queryKey: ["employee", data.data.employee] });
+            }
+            
+            // 전체 직원 목록도 새로고침 (remaining_leave_days 갱신을 위해)
+            queryClient.invalidateQueries({ queryKey: ["employees"] });
         },
         onError: (error: Error) => {
             console.error("휴가 처리 실패:", error);

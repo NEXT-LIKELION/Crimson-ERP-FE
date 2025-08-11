@@ -115,6 +115,23 @@ export interface VacationDay {
     leave_type: LeaveType;
 }
 
+// 휴가 데이터 파싱 유틸리티 함수
+export const parseVacationDays = (vacationData: string | VacationDay[]): VacationDay[] => {
+    if (!vacationData) return [];
+    
+    // 이미 배열인 경우
+    if (Array.isArray(vacationData)) return vacationData;
+    
+    // 문자열인 경우 JSON 파싱 시도
+    try {
+        const parsed = JSON.parse(vacationData);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        console.warn('휴가 데이터 파싱 실패:', error);
+        return [];
+    }
+};
+
 // 허용된 탭 옵션
 export const ALLOWED_TABS_OPTIONS = [
     { value: 'INVENTORY', label: '재고 관리' },
