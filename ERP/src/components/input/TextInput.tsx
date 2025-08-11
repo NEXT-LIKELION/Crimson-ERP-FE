@@ -12,6 +12,7 @@ interface TextInputProps {
     onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
     extra?: Record<string, unknown>;
     id?: string;
+    noSpinner?: boolean; // number input spinner 제거
 }
 
 const TextInput: React.FC<TextInputProps> = ({
@@ -24,6 +25,7 @@ const TextInput: React.FC<TextInputProps> = ({
     className,
     onChange,
     onKeyDown,
+    noSpinner = false,
 }) => {
     const [internalValue, setInternalValue] = useState<string>('');
     const isControlled = value !== undefined;
@@ -54,8 +56,10 @@ const TextInput: React.FC<TextInputProps> = ({
         ${disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700'}
         ${error ? 'border-red-500 text-red-600' : ''}
         ${!disabled && !error ? 'focus:ring-2 focus:ring-indigo-600' : ''}
+        ${noSpinner && type === 'number' ? 'no-spin appearance-none' : ''}
         ${className}
       `}
+                inputMode={type === 'number' ? 'numeric' : undefined}
             />
         </div>
     );

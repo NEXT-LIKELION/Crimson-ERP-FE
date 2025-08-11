@@ -62,6 +62,14 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     });
     const [errors, setErrors] = useState<string[]>([]);
 
+    // 숫자 입력에서 음수/지수 입력 차단
+    const handleNumberKeyDown = (e: any) => {
+        const blockedKeys = ['-', '+', 'e', 'E'];
+        if (blockedKeys.includes(e.key)) {
+            e.preventDefault();
+        }
+    };
+
     useEffect(() => {
         if (isOpen) {
             setProductType('new');
@@ -344,19 +352,25 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                                     label="판매가"
                                     type="number"
                                     value={form.price?.toString() || ''}
-                                    onChange={(val) => handleChange('price', Number(val) || 0)}
+                                    onChange={(val) => handleChange('price', Math.max(0, Number(val) || 0))}
+                                    onKeyDown={handleNumberKeyDown}
+                                    noSpinner
                                 />
                                 <TextInput
                                     label="초기 재고수량"
                                     type="number"
-                                    value={form.stock?.toString() || '0'}
-                                    onChange={(val) => handleChange('stock', Number(val) || 0)}
+                                    value={Math.max(0, Number(form.stock) || 0).toString()}
+                                    onChange={(val) => handleChange('stock', Math.max(0, Number(val) || 0))}
+                                    onKeyDown={handleNumberKeyDown}
+                                    noSpinner
                                 />
                                 <TextInput
                                     label="최소 재고수량"
                                     type="number"
-                                    value={form.min_stock?.toString() || '0'}
-                                    onChange={(val) => handleChange('min_stock', Number(val) || 0)}
+                                    value={Math.max(0, Number(form.min_stock) || 0).toString()}
+                                    onChange={(val) => handleChange('min_stock', Math.max(0, Number(val) || 0))}
+                                    onKeyDown={handleNumberKeyDown}
+                                    noSpinner
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
                                     재고가 이 수준 이하로 떨어지면 경고가 표시됩니다.
@@ -413,8 +427,12 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                                     <TextInput
                                         label="매입가"
                                         type="number"
-                                        value={supplier.cost_price?.toString() || ''}
-                                        onChange={(val) => handleSupplierChange(index, 'cost_price', Number(val) || 0)}
+                                        value={Math.max(0, Number(supplier.cost_price) || 0).toString()}
+                                        onChange={(val) =>
+                                            handleSupplierChange(index, 'cost_price', Math.max(0, Number(val) || 0))
+                                        }
+                                        onKeyDown={handleNumberKeyDown}
+                                        noSpinner
                                     />
                                     <label className="inline-flex items-center text-sm text-gray-600">
                                         <input

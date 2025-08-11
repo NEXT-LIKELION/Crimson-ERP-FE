@@ -75,8 +75,8 @@ const InventoryTable = ({
 
         // 백엔드에서 이미 필터링된 데이터를 직접 받아서 상태만 계산
         const rows = inventories.map((item) => {
-            const stock = item.stock;
-            const minStock = item.min_stock || 0;
+            const stock = Number(item.stock) || 0;
+            const minStock = Number(item.min_stock) || 0;
 
             // 상태 계산: 품절 > 재고부족 > 정상
             let status = '정상';
@@ -89,13 +89,14 @@ const InventoryTable = ({
             const row = {
                 ...item,
                 cost_price: item.cost_price || 0,
-                min_stock: item.min_stock || 0,
+                min_stock: minStock,
                 variant_id: item.variant_code || '',
                 orderCount: item.order_count ?? 0,
                 returnCount: item.return_count ?? 0,
                 totalSales: item.sales ? `${item.sales.toLocaleString()}원` : '0원',
                 status: status,
                 category: item.category || '',
+                stock,
             };
             return row;
         });
