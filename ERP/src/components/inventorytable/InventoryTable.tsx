@@ -49,7 +49,14 @@ const SortableHeader = ({
     </th>
 );
 
-const InventoryTable = ({ inventories, onDelete, pagination, currentPage = 1, onPageChange, onExportToExcel }: InventoryTableProps) => {
+const InventoryTable = ({
+    inventories,
+    onDelete,
+    pagination,
+    currentPage = 1,
+    onPageChange,
+    onExportToExcel,
+}: InventoryTableProps) => {
     const navigate = useNavigate();
     const [data, setData] = useState<TableProduct[]>([]);
     const [sortConfig, setSortConfig] = useState<{
@@ -232,12 +239,12 @@ const InventoryTable = ({ inventories, onDelete, pagination, currentPage = 1, on
                                 </td>
                                 <td className="px-4 py-2">
                                     <span
-                                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                        className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
                                             product.status === '품절'
                                                 ? 'bg-red-100 text-red-800'
                                                 : product.status === '재고부족'
-                                                  ? 'bg-yellow-100 text-yellow-800'
-                                                  : 'bg-green-100 text-green-800'
+                                                ? 'bg-yellow-100 text-yellow-800'
+                                                : 'bg-green-100 text-green-800'
                                         }`}
                                     >
                                         {product.status}
@@ -246,17 +253,19 @@ const InventoryTable = ({ inventories, onDelete, pagination, currentPage = 1, on
                                 <td className="px-4 py-2">{product.orderCount}개</td>
                                 <td className="px-4 py-2">{product.returnCount}개</td>
                                 <td className="px-4 py-2">{product.totalSales}</td>
-                                <td className="px-4 py-2 flex space-x-2 items-center">
-                                    <MdOutlineEdit
-                                        className="text-indigo-500 cursor-pointer"
-                                        onClick={() => {
-                                            navigate(`?edit=${product.variant_id}`);
-                                        }}
-                                    />
-                                    <MdOutlineDelete
-                                        className="text-red-500 cursor-pointer"
-                                        onClick={() => onDelete(product.variant_id)}
-                                    />
+                                <td className="px-4 py-2 align-middle text-center">
+                                    <div className="inline-flex items-center justify-center gap-2">
+                                        <MdOutlineEdit
+                                            className="text-indigo-500 cursor-pointer"
+                                            onClick={() => {
+                                                navigate(`?edit=${product.variant_id}`);
+                                            }}
+                                        />
+                                        <MdOutlineDelete
+                                            className="text-red-500 cursor-pointer"
+                                            onClick={() => onDelete(product.variant_id)}
+                                        />
+                                    </div>
                                 </td>
                             </tr>
                         ))}

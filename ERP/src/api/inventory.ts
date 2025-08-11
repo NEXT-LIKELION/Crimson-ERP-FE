@@ -80,24 +80,40 @@ export const fetchVariantsByProductId = (productId: string) => api.get(`/invento
 // 상품 드롭다운용 목록 조회 (product_id, name만)
 export const fetchProductOptions = () => api.get('/inventory/');
 
+// 단일 variant 상세 조회
+export const fetchVariantDetail = (variantCode: string) => api.get(`/inventory/variants/${variantCode}/`);
+
+// 상품명 중복 여부 확인 (대소문자/공백 무시 정확 일치)
+export const checkProductNameExists = async (name: string): Promise<boolean> => {
+    try {
+        const res = await fetchProductOptions();
+        const list = res.data || [];
+        const target = (name || '').trim().toLowerCase();
+        return list.some((p: any) => (p?.name || '').trim().toLowerCase() === target);
+    } catch (e) {
+        console.error('상품명 중복 체크 실패:', e);
+        // 실패시 보수적으로 중복 아님으로 처리
+        return false;
+    }
+};
+
 // 병합용 전체 데이터 조회 (모든 페이지)
 export const fetchAllInventoriesForMerge = async () => {
     try {
         let allData: any[] = [];
         let page = 1;
         let hasMoreData = true;
-        
+
         while (hasMoreData) {
             const response = await fetchInventories({ page });
             const pageData = response.data.results || [];
             allData = [...allData, ...pageData];
-            
+
             // 다음 페이지가 있는지 확인
             hasMoreData = response.data.next !== null;
             page++;
-            
         }
-        
+
         return allData;
     } catch (error) {
         console.error('전체 데이터 로드 실패:', error);
@@ -111,22 +127,22 @@ export const fetchFilteredInventoriesForExport = async (appliedFilters: any) => 
         let allData: any[] = [];
         let page = 1;
         let hasMoreData = true;
-        
+
         // 백엔드 필터 (상태 필터 제외)
         const backendFilters = { ...appliedFilters };
         delete backendFilters.status;
         delete backendFilters.page;
-        
+
         // 모든 페이지에서 데이터 수집
         while (hasMoreData) {
             const response = await fetchInventories({ ...backendFilters, page });
             const pageData = response.data.results || [];
             allData = [...allData, ...pageData];
-            
+
             hasMoreData = response.data.next !== null;
             page++;
         }
-        
+
         // 프론트엔드 필터링 적용
         const filteredData = allData.filter((item: any) => {
             // 상품명 필터
@@ -172,7 +188,7 @@ export const fetchFilteredInventoriesForExport = async (appliedFilters: any) => 
 
             return true;
         });
-        
+
         return filteredData;
     } catch (error) {
         console.error('필터링된 데이터 로드 실패:', error);
@@ -181,14 +197,18 @@ export const fetchFilteredInventoriesForExport = async (appliedFilters: any) => 
 };
 
 // 재고 조정
-export const adjustStock = (variantCode: string, data: {
-    actual_stock: number;
-    reason: string;
-    updated_by: string;
-}) => {
+export const adjustStock = (
+    variantCode: string,
+    data: {
+        actual_stock: number;
+        reason: string;
+        updated_by: string;
+    }
+) => {
     console.log('adjustStock - variantCode:', variantCode);
     console.log('adjustStock - data:', data);
-    return api.put(`/inventory/variants/stock/${variantCode}/`, data)
+    return api
+        .put(`/inventory/variants/stock/${variantCode}/`, data)
         .then((response) => {
             console.log('adjustStock - response:', response.data);
             return response;
@@ -201,12 +221,10 @@ export const adjustStock = (variantCode: string, data: {
 };
 
 // 재고 변경 이력 조회
-export const fetchStockAdjustments = (params?: {
-    page?: number;
-    variant_code?: string;
-}) => {
+export const fetchStockAdjustments = (params?: { page?: number; variant_code?: string }) => {
     console.log('fetchStockAdjustments - params:', params);
-    return api.get('/inventory/adjustments/', { params })
+    return api
+        .get('/inventory/adjustments/', { params })
         .then((response) => {
             console.log('fetchStockAdjustments - response:', response.data);
             return response;
@@ -218,12 +236,10 @@ export const fetchStockAdjustments = (params?: {
 };
 
 // 상품 코드 병합
-export const mergeVariants = async (payload: {
-    target_variant_code: string;
-    source_variant_codes: string[];
-}) => {
+export const mergeVariants = async (payload: { target_variant_code: string; source_variant_codes: string[] }) => {
     console.log('mergeVariants - payload:', payload);
-    return api.post('/inventory/variants/merge/', payload)
+    return api
+        .post('/inventory/variants/merge/', payload)
         .then((response) => {
             console.log('mergeVariants - response:', response.data);
             return response;
@@ -234,4 +250,3 @@ export const mergeVariants = async (payload: {
             throw error;
         });
 };
-

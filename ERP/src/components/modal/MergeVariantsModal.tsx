@@ -3,6 +3,7 @@ import { Product } from '../../types/product';
 import PrimaryButton from '../button/PrimaryButton';
 import SecondaryButton from '../button/SecondaryButton';
 import { FaExclamationTriangle } from 'react-icons/fa';
+import { precheckMergeConflicts } from '@/utils/mergePrecheck';
 
 interface MergeVariantsModalProps {
     isOpen: boolean;
@@ -11,15 +12,11 @@ interface MergeVariantsModalProps {
     onMerge: (targetCode: string, sourceCodes: string[]) => Promise<void>;
 }
 
-const MergeVariantsModal: React.FC<MergeVariantsModalProps> = ({
-    isOpen,
-    onClose,
-    variants,
-    onMerge
-}) => {
+const MergeVariantsModal: React.FC<MergeVariantsModalProps> = ({ isOpen, onClose, variants, onMerge }) => {
     const [targetVariant, setTargetVariant] = useState<string>('');
     const [sourceVariants, setSourceVariants] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [precheckDuplicates, setPrecheckDuplicates] = useState<Array<{ id: number; name: string }> | null>(null);
 
     // 모달이 열릴 때마다 초기화
     useEffect(() => {
@@ -30,10 +27,8 @@ const MergeVariantsModal: React.FC<MergeVariantsModalProps> = ({
     }, [isOpen]);
 
     const handleSourceToggle = (variantCode: string) => {
-        setSourceVariants(prev => 
-            prev.includes(variantCode)
-                ? prev.filter(code => code !== variantCode)
-                : [...prev, variantCode]
+        setSourceVariants((prev) =>
+            prev.includes(variantCode) ? prev.filter((code) => code !== variantCode) : [...prev, variantCode]
         );
     };
 
@@ -48,27 +43,41 @@ const MergeVariantsModal: React.FC<MergeVariantsModalProps> = ({
             return;
         }
 
-        const confirmMessage = `다음 병합을 진행하시겠습니까?\n\nTarget: ${targetVariant}\nSources: ${sourceVariants.join(', ')}\n\n⚠️ Source 상품들은 영구 삭제됩니다.`;
-        
-        if (!window.confirm(confirmMessage)) {
-            return;
-        }
-
         setIsLoading(true);
         try {
+            // 1) 사전 중복 검사
+            const { duplicates } = await precheckMergeConflicts(targetVariant, sourceVariants);
+            if (duplicates.length > 0) {
+                setPrecheckDuplicates(duplicates);
+                alert(
+                    `병합 불가: 타깃에 이미 연결된 공급업체가 있습니다.\n\n중복: ${duplicates
+                        .map((d) => d.name)
+                        .join(', ')}`
+                );
+                return;
+            }
+
+            // 2) 사용자 최종 확인
+            const confirmMessage = `다음 병합을 진행하시겠습니까?\n\nTarget: ${targetVariant}\nSources: ${sourceVariants.join(
+                ', '
+            )}\n\n⚠️ Source 상품들은 영구 삭제됩니다.`;
+            if (!window.confirm(confirmMessage)) {
+                return;
+            }
+
             await onMerge(targetVariant, sourceVariants);
             alert('상품 병합이 완료되었습니다.');
             onClose();
         } catch (error) {
             console.error('병합 실패:', error);
-            alert('병합 중 오류가 발생했습니다.');
+            alert('병합 중 오류가 발생했습니다. 공급업체 중복 여부를 확인해주세요.');
         } finally {
             setIsLoading(false);
         }
     };
 
-    const availableForTarget = variants.filter(v => !sourceVariants.includes(v.variant_code || ''));
-    const availableForSource = variants.filter(v => v.variant_code !== targetVariant);
+    const availableForTarget = variants.filter((v) => !sourceVariants.includes(v.variant_code || ''));
+    const availableForSource = variants.filter((v) => v.variant_code !== targetVariant);
 
     if (!isOpen) return null;
 
@@ -76,7 +85,7 @@ const MergeVariantsModal: React.FC<MergeVariantsModalProps> = ({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
                 <h2 className="text-xl font-bold mb-4">상품 코드 병합</h2>
-                
+
                 {/* Target 선택 */}
                 <div className="mb-6">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -137,15 +146,19 @@ const MergeVariantsModal: React.FC<MergeVariantsModalProps> = ({
                     </div>
                 </div>
 
+                {/* 프리체크 결과 안내 */}
+                {precheckDuplicates && precheckDuplicates.length > 0 && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+                        타깃 품목에 이미 연결된 공급업체가 있어 병합할 수 없습니다:{' '}
+                        {precheckDuplicates.map((d) => d.name).join(', ')}
+                    </div>
+                )}
+
                 {/* 버튼 */}
                 <div className="flex justify-end space-x-3">
-                    <SecondaryButton
-                        text="취소"
-                        onClick={onClose}
-                        disabled={isLoading}
-                    />
+                    <SecondaryButton text="취소" onClick={onClose} disabled={isLoading} />
                     <PrimaryButton
-                        text={isLoading ? "병합 중..." : "병합 실행"}
+                        text={isLoading ? '병합 중...' : '병합 실행'}
                         onClick={handleMerge}
                         disabled={isLoading || !targetVariant || sourceVariants.length === 0}
                     />
