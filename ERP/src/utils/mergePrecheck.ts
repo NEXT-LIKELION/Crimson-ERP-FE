@@ -1,5 +1,5 @@
-import { fetchVariantDetail } from '@/api/inventory';
-import { fetchSuppliers } from '@/api/supplier';
+import { fetchVariantDetail } from '../api/inventory';
+import { fetchSuppliers } from '../api/supplier';
 
 const normalize = (value: string): string => (value || '').trim().toLowerCase();
 

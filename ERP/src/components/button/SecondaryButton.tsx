@@ -4,10 +4,10 @@ interface SecondaryButtonProps {
   text: string;
   icon?: React.ReactNode;
   onClick?: () => void;
+  disabled?: boolean;
 };
 
-const SecondaryButton: React.FC<SecondaryButtonProps> = ({ text, icon, onClick }) => {
-  const disabled = false;
+const SecondaryButton: React.FC<SecondaryButtonProps> = ({ text, icon, onClick, disabled = false }) => {
 
   return (
     <button

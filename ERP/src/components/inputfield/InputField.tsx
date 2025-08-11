@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from "react";
-import TextInput from "../input/TextInput";
-import SelectInput from "../input/SelectInput";
-import PrimaryButton from "../button/PrimaryButton";
-import { MdSearch, MdRefresh } from "react-icons/md";
-import Slider from "rc-slider";
-import "rc-slider/assets/index.css";
+import React, { useState, useEffect } from 'react';
+import TextInput from '../input/TextInput';
+import SelectInput from '../input/SelectInput';
+import PrimaryButton from '../button/PrimaryButton';
+import { MdSearch, MdRefresh } from 'react-icons/md';
+import Slider from 'rc-slider';
+import 'rc-slider/assets/index.css';
 
 // 슬라이더 범위 상수
 const SLIDER_CONFIG = {
     STOCK: { min: 0, max: 1000 },
-    SALES: { min: 0, max: 5000000 }
+    SALES: { min: 0, max: 5000000 },
 } as const;
 
 interface InputFieldProps {
@@ -37,7 +37,7 @@ const InputField: React.FC<InputFieldProps> = ({
     onProductNameChange,
     category,
     onCategoryChange,
-    categoryOptions = ["모든 카테고리", "일반", "특가", "한정판"],
+    categoryOptions = ['모든 카테고리', '일반', '특가', '한정판'],
     status,
     onStatusChange,
     minStock,
@@ -52,8 +52,14 @@ const InputField: React.FC<InputFieldProps> = ({
     onReset,
 }) => {
     // 슬라이더의 내부 상태 관리
-    const [salesSliderValues, setSalesSliderValues] = useState<[number, number]>([SLIDER_CONFIG.SALES.min, SLIDER_CONFIG.SALES.max]);
-    const [stockSliderValues, setStockSliderValues] = useState<[number, number]>([SLIDER_CONFIG.STOCK.min, SLIDER_CONFIG.STOCK.max]);
+    const [salesSliderValues, setSalesSliderValues] = useState<[number, number]>([
+        SLIDER_CONFIG.SALES.min,
+        SLIDER_CONFIG.SALES.max,
+    ]);
+    const [stockSliderValues, setStockSliderValues] = useState<[number, number]>([
+        SLIDER_CONFIG.STOCK.min,
+        SLIDER_CONFIG.STOCK.max,
+    ]);
 
     // props의 minSales, maxSales가 변경될 때 슬라이더 값 동기화
     useEffect(() => {
@@ -66,32 +72,38 @@ const InputField: React.FC<InputFieldProps> = ({
     useEffect(() => {
         const min = minStock ? parseInt(minStock) : SLIDER_CONFIG.STOCK.min;
         const max = maxStock ? parseInt(maxStock) : SLIDER_CONFIG.STOCK.max;
-        
+
         // 현재 슬라이더 값과 다를 때만 업데이트 (무한 루프 방지)
         if (stockSliderValues[0] !== min || stockSliderValues[1] !== max) {
             setStockSliderValues([min, max]);
         }
-    }, [minStock, maxStock, stockSliderValues]);
+    }, [minStock, maxStock]);
 
     // 엔터키 입력 시 검색 실행
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
+        if (e.key === 'Enter') {
             onSearch();
         }
     };
 
-    // 판매합계 슬라이더 값 변경 핸들러
+    // 판매합계 슬라이더 값 변경 핸들러 (드래그 중 미리보기만 업데이트)
     const handleSalesSliderChange = (value: number | number[]) => {
         const [min, max] = value as number[];
         setSalesSliderValues([min, max]);
+    };
+    const handleSalesSliderAfterChange = (value: number | number[]) => {
+        const [min, max] = value as number[];
         onMinSalesChange(min.toString());
         onMaxSalesChange(max.toString());
     };
 
-    // 재고수량 슬라이더 값 변경 핸들러
+    // 재고수량 슬라이더 값 변경 핸들러 (드래그 중 미리보기만 업데이트)
     const handleStockSliderChange = (value: number | number[]) => {
         const [min, max] = value as number[];
         setStockSliderValues([min, max]);
+    };
+    const handleStockSliderAfterChange = (value: number | number[]) => {
+        const [min, max] = value as number[];
         onMinStockChange(min.toString());
         onMaxStockChange(max.toString());
     };
@@ -122,13 +134,13 @@ const InputField: React.FC<InputFieldProps> = ({
                     <p className="text-sm font-semibold text-gray-700">상태</p>
                     <SelectInput
                         defaultText="모든 상태"
-                        options={["모든 상태", "정상", "재고부족", "품절"]}
+                        options={['모든 상태', '정상', '재고부족', '품절']}
                         value={status}
                         onChange={onStatusChange}
                     />
                 </div>
             </div>
-            
+
             {/* 두 번째 행: 재고수량 슬라이더, 판매합계 슬라이더 */}
             <div className="flex space-x-6 mb-4">
                 <div className="flex flex-col w-72">
@@ -140,12 +152,13 @@ const InputField: React.FC<InputFieldProps> = ({
                         step={10}
                         value={stockSliderValues}
                         onChange={handleStockSliderChange}
+                        onAfterChange={handleStockSliderAfterChange}
                         allowCross={false}
                         pushable={0}
-                        trackStyle={[{ backgroundColor: "#10b981" }]} // 초록색
+                        trackStyle={[{ backgroundColor: '#10b981' }]} // 초록색
                         handleStyle={[
-                            { borderColor: "#10b981", backgroundColor: "#10b981" },
-                            { borderColor: "#10b981", backgroundColor: "#10b981" },
+                            { borderColor: '#10b981', backgroundColor: '#10b981' },
+                            { borderColor: '#10b981', backgroundColor: '#10b981' },
                         ]}
                     />
                     <div className="flex justify-between text-sm text-gray-600 mt-1 px-1">
@@ -162,10 +175,11 @@ const InputField: React.FC<InputFieldProps> = ({
                         step={10000}
                         value={salesSliderValues}
                         onChange={handleSalesSliderChange}
-                        trackStyle={[{ backgroundColor: "#2563eb" }]} // 파란색
+                        onAfterChange={handleSalesSliderAfterChange}
+                        trackStyle={[{ backgroundColor: '#2563eb' }]} // 파란색
                         handleStyle={[
-                            { borderColor: "#2563eb", backgroundColor: "#2563eb" },
-                            { borderColor: "#2563eb", backgroundColor: "#2563eb" },
+                            { borderColor: '#2563eb', backgroundColor: '#2563eb' },
+                            { borderColor: '#2563eb', backgroundColor: '#2563eb' },
                         ]}
                     />
                     <div className="flex justify-between text-sm text-gray-600 mt-1 px-1">

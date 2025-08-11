@@ -4,10 +4,10 @@ interface PrimaryButtonProps {
   text: string;
   icon?: React.ReactNode;
   onClick?: () => void;
+  disabled?: boolean;
 }
 
-const PrimaryButton: React.FC<PrimaryButtonProps> = ({ text, icon, onClick }) => {
-  const disabled = false; // 내부에서 기본값 설정
+const PrimaryButton: React.FC<PrimaryButtonProps> = ({ text, icon, onClick, disabled = false }) => {
 
   return (
     <button

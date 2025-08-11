@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiX, FiAlertTriangle } from 'react-icons/fi';
-import { FaBoxes, FaEdit } from 'react-icons/fa';
+import { FaBoxes } from 'react-icons/fa';
 import TextInput from '../input/TextInput';
 import PrimaryButton from '../button/PrimaryButton';
 import SecondaryButton from '../button/SecondaryButton';
@@ -240,7 +240,6 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                         text={isLoading ? '조정 중...' : '재고 조정'}
                         onClick={handleSubmit}
                         disabled={isLoading}
-                        icon={<FaEdit size={16} />}
                     />
                 </div>
             </div>

@@ -3,7 +3,7 @@ import { Product } from '../../types/product';
 import PrimaryButton from '../button/PrimaryButton';
 import SecondaryButton from '../button/SecondaryButton';
 import { FaExclamationTriangle } from 'react-icons/fa';
-import { precheckMergeConflicts } from '@/utils/mergePrecheck';
+import { precheckMergeConflicts } from '../../utils/mergePrecheck';
 
 interface MergeVariantsModalProps {
     isOpen: boolean;

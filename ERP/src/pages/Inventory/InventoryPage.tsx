@@ -17,6 +17,7 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import EditProductModal from '../../components/modal/EditProductModal';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import AddProductModal from '../../components/modal/AddProductModal';
 import MergeVariantsModal from '../../components/modal/MergeVariantsModal';
 import StockAdjustmentModal from '../../components/modal/StockAdjustmentModal';
@@ -104,6 +105,121 @@ const InventoryPage = () => {
     }, [searchParams, isInitialized]);
 
     const { data, isLoading, error, refetch, pagination } = useInventories(appliedFilters);
+
+    // debounced values for text filters
+    const debouncedProductName = useDebouncedValue(productName, 300);
+
+    // 자동 적용: 상품명 텍스트는 디바운스 후 바로 필터 반영
+    useEffect(() => {
+        if (!isInitialized) return;
+        const newFilters: any = { ...appliedFilters, page: 1 };
+        if (debouncedProductName.trim()) {
+            newFilters.name = debouncedProductName.trim();
+        } else {
+            delete newFilters.name;
+        }
+        setCurrentPage(1);
+        setAppliedFilters(newFilters);
+        updateURL(newFilters, 1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedProductName]);
+
+    // 자동 적용: 카테고리 드롭다운 변경 시 즉시 필터 반영
+    useEffect(() => {
+        if (!isInitialized) return;
+        const newFilters: any = { ...appliedFilters, page: 1 };
+        
+        // 기존 필터에서 이름 유지
+        if (debouncedProductName.trim()) {
+            newFilters.name = debouncedProductName.trim();
+        }
+        
+        // 카테고리 필터 적용
+        if (category && category !== '모든 카테고리') {
+            newFilters.category = category;
+        } else {
+            delete newFilters.category;
+        }
+        
+        setCurrentPage(1);
+        setAppliedFilters(newFilters);
+        updateURL(newFilters, 1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [category]);
+
+    // 자동 적용: 상태 드롭다운 변경 시 즉시 필터 반영
+    useEffect(() => {
+        if (!isInitialized) return;
+        const newFilters: any = { ...appliedFilters, page: 1 };
+        
+        // 기존 필터 유지
+        if (debouncedProductName.trim()) {
+            newFilters.name = debouncedProductName.trim();
+        }
+        if (category && category !== '모든 카테고리') {
+            newFilters.category = category;
+        }
+        
+        // 상태 필터 적용
+        if (status && status !== '모든 상태') {
+            newFilters.status = status;
+        } else {
+            delete newFilters.status;
+        }
+        
+        setCurrentPage(1);
+        setAppliedFilters(newFilters);
+        updateURL(newFilters, 1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [status]);
+
+    // 자동 적용: 슬라이더 값 변경 시 즉시 필터 반영
+    useEffect(() => {
+        if (!isInitialized) return;
+        const newFilters: any = { ...appliedFilters, page: 1 };
+        
+        // 기존 필터 유지
+        if (debouncedProductName.trim()) {
+            newFilters.name = debouncedProductName.trim();
+        }
+        if (category && category !== '모든 카테고리') {
+            newFilters.category = category;
+        }
+        if (status && status !== '모든 상태') {
+            newFilters.status = status;
+        }
+        
+        // 재고 필터 적용
+        const minStockValue = parseInt(minStock) || 0;
+        const maxStockValue = parseInt(maxStock) || 1000;
+        const isDefaultStock = minStockValue === 0 && maxStockValue === 1000;
+        
+        if (!isDefaultStock) {
+            newFilters.min_stock = minStockValue;
+            newFilters.max_stock = maxStockValue;
+        } else {
+            delete newFilters.min_stock;
+            delete newFilters.max_stock;
+        }
+        
+        // 판매 필터 적용
+        const minSalesValue = parseInt(minSales) || 0;
+        const maxSalesValue = parseInt(maxSales) || 5000000;
+        const isDefaultSales = minSalesValue === 0 && maxSalesValue === 5000000;
+        
+        if (!isDefaultSales) {
+            newFilters.min_sales = minSalesValue;
+            newFilters.max_sales = maxSalesValue;
+        } else {
+            delete newFilters.min_sales;
+            delete newFilters.max_sales;
+        }
+        
+        setCurrentPage(1);
+        setAppliedFilters(newFilters);
+        updateURL(newFilters, 1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [minStock, maxStock, minSales, maxSales]);
     const adjustStockMutation = useAdjustStock();
 
     // 병합 모달용 전체 데이터 (모든 페이지 데이터 합치기)
@@ -482,6 +598,7 @@ const InventoryPage = () => {
                     maxSales={maxSales}
                     onMaxSalesChange={setMaxSales}
                     onSearch={() => {
+                        // 유효성 검사만 수행하고, 실제 필터링은 useEffect가 자동으로 처리
                         const minSalesValue = parseInt(minSales) || 0;
                         const maxSalesValue = parseInt(maxSales) || 5000000;
                         const minStockValue = parseInt(minStock) || 0;
@@ -497,35 +614,9 @@ const InventoryPage = () => {
                             return;
                         }
 
-                        const newFilters: any = {
-                            page: 1,
-                        };
-
-                        if (productName.trim()) newFilters.name = productName.trim();
-                        if (category && category !== '모든 카테고리') newFilters.category = category;
-
-                        // 상태 필터 - 프론트엔드에서 처리할 수 있도록 저장
-                        if (status && status !== '모든 상태') {
-                            newFilters.status = status;
-                            // 상태 필터가 있으면 반드시 1페이지로 리셋
-                            newFilters.page = 1;
-                        }
-
-                        // 재고 필터는 기본값(0~1000)이 아닌 경우 적용
-                        const isDefaultStock = minStockValue === 0 && maxStockValue === 1000;
-                        if (!isDefaultStock) {
-                            newFilters.min_stock = minStockValue;
-                            newFilters.max_stock = maxStockValue;
-                        }
-                        if (minSalesValue !== 0 || maxSalesValue !== 5000000) {
-                            newFilters.min_sales = minSalesValue;
-                            newFilters.max_sales = maxSalesValue;
-                        }
-
-                        setCurrentPage(1);
-                        setAppliedFilters(newFilters);
-                        updateURL(newFilters, 1);
-                        // 필터 변경으로 자동 refetch됨
+                        // 유효성 검사 통과 시 자동 필터링 로직이 이미 적용되어 있으므로 
+                        // 별도 처리 불필요
+                        console.log('검색 버튼 클릭 - 자동 필터링이 이미 적용됨');
                     }}
                     onReset={handleReset}
                 />
