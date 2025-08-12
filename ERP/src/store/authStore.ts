@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { clearAuthCookies } from '../utils/cookies';
+import { clearAuthTokens } from '../utils/localStorage';
 
 interface User {
   id?: number;
@@ -29,8 +29,8 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       login: () => {}, // 로그인은 토큰만 저장, user는 setUser로만 세팅
       logout: () => {
-        // 쿠키와 localStorage에서 토큰 관련 데이터 삭제
-        clearAuthCookies();
+        // localStorage에서 토큰 관련 데이터 삭제
+        clearAuthTokens();
         localStorage.removeItem('auth-storage');
 
         set({ user: null, isAuthenticated: false });

@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { logout } from '../../api/auth';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { clearAuthCookies } from '../../utils/cookies';
+import { clearAuthTokens } from '../../utils/localStorage';
 
 export const useLogout = () => {
   const navigate = useNavigate();
@@ -12,7 +12,7 @@ export const useLogout = () => {
     mutationFn: logout,
     onSuccess: () => {
       // 쿠키와 localStorage 모두 삭제
-      clearAuthCookies();
+      clearAuthTokens();
 
       logoutStore();
       navigate('/auth');
@@ -23,7 +23,7 @@ export const useLogout = () => {
       console.error('로그아웃 상태 코드:', err.response?.status);
       console.error('로그아웃 요청 URL:', err.config?.url);
 
-      clearAuthCookies();
+      clearAuthTokens();
       localStorage.removeItem('auth-storage');
 
       logoutStore();
