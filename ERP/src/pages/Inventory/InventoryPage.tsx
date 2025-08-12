@@ -1,33 +1,32 @@
-import GreenButton from '../../components/button/GreenButton';
-import PrimaryButton from '../../components/button/PrimaryButton';
-import SecondaryButton from '../../components/button/SecondaryButton';
-import { FaPlus, FaFileArrowUp } from 'react-icons/fa6';
-import { FaCodeBranch, FaHistory } from 'react-icons/fa';
-import InputField from '../../components/inputfield/InputField';
-import InventoryTable from '../../components/inventorytable/InventoryTable';
-import { useInventories } from '../../hooks/queries/useInventories';
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import GreenButton from "../../components/button/GreenButton";
+import PrimaryButton from "../../components/button/PrimaryButton";
+import SecondaryButton from "../../components/button/SecondaryButton";
+import { FaPlus, FaFileArrowUp } from "react-icons/fa6";
+import { FaCodeBranch, FaHistory } from "react-icons/fa";
+import InputField from "../../components/inputfield/InputField";
+import InventoryTable from "../../components/inventorytable/InventoryTable";
+import { useInventories } from "../../hooks/queries/useInventories";
 import {
     deleteProductVariant,
     updateInventoryVariant,
     mergeVariants,
-    fetchInventoriesForExport,
     fetchAllInventoriesForMerge,
     fetchFilteredInventoriesForExport,
-} from '../../api/inventory';
-import { useSearchParams } from 'react-router-dom';
-import EditProductModal from '../../components/modal/EditProductModal';
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { useDebouncedValue } from '../../hooks/useDebouncedValue';
-import AddProductModal from '../../components/modal/AddProductModal';
-import MergeVariantsModal from '../../components/modal/MergeVariantsModal';
-import StockAdjustmentModal from '../../components/modal/StockAdjustmentModal';
-import StockHistoryModal from '../../components/modal/StockHistoryModal';
-import { Product } from '../../types/product';
-import { useQueryClient } from '@tanstack/react-query';
-import { uploadInventoryExcel } from '../../api/upload';
-import { usePermissions } from '../../hooks/usePermissions';
-import * as XLSX from 'xlsx';
-import { useAdjustStock } from '../../hooks/queries/useStockAdjustment';
+} from "../../api/inventory";
+import { useSearchParams } from "react-router-dom";
+import EditProductModal from "../../components/modal/EditProductModal";
+import AddProductModal from "../../components/modal/AddProductModal";
+import MergeVariantsModal from "../../components/modal/MergeVariantsModal";
+import StockAdjustmentModal from "../../components/modal/StockAdjustmentModal";
+import StockHistoryModal from "../../components/modal/StockHistoryModal";
+import { Product } from "../../types/product";
+import { useQueryClient } from "@tanstack/react-query";
+import { uploadInventoryExcel } from "../../api/upload";
+import { usePermissions } from "../../hooks/usePermissions";
+import * as XLSX from "xlsx";
+import { useAdjustStock } from "../../hooks/queries/useStockAdjustment";
 
 const InventoryPage = () => {
     const queryClient = useQueryClient();
@@ -45,13 +44,13 @@ const InventoryPage = () => {
         current_stock: number;
         min_stock: number;
     } | null>(null);
-    const [productName, setProductName] = useState('');
-    const [category, setCategory] = useState('');
-    const [status, setStatus] = useState('');
-    const [minStock, setMinStock] = useState('0');
-    const [maxStock, setMaxStock] = useState('1000');
-    const [minSales, setMinSales] = useState('0');
-    const [maxSales, setMaxSales] = useState('5000000');
+    const [productName, setProductName] = useState("");
+    const [category, setCategory] = useState("");
+    const [status, setStatus] = useState("");
+    const [minStock, setMinStock] = useState("0");
+    const [maxStock, setMaxStock] = useState("1000");
+    const [minSales, setMinSales] = useState("0");
+    const [maxSales, setMaxSales] = useState("5000000");
     const [currentPage, setCurrentPage] = useState(1);
     const [appliedFilters, setAppliedFilters] = useState<{
         page?: number;
@@ -69,19 +68,19 @@ const InventoryPage = () => {
     useEffect(() => {
         if (isInitialized) return; // 이미 초기화되었으면 실행하지 않음
 
-        const urlPage = parseInt(searchParams.get('page') || '1');
-        const urlName = searchParams.get('name') || '';
-        const urlCategory = searchParams.get('category') || '';
-        const urlStatus = searchParams.get('status') || '';
-        const urlMinStock = searchParams.get('min_stock') || '0';
-        const urlMaxStock = searchParams.get('max_stock') || '1000';
-        const urlMinSales = searchParams.get('min_sales') || '0';
-        const urlMaxSales = searchParams.get('max_sales') || '5000000';
+        const urlPage = parseInt(searchParams.get("page") || "1");
+        const urlName = searchParams.get("name") || "";
+        const urlCategory = searchParams.get("category") || "";
+        const urlStatus = searchParams.get("status") || "";
+        const urlMinStock = searchParams.get("min_stock") || "0";
+        const urlMaxStock = searchParams.get("max_stock") || "1000";
+        const urlMinSales = searchParams.get("min_sales") || "0";
+        const urlMaxSales = searchParams.get("max_sales") || "5000000";
 
         setCurrentPage(urlPage);
         setProductName(urlName);
-        setCategory(urlCategory === '모든 카테고리' ? '' : urlCategory);
-        setStatus(urlStatus === '모든 상태' ? '' : urlStatus);
+        setCategory(urlCategory === "모든 카테고리" ? "" : urlCategory);
+        setStatus(urlStatus === "모든 상태" ? "" : urlStatus);
         setMinStock(urlMinStock);
         setMaxStock(urlMaxStock);
         setMinSales(urlMinSales);
@@ -89,13 +88,13 @@ const InventoryPage = () => {
 
         const filters: any = { page: urlPage };
         if (urlName) filters.name = urlName;
-        if (urlCategory && urlCategory !== '모든 카테고리') filters.category = urlCategory;
-        if (urlStatus && urlStatus !== '모든 상태') filters.status = urlStatus;
-        if (urlMinStock !== '0' || urlMaxStock !== '1000') {
+        if (urlCategory && urlCategory !== "모든 카테고리") filters.category = urlCategory;
+        if (urlStatus && urlStatus !== "모든 상태") filters.status = urlStatus;
+        if (urlMinStock !== "0" || urlMaxStock !== "1000") {
             filters.min_stock = parseInt(urlMinStock);
             filters.max_stock = parseInt(urlMaxStock);
         }
-        if (urlMinSales !== '0' || urlMaxSales !== '5000000') {
+        if (urlMinSales !== "0" || urlMaxSales !== "5000000") {
             filters.min_sales = parseInt(urlMinSales);
             filters.max_sales = parseInt(urlMaxSales);
         }
@@ -135,7 +134,7 @@ const InventoryPage = () => {
         }
         
         // 카테고리 필터 적용
-        if (category && category !== '모든 카테고리') {
+        if (category && category !== "모든 카테고리") {
             newFilters.category = category;
         } else {
             delete newFilters.category;
@@ -156,12 +155,12 @@ const InventoryPage = () => {
         if (debouncedProductName.trim()) {
             newFilters.name = debouncedProductName.trim();
         }
-        if (category && category !== '모든 카테고리') {
+        if (category && category !== "모든 카테고리") {
             newFilters.category = category;
         }
         
         // 상태 필터 적용
-        if (status && status !== '모든 상태') {
+        if (status && status !== "모든 상태") {
             newFilters.status = status;
         } else {
             delete newFilters.status;
@@ -182,10 +181,10 @@ const InventoryPage = () => {
         if (debouncedProductName.trim()) {
             newFilters.name = debouncedProductName.trim();
         }
-        if (category && category !== '모든 카테고리') {
+        if (category && category !== "모든 카테고리") {
             newFilters.category = category;
         }
-        if (status && status !== '모든 상태') {
+        if (status && status !== "모든 상태") {
             newFilters.status = status;
         }
         
@@ -220,6 +219,7 @@ const InventoryPage = () => {
         updateURL(newFilters, 1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [minStock, maxStock, minSales, maxSales]);
+
     const adjustStockMutation = useAdjustStock();
 
     // 병합 모달용 전체 데이터 (모든 페이지 데이터 합치기)
@@ -227,11 +227,11 @@ const InventoryPage = () => {
 
     // 전체 데이터에서 카테고리 목록 추출 (병합용 데이터 사용)
     const categoryOptions = useMemo(() => {
-        if (!allMergeData || allMergeData.length === 0) return ['모든 카테고리'];
+        if (!allMergeData || allMergeData.length === 0) return ["모든 카테고리"];
 
         const uniqueCategories = Array.from(new Set(allMergeData.map((item) => item.category).filter(Boolean)));
 
-        return ['모든 카테고리', ...uniqueCategories.sort()];
+        return ["모든 카테고리", ...uniqueCategories.sort()];
     }, [allMergeData]);
 
     useEffect(() => {
@@ -240,7 +240,7 @@ const InventoryPage = () => {
                 const allData = await fetchAllInventoriesForMerge();
                 setAllMergeData(allData);
             } catch (error) {
-                console.error('전체 데이터 로드 실패:', error);
+                console.error("전체 데이터 로드 실패:", error);
             }
         };
 
@@ -252,29 +252,29 @@ const InventoryPage = () => {
         (newFilters: any, page: number) => {
             const params = new URLSearchParams();
 
-            if (page > 1) params.set('page', page.toString());
-            if (newFilters.name) params.set('name', newFilters.name);
-            if (newFilters.category) params.set('category', newFilters.category);
-            if (newFilters.status) params.set('status', newFilters.status);
-            if (newFilters.min_stock !== undefined) params.set('min_stock', newFilters.min_stock.toString());
-            if (newFilters.max_stock !== undefined) params.set('max_stock', newFilters.max_stock.toString());
-            if (newFilters.min_sales !== undefined) params.set('min_sales', newFilters.min_sales.toString());
-            if (newFilters.max_sales !== undefined) params.set('max_sales', newFilters.max_sales.toString());
+            if (page > 1) params.set("page", page.toString());
+            if (newFilters.name) params.set("name", newFilters.name);
+            if (newFilters.category) params.set("category", newFilters.category);
+            if (newFilters.status) params.set("status", newFilters.status);
+            if (newFilters.min_stock !== undefined) params.set("min_stock", newFilters.min_stock.toString());
+            if (newFilters.max_stock !== undefined) params.set("max_stock", newFilters.max_stock.toString());
+            if (newFilters.min_sales !== undefined) params.set("min_sales", newFilters.min_sales.toString());
+            if (newFilters.max_sales !== undefined) params.set("max_sales", newFilters.max_sales.toString());
 
             // edit 파라미터는 유지
-            const editId = searchParams.get('edit');
-            if (editId) params.set('edit', editId);
+            const editId = searchParams.get("edit");
+            if (editId) params.set("edit", editId);
 
             setSearchParams(params);
         },
         [searchParams, setSearchParams]
     );
 
-    const editId = searchParams.get('edit');
+    const editId = searchParams.get("edit");
     const selectedProduct = useMemo(() => {
         if (!data || !editId) return null;
         // 백엔드에서 이미 평면화된 데이터를 직접 사용
-        const result = data.find((item) => item.variant_code === String(editId));
+        const result = data.find((item: any) => item.variant_code === String(editId));
         if (!result) return null;
 
         const processedResult = {
@@ -284,29 +284,29 @@ const InventoryPage = () => {
             variant_id: result.variant_code,
             orderCount: result.order_count ?? 0,
             returnCount: result.return_count ?? 0,
-            totalSales: result.sales ? `${result.sales.toLocaleString()}원` : '0원',
-            description: result.description || '',
-            memo: result.memo || '',
+            totalSales: result.sales ? `${result.sales.toLocaleString()}원` : "0원",
+            description: result.description || "",
+            memo: result.memo || "",
             suppliers: result.suppliers || [],
         };
 
-        console.log('selectedProduct:', processedResult);
-        console.log('editId:', editId);
+        console.log("selectedProduct:", processedResult);
+        console.log("editId:", editId);
         return processedResult;
     }, [data, editId]);
 
     const handleCloseModal = () => {
-        searchParams.delete('edit');
+        searchParams.delete("edit");
         setSearchParams(searchParams);
     };
 
     const handleAddSave = async () => {
         try {
             await refetch();
-            alert('상품이 성공적으로 추가되었습니다.');
+            alert("상품이 성공적으로 추가되었습니다.");
         } catch (err) {
-            console.error('상품 추가 실패:', err);
-            alert('상품 추가 중 오류가 발생했습니다.');
+            console.error("상품 추가 실패:", err);
+            alert("상품 추가 중 오류가 발생했습니다.");
         }
     };
 
@@ -315,46 +315,50 @@ const InventoryPage = () => {
             // variant_code를 우선 사용하고, 없으면 variant_id 사용
             const variantIdentifier = updatedProduct.variant_code || updatedProduct.variant_id;
             if (!variantIdentifier) {
-                throw new Error('variant 식별자를 찾을 수 없습니다.');
+                throw new Error("variant 식별자를 찾을 수 없습니다.");
             }
 
-            console.log('handleUpdateSave - variantIdentifier:', variantIdentifier);
-            console.log('handleUpdateSave - updatedProduct:', updatedProduct);
+            console.log("handleUpdateSave - variantIdentifier:", variantIdentifier);
+            console.log("handleUpdateSave - updatedProduct:", updatedProduct);
 
-            await updateInventoryVariant(String(variantIdentifier), updatedProduct);
-            alert('상품이 성공적으로 수정되었습니다.');
+            await updateInventoryVariant(String(variantIdentifier), {
+                ...updatedProduct,
+                price: typeof updatedProduct.price === "string" ? Number(updatedProduct.price) : updatedProduct.price,
+                cost_price: typeof updatedProduct.cost_price === "string" ? Number(updatedProduct.cost_price) : updatedProduct.cost_price
+            });
+            alert("상품이 성공적으로 수정되었습니다.");
             handleCloseModal();
-            await queryClient.invalidateQueries({ queryKey: ['inventories'] });
+            await queryClient.invalidateQueries({ queryKey: ["inventories"] });
             await refetch();
         } catch (err) {
-            console.error('상품 수정 실패:', err);
-            alert('상품 수정 중 오류가 발생했습니다.');
+            console.error("상품 수정 실패:", err);
+            alert("상품 수정 중 오류가 발생했습니다.");
         }
     };
 
     const handleVariantDelete = async (variantCode: string) => {
         // 백엔드에서 이미 평면화된 데이터를 직접 사용
-        const variantToDelete = data?.find((item) => item.variant_code === variantCode);
+        const variantToDelete = data?.find((item: any) => item.variant_code === variantCode);
 
         if (!variantToDelete) {
-            alert('삭제할 품목을 찾을 수 없습니다.');
+            alert("삭제할 품목을 찾을 수 없습니다.");
             return;
         }
 
-        if (!window.confirm('정말 이 품목을 삭제하시겠습니까?')) return;
+        if (!window.confirm("정말 이 품목을 삭제하시겠습니까?")) return;
 
         try {
             await deleteProductVariant(variantCode);
-            alert('품목이 삭제되었습니다.');
+            alert("품목이 삭제되었습니다.");
             refetch();
         } catch (err: any) {
-            console.error('품목 삭제 실패:', err);
+            console.error("품목 삭제 실패:", err);
             if (err?.response?.status === 500) {
                 alert(
-                    '❌ 삭제 불가\n\n해당 상품은 주문 이력이 있어 삭제할 수 없습니다.\n주문 이력을 먼저 처리하거나 관리자에게 문의하세요.'
+                    "❌ 삭제 불가\n\n해당 상품은 주문 이력이 있어 삭제할 수 없습니다.\n주문 이력을 먼저 처리하거나 관리자에게 문의하세요."
                 );
             } else {
-                alert(err?.response?.data?.error || '삭제 중 오류가 발생했습니다.');
+                alert(err?.response?.data?.error || "삭제 중 오류가 발생했습니다.");
             }
         }
     };
@@ -371,24 +375,24 @@ const InventoryPage = () => {
 
         try {
             await uploadInventoryExcel(file);
-            alert('POS 데이터가 성공적으로 업로드되었습니다.');
+            alert("POS 데이터가 성공적으로 업로드되었습니다.");
             await refetch();
         } catch (err) {
-            console.error('POS 업로드 오류:', err);
-            alert('POS 데이터 업로드 중 오류 발생');
+            console.error("POS 업로드 오류:", err);
+            alert("POS 데이터 업로드 중 오류 발생");
         } finally {
-            e.target.value = '';
+            e.target.value = "";
         }
     };
 
     const handleReset = () => {
-        setProductName('');
-        setCategory('');
-        setStatus('');
-        setMinStock('0');
-        setMaxStock('1000');
-        setMinSales('0');
-        setMaxSales('5000000');
+        setProductName("");
+        setCategory("");
+        setStatus("");
+        setMinStock("0");
+        setMaxStock("1000");
+        setMinSales("0");
+        setMaxSales("5000000");
         setCurrentPage(1);
         setAppliedFilters({});
         updateURL({}, 1);
@@ -403,21 +407,21 @@ const InventoryPage = () => {
             });
             // 병합 후 모든 캐시 클리어하고 강제 새로고침
             await queryClient.clear(); // 모든 캐시 클리어
-            await queryClient.invalidateQueries({ queryKey: ['inventories'] });
+            await queryClient.invalidateQueries({ queryKey: ["inventories"] });
             await refetch();
 
             // 필터 초기화해서 최신 데이터 확인
             setAppliedFilters({});
-            console.log('병합 완료 - 캐시 클리어 및 데이터 갱신됨');
+            console.log("병합 완료 - 캐시 클리어 및 데이터 갱신됨");
         } catch (error) {
-            console.error('병합 실패:', error);
+            console.error("병합 실패:", error);
             throw error; // 모달에서 에러 처리하도록 re-throw
         }
     };
 
     const handleExportToExcel = async () => {
         try {
-            console.log('엑셀 Export 시작 - 현재 필터:', appliedFilters);
+            console.log("엑셀 Export 시작 - 현재 필터:", appliedFilters);
 
             // 현재 필터링된 전체 데이터 가져오기 (페이지네이션 무시)
             let exportData: any[] = [];
@@ -428,14 +432,14 @@ const InventoryPage = () => {
             ) {
                 // 필터가 없거나 페이지만 있는 경우 → 전체 데이터 가져오기
                 exportData = allMergeData; // 이미 로드된 전체 데이터 사용
-                console.log('필터 없음 - 전체 데이터 사용:', exportData.length);
+                console.log("필터 없음 - 전체 데이터 사용:", exportData.length);
             } else {
                 // 필터가 있는 경우 → api에서 처리
                 exportData = await fetchFilteredInventoriesForExport(appliedFilters);
             }
 
             if (!exportData || exportData.length === 0) {
-                alert('내보낼 데이터가 없습니다.');
+                alert("내보낼 데이터가 없습니다.");
                 return;
             }
 
@@ -451,13 +455,13 @@ const InventoryPage = () => {
                 매입가: item.cost_price,
                 재고수량: Math.max(0, Number(item.stock) || 0),
                 최소재고: Math.max(0, Number(item.min_stock) || 0),
-                상태: item.stock === 0 ? '품절' : item.stock < (item.min_stock || 0) ? '재고부족' : '정상',
+                상태: item.stock === 0 ? "품절" : item.stock < (item.min_stock || 0) ? "재고부족" : "정상",
                 결제수량: item.order_count,
                 환불수량: item.return_count,
                 판매합계: item.sales,
                 설명: item.description,
                 메모: item.memo,
-                '주요 공급업체': item.suppliers?.find((s: any) => s.is_primary)?.name || '',
+                "주요 공급업체": item.suppliers?.find((s: any) => s.is_primary)?.name || "",
             }));
 
             // 워크시트 생성
@@ -483,16 +487,16 @@ const InventoryPage = () => {
                 { wch: 20 }, // 메모
                 { wch: 15 }, // 주요 공급업체
             ];
-            worksheet['!cols'] = columnWidths;
+            worksheet["!cols"] = columnWidths;
 
             // 워크북 생성
             const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, '재고 현황');
+            XLSX.utils.book_append_sheet(workbook, worksheet, "재고 현황");
 
             // 파일명 생성 (현재 날짜 포함)
             const now = new Date();
-            const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-            const timeStr = now.toTimeString().slice(0, 5).replace(/:/g, '');
+            const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
+            const timeStr = now.toTimeString().slice(0, 5).replace(/:/g, "");
             const filename = `재고_현황_${dateStr}_${timeStr}.xlsx`;
 
             // 파일 다운로드
@@ -500,8 +504,8 @@ const InventoryPage = () => {
 
             console.log(`엑셀 파일 생성 완료: ${filename}`);
         } catch (error) {
-            console.error('엑셀 Export 오류:', error);
-            alert('엑셀 파일 생성 중 오류가 발생했습니다.');
+            console.error("엑셀 Export 오류:", error);
+            alert("엑셀 파일 생성 중 오류가 발생했습니다.");
         }
     };
 
@@ -533,7 +537,7 @@ const InventoryPage = () => {
         refetch();
         // EditProductModal이 열려있는 경우 해당 product 데이터도 업데이트
         if (editId && selectedVariantForStock) {
-            queryClient.invalidateQueries({ queryKey: ['inventories'] });
+            queryClient.invalidateQueries({ queryKey: ["inventories"] });
         }
     };
 
@@ -545,7 +549,7 @@ const InventoryPage = () => {
             <div className="flex justify-between items-center mb-4">
                 <h1 className="text-2xl font-bold">재고 관리</h1>
                 <div className="flex space-x-2">
-                    {permissions.canCreate('INVENTORY') && (
+                    {permissions.canCreate("INVENTORY") && (
                         <>
                             <GreenButton
                                 text="상품 추가"
@@ -605,18 +609,18 @@ const InventoryPage = () => {
                         const maxStockValue = maxStock ? parseInt(maxStock) : 1000;
 
                         if (minSalesValue > maxSalesValue) {
-                            alert('판매합계 최소값이 최대값보다 클 수 없습니다.');
+                            alert("판매합계 최소값이 최대값보다 클 수 없습니다.");
                             return;
                         }
 
                         if (minStockValue > maxStockValue) {
-                            alert('재고수량 최소값이 최대값보다 클 수 없습니다.');
+                            alert("재고수량 최소값이 최대값보다 클 수 없습니다.");
                             return;
                         }
 
                         // 유효성 검사 통과 시 자동 필터링 로직이 이미 적용되어 있으므로 
                         // 별도 처리 불필요
-                        console.log('검색 버튼 클릭 - 자동 필터링이 이미 적용됨');
+                        console.log("검색 버튼 클릭 - 자동 필터링이 이미 적용됨");
                     }}
                     onReset={handleReset}
                 />

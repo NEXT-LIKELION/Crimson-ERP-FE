@@ -1,4 +1,5 @@
 import api from './axios';
+import { Product, ProductVariant } from '../types/product';
 
 interface InventoryFilterParams {
     name?: string;
@@ -21,18 +22,14 @@ export const fetchInventories = (params?: FetchInventoriesParams) => {
 export const fetchInventoriesForExport = (params?: InventoryFilterParams) => {
     return api.get('/inventory/variants/export', { params });
 };
-export const updateInventoryItem = (productId: number, data: any) => {
+export const updateInventoryItem = (productId: number, data: Partial<Product>) => {
     return api.put(`/inventory/${productId}/`, data);
 };
 
-export const updateInventoryVariant = (variantId: string, data: any) => {
-    console.log('updateInventoryVariant - variantId:', variantId);
-    console.log('updateInventoryVariant - data:', data);
-    console.log('updateInventoryVariant - data JSON:', JSON.stringify(data, null, 2));
+export const updateInventoryVariant = (variantId: string, data: Partial<ProductVariant>) => {
     return api
         .patch(`/inventory/variants/${variantId}/`, data)
         .then((response) => {
-            console.log('updateInventoryVariant - response:', response.data);
             return response;
         })
         .catch((error) => {
@@ -43,19 +40,17 @@ export const updateInventoryVariant = (variantId: string, data: any) => {
         });
 };
 
-export const createInventoryVariant = async (itemPayload: any) => {
+export const createInventoryVariant = async (itemPayload: Omit<ProductVariant, 'variant_code'>) => {
     const res = await api.post(`/inventory/variants/`, itemPayload);
     return res.data;
 };
-export const createInventoryItem = async (itemPayload: any) => {
-    console.log('createInventoryItem - itemPayload:', itemPayload);
+export const createInventoryItem = async (itemPayload: Omit<Product, 'id' | 'variants'>) => {
     const res = await api.post(`/inventory/`, itemPayload);
-    console.log('createInventoryItem - response:', res.data);
     return res.data;
 }; // 상품만 생성
 
 // 상품과 variant를 함께 생성하는 함수 (백엔드 구조에 따라 사용)
-export const createProductWithVariant = async (itemPayload: any) => {
+export const createProductWithVariant = async (itemPayload: Omit<ProductVariant, 'variant_code'>) => {
     const res = await api.post(`/inventory/variants/`, itemPayload);
     return res.data;
 };
@@ -84,16 +79,19 @@ export const fetchProductOptions = () => api.get('/inventory/');
 export const fetchVariantDetail = (variantCode: string) => api.get(`/inventory/variants/${variantCode}/`);
 
 // 상품명 중복 여부 확인 (대소문자/공백 무시 정확 일치)
-export const checkProductNameExists = async (name: string): Promise<boolean> => {
+export const checkProductNameExists = async (name: string): Promise<{ isDuplicate: boolean; error?: string }> => {
     try {
         const res = await fetchProductOptions();
         const list = res.data || [];
         const target = (name || '').trim().toLowerCase();
-        return list.some((p: any) => (p?.name || '').trim().toLowerCase() === target);
+        const isDuplicate = list.some((p: Product) => (p?.name || '').trim().toLowerCase() === target);
+        return { isDuplicate };
     } catch (e) {
         console.error('상품명 중복 체크 실패:', e);
-        // 실패시 보수적으로 중복 아님으로 처리
-        return false;
+        return { 
+            isDuplicate: false, 
+            error: '상품명 중복 확인 중 오류가 발생했습니다. 네트워크 연결을 확인해주세요.' 
+        };
     }
 };
 
@@ -122,7 +120,18 @@ export const fetchAllInventoriesForMerge = async () => {
 };
 
 // 엑셀 익스포트용 필터링된 전체 데이터 조회
-export const fetchFilteredInventoriesForExport = async (appliedFilters: any) => {
+interface InventoryExportFilters {
+    name?: string;
+    category?: string;
+    status?: string;
+    min_stock?: number;
+    max_stock?: number;
+    min_sales?: number;
+    max_sales?: number;
+    page?: number;
+}
+
+export const fetchFilteredInventoriesForExport = async (appliedFilters: InventoryExportFilters) => {
     try {
         let allData: any[] = [];
         let page = 1;
@@ -205,12 +214,9 @@ export const adjustStock = (
         updated_by: string;
     }
 ) => {
-    console.log('adjustStock - variantCode:', variantCode);
-    console.log('adjustStock - data:', data);
     return api
         .put(`/inventory/variants/stock/${variantCode}/`, data)
         .then((response) => {
-            console.log('adjustStock - response:', response.data);
             return response;
         })
         .catch((error) => {
@@ -222,11 +228,9 @@ export const adjustStock = (
 
 // 재고 변경 이력 조회
 export const fetchStockAdjustments = (params?: { page?: number; variant_code?: string }) => {
-    console.log('fetchStockAdjustments - params:', params);
     return api
         .get('/inventory/adjustments/', { params })
         .then((response) => {
-            console.log('fetchStockAdjustments - response:', response.data);
             return response;
         })
         .catch((error) => {
@@ -237,11 +241,9 @@ export const fetchStockAdjustments = (params?: { page?: number; variant_code?: s
 
 // 상품 코드 병합
 export const mergeVariants = async (payload: { target_variant_code: string; source_variant_codes: string[] }) => {
-    console.log('mergeVariants - payload:', payload);
     return api
         .post('/inventory/variants/merge/', payload)
         .then((response) => {
-            console.log('mergeVariants - response:', response.data);
             return response;
         })
         .catch((error) => {

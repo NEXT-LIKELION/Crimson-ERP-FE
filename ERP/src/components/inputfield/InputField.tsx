@@ -87,23 +87,23 @@ const InputField: React.FC<InputFieldProps> = ({
     };
 
     // 판매합계 슬라이더 값 변경 핸들러 (드래그 중 미리보기만 업데이트)
-    const handleSalesSliderChange = (value: number | number[]) => {
-        const [min, max] = value as number[];
+    const handleSalesSliderChange = (value: number[]) => {
+        const [min, max] = value;
         setSalesSliderValues([min, max]);
     };
-    const handleSalesSliderAfterChange = (value: number | number[]) => {
-        const [min, max] = value as number[];
+    const handleSalesSliderAfterChange = (value: number[]) => {
+        const [min, max] = value;
         onMinSalesChange(min.toString());
         onMaxSalesChange(max.toString());
     };
 
     // 재고수량 슬라이더 값 변경 핸들러 (드래그 중 미리보기만 업데이트)
-    const handleStockSliderChange = (value: number | number[]) => {
-        const [min, max] = value as number[];
+    const handleStockSliderChange = (value: number[]) => {
+        const [min, max] = value;
         setStockSliderValues([min, max]);
     };
-    const handleStockSliderAfterChange = (value: number | number[]) => {
-        const [min, max] = value as number[];
+    const handleStockSliderAfterChange = (value: number[]) => {
+        const [min, max] = value;
         onMinStockChange(min.toString());
         onMaxStockChange(max.toString());
     };
@@ -151,8 +151,8 @@ const InputField: React.FC<InputFieldProps> = ({
                         max={SLIDER_CONFIG.STOCK.max}
                         step={10}
                         value={stockSliderValues}
-                        onChange={handleStockSliderChange}
-                        onAfterChange={handleStockSliderAfterChange}
+                        onChange={handleStockSliderChange as (value: number | number[]) => void}
+                        onAfterChange={handleStockSliderAfterChange as (value: number | number[]) => void}
                         allowCross={false}
                         pushable={0}
                         trackStyle={[{ backgroundColor: '#10b981' }]} // 초록색
@@ -174,8 +174,8 @@ const InputField: React.FC<InputFieldProps> = ({
                         max={SLIDER_CONFIG.SALES.max}
                         step={10000}
                         value={salesSliderValues}
-                        onChange={handleSalesSliderChange}
-                        onAfterChange={handleSalesSliderAfterChange}
+                        onChange={handleSalesSliderChange as (value: number | number[]) => void}
+                        onAfterChange={handleSalesSliderAfterChange as (value: number | number[]) => void}
                         trackStyle={[{ backgroundColor: '#2563eb' }]} // 파란색
                         handleStyle={[
                             { borderColor: '#2563eb', backgroundColor: '#2563eb' },
