@@ -1,18 +1,16 @@
 // src/components/sidebar.tsx
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { IconType } from 'react-icons';
-import { FiGrid, FiBox, FiShoppingCart, FiUsers, FiLogOut, FiHome } from 'react-icons/fi';
-import axios from '../api/axios';
-import { useAuthStore } from '../store/authStore';
-import { useLogout } from '../hooks/queries/useLogout';
+import React from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { IconType } from "react-icons";
+import { FiGrid, FiBox, FiShoppingCart, FiUsers, FiLogOut, FiHome } from "react-icons/fi";
+import { useLogout } from "../hooks/queries/useLogout";
 
 const MENU_ITEMS = [
-    { icon: FiGrid, label: '대시보드', path: '/' },
-    { icon: FiBox, label: '재고 관리', path: '/inventory' },
-    { icon: FiShoppingCart, label: '발주 관리', path: '/orders' },
-    { icon: FiUsers, label: 'HR 관리', path: '/hr' },
-    { icon: FiHome, label: '업체 관리', path: '/supplier' },
+    { icon: FiGrid, label: "대시보드", path: "/" },
+    { icon: FiBox, label: "재고 관리", path: "/inventory" },
+    { icon: FiShoppingCart, label: "발주 관리", path: "/orders" },
+    { icon: FiUsers, label: "HR 관리", path: "/hr" },
+    { icon: FiHome, label: "업체 관리", path: "/supplier" },
 ];
 
 const SidebarHeader: React.FC = () => (
@@ -35,7 +33,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, active, on
     <div
         onClick={onClick}
         className={`w-full p-2 flex items-center cursor-pointer rounded-md ${
-            active ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+            active ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"
         }`}
     >
         <Icon className="w-6 h-6 mr-3" />
@@ -53,7 +51,7 @@ const SidebarFooter: React.FC = () => {
         >
             <FiLogOut className="w-6 h-6 text-gray-600 mr-3" />
             <span className="text-sm font-medium text-gray-600 leading-tight">
-                {logoutMutation.isPending ? '로그아웃 중...' : '로그아웃'}
+                {logoutMutation.isPending ? "로그아웃 중..." : "로그아웃"}
             </span>
         </div>
     );
