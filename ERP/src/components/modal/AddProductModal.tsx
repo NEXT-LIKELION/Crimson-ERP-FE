@@ -4,7 +4,7 @@ import TextInput from "../input/TextInput";
 import SelectInput from "../input/SelectInput";
 import { FaBoxArchive, FaClipboardList } from "react-icons/fa6";
 import { BsCoin } from "react-icons/bs";
-import { fetchProductOptions, createProductWithVariant, fetchAllInventoriesForMerge } from "../../api/inventory";
+import { fetchProductOptions, createProductWithVariant, fetchAllInventoriesForMerge, checkProductNameExists } from "../../api/inventory";
 import { useSuppliers } from "../../hooks/queries/useSuppliers";
 import { useQuery } from "@tanstack/react-query";
 
@@ -56,6 +56,14 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
         suppliers: [{ supplier_name: "", cost_price: 0, is_primary: true }],
     });
     const [errors, setErrors] = useState<string[]>([]);
+
+    // 숫자 입력에서 음수/지수 입력 차단
+    const handleNumberKeyDown = (e: any) => {
+        const blockedKeys = ["-", "+", "e", "E"];
+        if (blockedKeys.includes(e.key)) {
+            e.preventDefault();
+        }
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -132,6 +140,19 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
             return;
         }
 
+        // 상품명 중복 검사 (신규 상품에 한함)
+        if (productType === "new") {
+            const result = await checkProductNameExists(form.name);
+            if (result.error) {
+                setErrors([result.error]);
+                return;
+            }
+            if (result.isDuplicate) {
+                alert(`이미 존재하는 상품명입니다: ${form.name}`);
+                return;
+            }
+        }
+
         // product_id 자동 생성 함수 (P0000XXX 형식)
         const generateProductId = () => {
             const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -198,7 +219,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
             onClose();
         } catch (err: any) {
             console.error("상품 생성 실패:", err);
-            setErrors(["상품 생성 중 오류가 발생했습니다."]);
+            alert("상품 생성 중 오류가 발생했습니다.");
         }
     };
 
@@ -219,7 +240,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                         <div className="bg-red-50 border border-red-200 rounded-md p-4">
                             <div className="flex items-start">
                                 <FiAlertTriangle className="text-red-600 mr-2 mt-1" />
-                                <ul className="text-sm text-red-700 list-disc list-inside">
+                                <ul className="text-sm text-red-707 list-disc list-inside">
                                     {errors.map((err, i) => (
                                         <li key={i}>{err}</li>
                                     ))}
@@ -328,19 +349,25 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                                     label="판매가"
                                     type="number"
                                     value={form.price?.toString() || ""}
-                                    onChange={(val) => handleChange("price", Number(val) || 0)}
+                                    onChange={(val) => handleChange("price", Math.max(0, Number(val) || 0))}
+                                    onKeyDown={handleNumberKeyDown}
+                                    noSpinner
                                 />
                                 <TextInput
                                     label="초기 재고수량"
                                     type="number"
-                                    value={form.stock?.toString() || "0"}
-                                    onChange={(val) => handleChange("stock", Number(val) || 0)}
+                                    value={Math.max(0, Number(form.stock) || 0).toString()}
+                                    onChange={(val) => handleChange("stock", Math.max(0, Number(val) || 0))}
+                                    onKeyDown={handleNumberKeyDown}
+                                    noSpinner
                                 />
                                 <TextInput
                                     label="최소 재고수량"
                                     type="number"
-                                    value={form.min_stock?.toString() || "0"}
-                                    onChange={(val) => handleChange("min_stock", Number(val) || 0)}
+                                    value={Math.max(0, Number(form.min_stock) || 0).toString()}
+                                    onChange={(val) => handleChange("min_stock", Math.max(0, Number(val) || 0))}
+                                    onKeyDown={handleNumberKeyDown}
+                                    noSpinner
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
                                     재고가 이 수준 이하로 떨어지면 경고가 표시됩니다.
@@ -397,8 +424,12 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                                     <TextInput
                                         label="매입가"
                                         type="number"
-                                        value={supplier.cost_price?.toString() || ""}
-                                        onChange={(val) => handleSupplierChange(index, "cost_price", Number(val) || 0)}
+                                        value={Math.max(0, Number(supplier.cost_price) || 0).toString()}
+                                        onChange={(val) =>
+                                            handleSupplierChange(index, "cost_price", Math.max(0, Number(val) || 0))
+                                        }
+                                        onKeyDown={handleNumberKeyDown}
+                                        noSpinner
                                     />
                                     <label className="inline-flex items-center text-sm text-gray-600">
                                         <input

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { FiPlus, FiSearch, FiLoader, FiDownload } from "react-icons/fi";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { FiPlus, FiSearch, FiLoader, FiRotateCcw, FiPrinter, FiDownload } from "react-icons/fi";
 import PrimaryButton from "../../components/button/PrimaryButton";
 import GreenButton from "../../components/button/GreenButton";
 import StatusBadge from "../../components/common/StatusBadge";
@@ -7,11 +8,11 @@ import TextInput from "../../components/input/TextInput";
 import SelectInput from "../../components/input/SelectInput";
 import OrderDetailModal from "../../components/modal/OrderDetailModal";
 import NewOrderModal from "../../components/modal/NewOrderModal";
-import { Order, OrderStatus } from "../../store/ordersStore";
+import { Order, OrderStatus, OrdersResponse } from "../../store/ordersStore";
 import { useAuthStore } from "../../store/authStore";
 import { useOrder } from "../../hooks/queries/useOrder";
 import axios from "../../api/axios";
-import { deleteOrder, exportOrders } from "../../api/orders";
+import { deleteOrder, createOrder, fetchOrderById, exportOrders } from "../../api/orders";
 import { fetchInventories } from "../../api/inventory";
 import { fetchSuppliers } from "../../api/supplier";
 import { usePermissions } from "../../hooks/usePermissions";
@@ -27,15 +28,15 @@ interface SearchFilters {
 }
 
 // order_date를 YYYY-MM-DD로 변환
-// function parseOrderDate(dateStr: string | undefined | null): string {
-//     if (!dateStr) return "";
-//     const match = dateStr.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
-//     if (match) {
-//         const [, year, month, day] = match;
-//         return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-//     }
-//     return dateStr; // 이미 포맷이 맞으면 그대로
-// }
+function parseOrderDate(dateStr: string | undefined | null): string {
+    if (!dateStr) return "";
+    const match = dateStr.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+    if (match) {
+        const [, year, month, day] = match;
+        return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+    return dateStr; // 이미 포맷이 맞으면 그대로
+}
 
 // 숫자를 한글로 변환하는 함수 추가 (OrderDetailModal.tsx에서 복사)
 function numberToKorean(num: number): string {
@@ -70,7 +71,7 @@ const OrdersPage: React.FC = () => {
     const [isOrderDetailModalOpen, setIsOrderDetailModalOpen] = useState<boolean>(false);
     const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState<boolean>(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-
+    const [ordersResponse, setOrdersResponse] = useState<OrdersResponse | null>(null);
     const [orders, setOrders] = useState<Order[]>([]);
     const [searchInputs, setSearchInputs] = useState<SearchFilters>({
         orderId: "",
@@ -103,6 +104,8 @@ const OrdersPage: React.FC = () => {
     const { data, isLoading, isError, error, refetch } = useOrder();
     const user = useAuthStore((state) => state.user);
     const isManager = user?.role === "대표";
+    const [variantIdToCode, setVariantIdToCode] = useState<Record<number, string>>({});
+    const [supplierNameToId, setSupplierNameToId] = useState<Record<string, number>>({});
 
     useEffect(() => {
         if (data) {
@@ -130,6 +133,7 @@ const OrdersPage: React.FC = () => {
             console.log("Setting orders data:", data.data);
             if (data.data.results) {
                 // 페이지네이션된 응답
+                setOrdersResponse(data.data);
                 setOrders(Array.isArray(data.data.results) ? data.data.results : []);
             } else {
                 // 기존 배열 응답 (호환성)
@@ -150,10 +154,12 @@ const OrdersPage: React.FC = () => {
                         }
                     });
                 });
+                setVariantIdToCode(mapping);
             })
             .catch((error) => {
                 console.error("Failed to fetch inventories:", error);
                 alert("상품 데이터를 불러오는데 실패했습니다.");
+                setVariantIdToCode({});
             });
     }, []);
 
@@ -165,10 +171,12 @@ const OrdersPage: React.FC = () => {
                 suppliers.forEach((supplier: any) => {
                     mapping[supplier.name] = supplier.id;
                 });
+                setSupplierNameToId(mapping);
             })
             .catch((error) => {
                 console.error("Failed to fetch suppliers:", error);
                 alert("공급업체 데이터를 불러오는데 실패했습니다.");
+                setSupplierNameToId({});
             });
     }, []);
 
@@ -201,9 +209,11 @@ const OrdersPage: React.FC = () => {
             );
         }
 
-        // 공급업체 id로 필터링
+        // 공급업체명으로 부분 검색 (대소문자 무시)
         if (searchFilters.supplier) {
-            result = result.filter((order) => String(order.supplier) === searchFilters.supplier);
+            result = result.filter((order) => 
+                String(order.supplier).toLowerCase().includes(searchFilters.supplier.toLowerCase())
+            );
         }
 
         // 상태 필터링
@@ -293,6 +303,65 @@ const OrdersPage: React.FC = () => {
     const handleOpenOrderDetail = useCallback((orderId: number) => {
         setSelectedOrderId(orderId);
         setIsOrderDetailModalOpen(true);
+    }, []);
+
+    const handlePrintOrder = useCallback((order: Order) => {
+        const printWindow = window.open("", "_blank");
+        if (!printWindow) {
+            alert("팝업이 차단되었습니다. 팝업 차단을 해제해주세요.");
+            return;
+        }
+
+        // 인쇄할 HTML 내용 생성
+        const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>발주서 - ${order.product_names ? order.product_names.join(", ") : "-"}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          .header { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px; }
+          .info-section { display: flex; margin-bottom: 20px; }
+          .info-column { flex: 1; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+          .total-row { font-weight: bold; }
+          @media print {
+            body { padding: 0; }
+            button { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">발 주 서</div>
+        <div class="info-section">
+          <div class="info-column">
+            <p><strong>사업자번호:</strong> 682-88-00080</p>
+            <p><strong>상호:</strong> ㈜고대미래</p>
+            <p><strong>대표자:</strong> 유시진</p>
+            <p><strong>주소:</strong> 서울특별시 성북구 안암로145, 고려대학교 100주년삼성기념관 103호 크림슨 스토어</p>
+          </div>
+          <div class="info-column">
+            <p><strong>발주물품:</strong> ${order.product_names ? order.product_names.join(", ") : "-"}</p>
+            <p><strong>발주일자:</strong> ${order.order_date}</p>
+            <p><strong>공급업체:</strong> ${order.supplier}</p>
+            <p><strong>담당자:</strong> ${order.manager}</p>
+          </div>
+        </div>
+        <p>아래와 같이 발주하오니 기일 내 필히 납품하여 주시기 바랍니다.</p>
+        <p><strong>총 금액:</strong> {(order.total_price ?? 0).toLocaleString()}원</p>
+        <p><strong>상태:</strong> ${
+            order.status === "PENDING" ? "승인 대기" : order.status === "APPROVED" ? "승인됨" : "취소됨"
+        }</p>
+        <button onclick="window.print()">인쇄</button>
+      </body>
+      </html>
+    `;
+
+        printWindow.document.open();
+        printWindow.document.write(printContent);
+        printWindow.document.close();
     }, []);
 
     const handleDownloadOrderExcel = async (order: Order) => {
@@ -397,14 +466,85 @@ const OrdersPage: React.FC = () => {
         setCurrentPage(pageNumber);
     }, []);
 
+    const handleFilterChange = useCallback((key: keyof SearchFilters, value: string) => {
+        setSearchFilters((prev) => ({
+            ...prev,
+            [key]: value,
+        }));
+        setCurrentPage(1); // 필터 변경 시 첫 페이지로 리셋
+    }, []);
+
     const handleInputChange = (key: keyof SearchFilters, value: string) => {
         setSearchInputs((prev) => ({ ...prev, [key]: value }));
     };
 
+    // debounced text fields
+    const debouncedOrderId = useDebouncedValue(searchInputs.orderId, 300);
+    const debouncedSupplier = useDebouncedValue(searchInputs.supplier, 300);
+
     const handleSearch = () => {
-        setSearchFilters(searchInputs);
-        setCurrentPage(1);
+        // 유효성 검사 및 확인용 - 실제 필터링은 useEffect가 자동으로 처리
+        console.log("검색 버튼 클릭 - 자동 필터링이 이미 적용됨", {
+            searchInputs,
+            debouncedOrderId,
+            debouncedSupplier
+        });
     };
+
+    // 자동 적용: 텍스트 입력은 디바운스 후 즉시 필터 반영
+    useEffect(() => {
+        setSearchFilters((prev) => ({ ...prev, orderId: debouncedOrderId }));
+        setCurrentPage(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedOrderId]);
+
+    useEffect(() => {
+        setSearchFilters((prev) => ({ ...prev, supplier: debouncedSupplier }));
+        setCurrentPage(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedSupplier]);
+
+    // 자동 적용: 상태 드롭다운 변경 시 즉시 필터 반영
+    useEffect(() => {
+        setSearchFilters((prev) => ({ 
+            ...prev, 
+            status: searchInputs.status,
+            orderId: debouncedOrderId,
+            supplier: debouncedSupplier 
+        }));
+        setCurrentPage(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchInputs.status]);
+
+    // 자동 적용: 기간 드롭다운 변경 시 즉시 필터 반영
+    useEffect(() => {
+        setSearchFilters((prev) => ({ 
+            ...prev, 
+            dateRange: searchInputs.dateRange,
+            orderId: debouncedOrderId,
+            supplier: debouncedSupplier,
+            status: searchInputs.status
+        }));
+        setCurrentPage(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchInputs.dateRange]);
+
+    // 자동 적용: 커스텀 날짜 변경 시 즉시 필터 반영
+    useEffect(() => {
+        if (searchInputs.dateRange === "커스텀 기간") {
+            setSearchFilters((prev) => ({ 
+                ...prev, 
+                startDate: searchInputs.startDate,
+                endDate: searchInputs.endDate,
+                orderId: debouncedOrderId,
+                supplier: debouncedSupplier,
+                status: searchInputs.status,
+                dateRange: searchInputs.dateRange
+            }));
+            setCurrentPage(1);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchInputs.startDate, searchInputs.endDate]);
 
     const handleKeyDown = (event: React.KeyboardEvent) => {
         if (event.key === "Enter") {

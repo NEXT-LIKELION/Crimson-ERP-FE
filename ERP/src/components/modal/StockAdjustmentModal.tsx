@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiX, FiAlertTriangle } from 'react-icons/fi';
-import { FaBoxes, FaEdit } from 'react-icons/fa';
+import { FaBoxes } from 'react-icons/fa';
 import TextInput from '../input/TextInput';
 import PrimaryButton from '../button/PrimaryButton';
 import SecondaryButton from '../button/SecondaryButton';
@@ -18,11 +18,14 @@ interface StockAdjustmentModalProps {
         min_stock: number;
     } | null;
     onSuccess: () => void;
-    onAdjust: (variantCode: string, data: {
-        actual_stock: number;
-        reason: string;
-        updated_by: string;
-    }) => Promise<void>;
+    onAdjust: (
+        variantCode: string,
+        data: {
+            actual_stock: number;
+            reason: string;
+            updated_by: string;
+        }
+    ) => Promise<void>;
 }
 
 const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
@@ -30,7 +33,7 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
     onClose,
     variant,
     onSuccess,
-    onAdjust
+    onAdjust,
 }) => {
     const user = useAuthStore((state) => state.user);
     const [actualStock, setActualStock] = useState<string>('');
@@ -47,18 +50,24 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
         }
     }, [isOpen, variant]);
 
+    // 숫자 입력에서 음수/지수 입력 차단
+    const handleNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        const blockedKeys = ['-', '+', 'e', 'E'];
+        if (blockedKeys.includes(e.key)) {
+            e.preventDefault();
+        }
+    };
+
     const handleSubmit = async () => {
         if (!variant) return;
 
         const errs = [];
-        const actualStockNum = parseInt(actualStock);
-        
+        const actualStockNum = Math.max(0, parseInt(actualStock));
+
         if (!actualStock.trim() || isNaN(actualStockNum)) {
             errs.push('실제 재고수량을 올바르게 입력해주세요.');
         }
-        if (actualStockNum < 0) {
-            errs.push('실제 재고수량은 0 이상이어야 합니다.');
-        }
+        // 음수 입력은 0으로 자동 보정
         if (!reason.trim()) {
             errs.push('조정 사유를 입력해주세요.');
         }
@@ -69,14 +78,16 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
         }
 
         const delta = actualStockNum - variant.current_stock;
-        
+
         if (delta === 0) {
             alert('현재 재고와 동일한 수량입니다. 조정이 필요하지 않습니다.');
             return;
         }
 
-        const confirmMessage = `재고를 조정하시겠습니까?\n\n현재 재고: ${variant.current_stock}EA\n실제 재고: ${actualStockNum}EA\n변경량: ${delta > 0 ? '+' : ''}${delta}EA\n\n사유: ${reason}`;
-        
+        const confirmMessage = `재고를 조정하시겠습니까?\n\n현재 재고: ${
+            variant.current_stock
+        }EA\n실제 재고: ${actualStockNum}EA\n변경량: ${delta > 0 ? '+' : ''}${delta}EA\n\n사유: ${reason}`;
+
         if (!window.confirm(confirmMessage)) {
             return;
         }
@@ -86,9 +97,9 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
             await onAdjust(variant.variant_code, {
                 actual_stock: actualStockNum,
                 reason: reason.trim(),
-                updated_by: user?.username || 'unknown'
+                updated_by: user?.username || 'unknown',
             });
-            
+
             alert('재고 조정이 완료되었습니다.');
             onSuccess();
             onClose();
@@ -135,10 +146,18 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                     <div className="bg-gray-50 rounded-md p-4">
                         <h3 className="text-sm font-medium text-gray-700 mb-2">상품 정보</h3>
                         <div className="space-y-1 text-sm text-gray-600">
-                            <p><span className="font-medium">상품코드:</span> {variant.product_id}</p>
-                            <p><span className="font-medium">품목코드:</span> {variant.variant_code}</p>
-                            <p><span className="font-medium">상품명:</span> {variant.name}</p>
-                            <p><span className="font-medium">옵션:</span> {variant.option}</p>
+                            <p>
+                                <span className="font-medium">상품코드:</span> {variant.product_id}
+                            </p>
+                            <p>
+                                <span className="font-medium">품목코드:</span> {variant.variant_code}
+                            </p>
+                            <p>
+                                <span className="font-medium">상품명:</span> {variant.name}
+                            </p>
+                            <p>
+                                <span className="font-medium">옵션:</span> {variant.option}
+                            </p>
                         </div>
                     </div>
 
@@ -163,16 +182,37 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                             label="실제 재고수량"
                             type="number"
                             value={actualStock}
-                            onChange={setActualStock}
+                            onChange={(val) => {
+                                // 빈 값은 허용, 음수는 무시
+                                if (val === '') {
+                                    setActualStock('');
+                                    return;
+                                }
+                                const n = Number(val);
+                                if (!Number.isNaN(n) && n >= 0) {
+                                    setActualStock(val);
+                                }
+                            }}
+                            onKeyDown={handleNumberKeyDown}
+                            noSpinner
                             placeholder="실제 확인한 재고수량을 입력하세요"
                         />
 
                         {actualStock && !isNaN(parseInt(actualStock)) && (
-                            <div className={`p-3 rounded-md ${delta > 0 ? 'bg-green-50' : delta < 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
+                            <div
+                                className={`p-3 rounded-md ${
+                                    delta > 0 ? 'bg-green-50' : delta < 0 ? 'bg-red-50' : 'bg-gray-50'
+                                }`}
+                            >
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="font-medium">변경량:</span>
-                                    <span className={`font-bold ${delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                                        {delta > 0 ? '+' : ''}{delta}EA
+                                    <span
+                                        className={`font-bold ${
+                                            delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-600' : 'text-gray-600'
+                                        }`}
+                                    >
+                                        {delta > 0 ? '+' : ''}
+                                        {delta}EA
                                         {delta > 0 ? ' (증가)' : delta < 0 ? ' (감소)' : ' (변경없음)'}
                                     </span>
                                 </div>
@@ -195,16 +235,11 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                 </div>
 
                 <div className="px-6 py-4 border-t border-gray-300 flex justify-end gap-3">
-                    <SecondaryButton
-                        text="취소"
-                        onClick={onClose}
-                        disabled={isLoading}
-                    />
+                    <SecondaryButton text="취소" onClick={onClose} disabled={isLoading} />
                     <PrimaryButton
-                        text={isLoading ? "조정 중..." : "재고 조정"}
+                        text={isLoading ? '조정 중...' : '재고 조정'}
                         onClick={handleSubmit}
                         disabled={isLoading}
-                        icon={<FaEdit size={16} />}
                     />
                 </div>
             </div>
