@@ -17,7 +17,7 @@ export const uploadInventoryExcel = (file: File) => {
   // FormData 내용 확인
   for (const [key, value] of formData.entries()) {
     console.log('FormData entry:', key, value);
-    if (value instanceof File) {
+    if (value && typeof value === 'object' && value instanceof File) {
       console.log('File details:', value.name, value.size, value.type);
     }
   }

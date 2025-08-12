@@ -12,16 +12,17 @@ import {
 } from '../../api/inventory';
 import { useSuppliers } from '../../hooks/queries/useSuppliers';
 import { useQuery } from '@tanstack/react-query';
+import { ProductFormData, ProductVariant, Supplier, ProductOption, CreatedProductData } from '../../types/product';
 
 interface AddProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (product: any) => void;
+  onSave: (product: CreatedProductData) => void;
 }
 
 const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
   const { data: suppliersData } = useSuppliers();
-  const supplierOptions = suppliersData?.data?.map((s: any) => s.name) || [];
+  const supplierOptions = suppliersData?.data?.map((s: Supplier) => s.name) || [];
 
   // 기존 상품 목록 조회
   const { data: productsData } = useQuery({
@@ -30,7 +31,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     enabled: isOpen,
   });
   const productOptions =
-    productsData?.data?.map((p: any) => ({
+    productsData?.data?.map((p: ProductOption) => ({
       value: p.product_id,
       label: `${p.product_id} - ${p.name}`,
     })) || [];
@@ -44,7 +45,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
 
   // 동적 카테고리 옵션 생성 + 새 카테고리 추가 옵션
   const existingCategories = allInventoriesData
-    ? Array.from(new Set(allInventoriesData.map((item: any) => item.category).filter(Boolean)))
+    ? Array.from(new Set(allInventoriesData.map((item: ProductVariant) => item.category).filter(Boolean)))
     : ['일반', '한정', '신상품']; // 로딩 중일 때 기본 카테고리
   const categoryOptions = [...existingCategories, '직접 입력'];
 
@@ -52,7 +53,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
 
   const [productType, setProductType] = useState<'new' | 'existing'>('new'); // 신상품 vs 기존상품 옵션 추가
   const [selectedProductId, setSelectedProductId] = useState<string>('');
-  const [form, setForm] = useState<any>({
+  const [form, setForm] = useState<ProductFormData>({
     name: '',
     category: '',
     option: '',
@@ -66,7 +67,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
   const [errors, setErrors] = useState<string[]>([]);
 
   // 숫자 입력에서 음수/지수 입력 차단
-  const handleNumberKeyDown = (e: any) => {
+  const handleNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const blockedKeys = ['-', '+', 'e', 'E'];
     if (blockedKeys.includes(e.key)) {
       e.preventDefault();
@@ -93,8 +94,8 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     }
   }, [isOpen]);
 
-  const handleChange = (field: string, value: string | number) => {
-    setForm((prev: any) => ({ ...prev, [field]: value }));
+  const handleChange = (field: keyof ProductFormData, value: string | number) => {
+    setForm((prev: ProductFormData) => ({ ...prev, [field]: value }));
   };
 
   const handleCategoryChange = (value: string) => {
@@ -197,12 +198,18 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
       } else {
         // 기존 상품에 옵션 추가
         const selectedProduct = productsData?.data?.find(
-          (p: any) => p.product_id === selectedProductId
+          (p: ProductOption) => p.product_id === selectedProductId
         );
+        
+        // 기존 상품의 카테고리를 가져오기 위해 전체 재고 데이터에서 찾기
+        const existingVariant = allInventoriesData?.find(
+          (item: ProductVariant) => item.product_id === selectedProductId
+        );
+        
         variantPayload = {
           product_id: selectedProductId,
           name: selectedProduct?.name || form.name,
-          category: form.category,
+          category: existingVariant?.category || '일반', // 기존 상품의 카테고리 사용
           option: form.option || '기본',
           stock: Number(form.stock) || 0,
           price: Number(form.price),

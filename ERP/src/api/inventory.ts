@@ -1,5 +1,5 @@
 import api from './axios';
-import { Product, ProductVariant } from '../types/product';
+import { Product, ProductVariant, ProductOption } from '../types/product';
 
 interface InventoryFilterParams {
   name?: string;
@@ -87,9 +87,9 @@ export const checkProductNameExists = async (
 ): Promise<{ isDuplicate: boolean; error?: string }> => {
   try {
     const res = await fetchProductOptions();
-    const list = res.data || [];
+    const list: ProductOption[] = res.data || [];
     const target = (name || '').trim().toLowerCase();
-    const isDuplicate = list.some((p: Product) => (p?.name || '').trim().toLowerCase() === target);
+    const isDuplicate = list.some((p: ProductOption) => (p?.name || '').trim().toLowerCase() === target);
     return { isDuplicate };
   } catch (e) {
     console.error('상품명 중복 체크 실패:', e);
@@ -101,9 +101,9 @@ export const checkProductNameExists = async (
 };
 
 // 병합용 전체 데이터 조회 (모든 페이지)
-export const fetchAllInventoriesForMerge = async () => {
+export const fetchAllInventoriesForMerge = async (): Promise<ProductVariant[]> => {
   try {
-    let allData: any[] = [];
+    let allData: ProductVariant[] = [];
     let page = 1;
     let hasMoreData = true;
 
@@ -136,9 +136,9 @@ interface InventoryExportFilters {
   page?: number;
 }
 
-export const fetchFilteredInventoriesForExport = async (appliedFilters: InventoryExportFilters) => {
+export const fetchFilteredInventoriesForExport = async (appliedFilters: InventoryExportFilters): Promise<ProductVariant[]> => {
   try {
-    let allData: any[] = [];
+    let allData: ProductVariant[] = [];
     let page = 1;
     let hasMoreData = true;
 
@@ -158,7 +158,7 @@ export const fetchFilteredInventoriesForExport = async (appliedFilters: Inventor
     }
 
     // 프론트엔드 필터링 적용
-    const filteredData = allData.filter((item: any) => {
+    const filteredData = allData.filter((item: ProductVariant) => {
       // 상품명 필터
       if (
         appliedFilters?.name &&

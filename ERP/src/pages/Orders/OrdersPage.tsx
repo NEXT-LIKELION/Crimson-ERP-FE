@@ -308,68 +308,6 @@ const OrdersPage: React.FC = () => {
     setIsOrderDetailModalOpen(true);
   }, []);
 
-  const handlePrintOrder = useCallback((order: Order) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('팝업이 차단되었습니다. 팝업 차단을 해제해주세요.');
-      return;
-    }
-
-    // 인쇄할 HTML 내용 생성
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>발주서 - ${order.product_names ? order.product_names.join(', ') : '-'}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-          .header { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px; }
-          .info-section { display: flex; margin-bottom: 20px; }
-          .info-column { flex: 1; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background-color: #f2f2f2; }
-          .total-row { font-weight: bold; }
-          @media print {
-            body { padding: 0; }
-            button { display: none; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">발 주 서</div>
-        <div class="info-section">
-          <div class="info-column">
-            <p><strong>사업자번호:</strong> 682-88-00080</p>
-            <p><strong>상호:</strong> ㈜고대미래</p>
-            <p><strong>대표자:</strong> 유시진</p>
-            <p><strong>주소:</strong> 서울특별시 성북구 안암로145, 고려대학교 100주년삼성기념관 103호 크림슨 스토어</p>
-          </div>
-          <div class="info-column">
-            <p><strong>발주물품:</strong> ${order.product_names ? order.product_names.join(', ') : '-'}</p>
-            <p><strong>발주일자:</strong> ${order.order_date}</p>
-            <p><strong>공급업체:</strong> ${order.supplier}</p>
-            <p><strong>담당자:</strong> ${order.manager}</p>
-          </div>
-        </div>
-        <p>아래와 같이 발주하오니 기일 내 필히 납품하여 주시기 바랍니다.</p>
-        <p><strong>총 금액:</strong> {(order.total_price ?? 0).toLocaleString()}원</p>
-        <p><strong>상태:</strong> ${
-          order.status === 'PENDING'
-            ? '승인 대기'
-            : order.status === 'APPROVED'
-              ? '승인됨'
-              : '취소됨'
-        }</p>
-        <button onclick="window.print()">인쇄</button>
-      </body>
-      </html>
-    `;
-
-    printWindow.document.open();
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-  }, []);
 
   const handleDownloadOrderExcel = async (order: Order) => {
     try {
