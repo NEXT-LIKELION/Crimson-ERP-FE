@@ -1,5 +1,5 @@
 import { api } from './axios';
-import { getCookie } from '../utils/cookies';
+import { getRefreshToken } from '../utils/localStorage';
 
 // 로그인
 export const login = (payload: { username: string; password: string }) =>
@@ -21,8 +21,8 @@ export const getCurrentUser = () => api.get('/authentication/me/');
 
 // 로그아웃
 export const logout = () => {
-  // 쿠키에서 refresh 토큰 가져오기
-  const refreshToken = getCookie('refreshToken') || localStorage.getItem('refresh');
+  // localStorage에서 refresh 토큰 가져오기
+  const refreshToken = getRefreshToken();
 
   if (!refreshToken) {
     // refresh 토큰이 없는 경우 Promise.reject로 에러 반환

@@ -1,6 +1,6 @@
 // src/api/axios.ts
 import axios from 'axios';
-import { getCookie, clearAuthCookies } from '../utils/cookies';
+import { getAccessToken, clearAuthTokens } from '../utils/localStorage';
 
 // .env에서 API 기본 주소 설정 (없을 경우 기본 로컬 주소 사용)
 const API_BASE_URL =
@@ -23,12 +23,12 @@ api.interceptors.request.use((config) => {
   ) {
     delete config.headers.Authorization;
   } else {
-    // 쿠키에서 토큰 가져오기
-    const token = getCookie('accessToken');
+    // localStorage에서 토큰 가져오기
+    const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     } else {
-      console.warn('No access token found in cookies');
+      console.warn('No access token found in localStorage');
     }
   }
 
@@ -60,7 +60,7 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       // 토큰이 만료되었거나 유효하지 않음
-      clearAuthCookies();
+      clearAuthTokens();
       localStorage.removeItem('auth-storage');
 
       // 로그인 페이지로 리다이렉트

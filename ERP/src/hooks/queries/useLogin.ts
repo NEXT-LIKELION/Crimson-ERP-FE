@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { login } from '../../api/auth';
-import { setCookie } from '../../utils/cookies';
+import { setTokens } from '../../utils/localStorage';
 import { useAuthStore } from '../../store/authStore';
 
 export interface User {
@@ -21,9 +21,8 @@ export const useLogin = (onSuccessCallback?: (userData: User) => void) =>
       const refresh = res.data.refresh_token;
       const user = res.data.user as User;
 
-      // 쿠키에 토큰 저장 (7일 만료)
-      setCookie('accessToken', access, 7);
-      setCookie('refreshToken', refresh, 30); // refresh 토큰은 더 길게
+      // localStorage에 토큰 저장
+      setTokens(access, refresh);
 
       // zustand에 user 정보 저장
       useAuthStore.getState().setUser(user);
