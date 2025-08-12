@@ -122,9 +122,6 @@ const HRPage: React.FC = () => {
     const currentUser = useAuthStore((state) => state.user);
     const isAdmin = currentUser?.role === "MANAGER";
 
-    console.log("HR 페이지 - 현재 사용자 정보:", currentUser);
-    console.log("HR 페이지 - 관리자 여부:", isAdmin);
-
     // API 훅 사용
     const { data: employeesData, isLoading, error } = useEmployees();
     const terminateEmployee = useTerminateEmployee();
@@ -196,8 +193,6 @@ const HRPage: React.FC = () => {
 
     // 직원 카드 컴포넌트
     const EmployeeCard: React.FC<{ employee: MappedEmployee }> = ({ employee }) => {
-        console.log("employee:", employee);
-        console.log("isAdmin:", isAdmin, "currentUser:", currentUser);
         const isTerminated = employee.status === "terminated";
         const isCurrentUser = currentUser?.username === employee.username; // 현재 로그인한 사용자와 같은지 확인
 

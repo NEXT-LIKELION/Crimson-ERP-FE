@@ -12,7 +12,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     const location = useLocation();
     const hideAuth = location.pathname.startsWith("/auth");
     const user = useAuthStore((state) => state.user);
-    console.log("user", user);
 
     return (
         <div className="flex h-screen overflow-hidden bg-gray-50 font-inter">

@@ -37,9 +37,6 @@ export const createVacation = (data: VacationCreateData): Promise<{data: Vacatio
 
 // 휴가 승인/거절/취소
 export const reviewVacation = (vacationId: number, status: VacationStatus): Promise<{data: VacationRequest}> => {
-    console.log('휴가 상태 변경 요청:', { vacationId, status });
-    console.log(`API 엔드포인트: /hr/vacations/review/${vacationId}/`);
-    
     return api.patch(`/hr/vacations/review/${vacationId}/`, { status });
 };
 
@@ -50,7 +47,7 @@ export interface EmployeeList {
     email: string;
     role: string;
     status: 'active' | 'terminated';
-    contact: string | null;
+    contact?: string;
     first_name: string;
     is_active: boolean;
     hire_date: string | null;
@@ -64,7 +61,7 @@ export interface EmployeeDetail {
     email: string;
     role: string;
     status: 'active' | 'terminated';
-    contact: string | null;
+    contact?: string;
     first_name: string;
     is_active: boolean;
     hire_date: string | null;
@@ -127,7 +124,6 @@ export const parseVacationDays = (vacationData: string | VacationDay[]): Vacatio
         const parsed = JSON.parse(vacationData);
         return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
-        console.warn('휴가 데이터 파싱 실패:', error);
         return [];
     }
 };
