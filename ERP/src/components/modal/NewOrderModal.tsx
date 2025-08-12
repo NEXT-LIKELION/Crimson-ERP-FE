@@ -1,760 +1,769 @@
 // src/components/modal/NewOrderModal.tsx
-import React, { useState, useEffect } from "react";
-import { FiX, FiPlus, FiTrash2, FiShoppingBag, FiCalendar, FiCheckCircle, FiAlertTriangle } from "react-icons/fi";
-import DateInput from "../input/DateInput";
-import SelectInput from "../input/SelectInput";
-import RadioButton from "../common/RadioButton";
-import AddProductModal from "./AddProductModal";
-import AddSupplierModal from "./AddSupplierModal";
-import { Order } from "../../store/ordersStore";
-import { useAuthStore } from "../../store/authStore";
-import { fetchSuppliers } from "../../api/supplier";
-import { fetchInventories, fetchVariantsByProductId } from "../../api/inventory";
-import { createOrder } from "../../api/orders";
-import { useEmployees } from "../../hooks/queries/useEmployees";
+import React, { useState, useEffect } from 'react';
+import {
+  FiX,
+  FiPlus,
+  FiTrash2,
+  FiShoppingBag,
+  FiCalendar,
+  FiCheckCircle,
+  FiAlertTriangle,
+} from 'react-icons/fi';
+import DateInput from '../input/DateInput';
+import SelectInput from '../input/SelectInput';
+import RadioButton from '../common/RadioButton';
+import AddProductModal from './AddProductModal';
+import AddSupplierModal from './AddSupplierModal';
+import { Order } from '../../store/ordersStore';
+import { useAuthStore } from '../../store/authStore';
+import { fetchSuppliers } from '../../api/supplier';
+import { fetchInventories, fetchVariantsByProductId } from '../../api/inventory';
+import { createOrder } from '../../api/orders';
+import { useEmployees } from '../../hooks/queries/useEmployees';
 
 interface NewOrderModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSuccess?: (newOrder: Order) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess?: (newOrder: Order) => void;
 }
 
 interface OrderItemPayload {
-    product_id: string | null; // 상품 ID
-    variant: string | null;
-    quantity: number;
-    unit_price: number;
-    unit: string;
-    remark: string;
-    spec: string;
+  product_id: string | null; // 상품 ID
+  variant: string | null;
+  quantity: number;
+  unit_price: number;
+  unit: string;
+  remark: string;
+  spec: string;
 }
 
 const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSuccess }) => {
-    const [suppliers, setSuppliers] = useState<any[]>([]);
-    const [products, setProducts] = useState<any[]>([]);
-    const [supplier, setSupplier] = useState<number>(0);
-    const [supplierName, setSupplierName] = useState<string>("");
-    const [orderDate, setOrderDate] = useState<Date | null>(null); // 초기값 null
-    const [deliveryDate, setDeliveryDate] = useState<Date | null>(null); // 초기값 null
-    const [items, setItems] = useState<OrderItemPayload[]>([
-        {
-            product_id: null,
-            variant: null,
-            quantity: 1,
-            unit_price: 0,
-            unit: "EA",
-            remark: "",
-            spec: "",
-        },
-    ]);
-    const [workInstructions, setWorkInstructions] = useState<string>(
-        "로고 디자인은 첨부파일대로 적용해 주시기 바랍니다. 샘플 확인 후 본 생산 진행 예정입니다."
-    );
-    const [note, setNote] = useState<string>(""); // 발주 이유 (내부 공유용)
-    const [includesTax, setIncludesTax] = useState<boolean>(true);
-    const [hasPackaging, setHasPackaging] = useState<boolean>(true);
-    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-    const [formErrors, setFormErrors] = useState<string[]>([]);
-    const [variantsByProduct, setVariantsByProduct] = useState<{ [productId: string]: any[] }>({});
-    const [isAddProductModalOpen, setIsAddProductModalOpen] = useState<boolean>(false);
-    const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState<boolean>(false);
-    const { data: employeesData, isLoading: isEmployeesLoading, error: employeesError } = useEmployees();
-    const employees = employeesData?.data || [];
-    const user = useAuthStore((state) => state.user);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [supplier, setSupplier] = useState<number>(0);
+  const [supplierName, setSupplierName] = useState<string>('');
+  const [orderDate, setOrderDate] = useState<Date | null>(null); // 초기값 null
+  const [deliveryDate, setDeliveryDate] = useState<Date | null>(null); // 초기값 null
+  const [items, setItems] = useState<OrderItemPayload[]>([
+    {
+      product_id: null,
+      variant: null,
+      quantity: 1,
+      unit_price: 0,
+      unit: 'EA',
+      remark: '',
+      spec: '',
+    },
+  ]);
+  const [workInstructions, setWorkInstructions] = useState<string>(
+    '로고 디자인은 첨부파일대로 적용해 주시기 바랍니다. 샘플 확인 후 본 생산 진행 예정입니다.'
+  );
+  const [note, setNote] = useState<string>(''); // 발주 이유 (내부 공유용)
+  const [includesTax, setIncludesTax] = useState<boolean>(true);
+  const [hasPackaging, setHasPackaging] = useState<boolean>(true);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [variantsByProduct, setVariantsByProduct] = useState<{ [productId: string]: any[] }>({});
+  const [isAddProductModalOpen, setIsAddProductModalOpen] = useState<boolean>(false);
+  const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState<boolean>(false);
+  const {
+    data: employeesData,
+    isLoading: isEmployeesLoading,
+    error: employeesError,
+  } = useEmployees();
+  const employees = employeesData?.data || [];
+  const user = useAuthStore((state) => state.user);
 
-    useEffect(() => {
-        if (isOpen) {
-            fetchSuppliers()
-                .then((res) => {
-                    const supplierData = Array.isArray(res.data) ? res.data : [];
-                    setSuppliers(supplierData);
-                })
-                .catch((error) => {
-                    console.error("Failed to fetch suppliers:", error);
-                    setSuppliers([]);
-                    setFormErrors((prev) => [...prev, "공급업체 목록을 불러오는데 실패했습니다."]);
-                });
-
-            fetchInventories()
-                .then((res) => {
-                    const productData = Array.isArray(res.data) ? res.data : [];
-                    setProducts(productData);
-                })
-                .catch((error) => {
-                    console.error("Failed to fetch inventories:", error);
-                    setProducts([]);
-                    setFormErrors((prev) => [...prev, "상품 목록을 불러오는데 실패했습니다."]);
-                });
-
-            resetForm();
-            setSupplierName("");
-        }
-    }, [isOpen]);
-
-    const resetForm = () => {
-        setSupplier(0);
-        setSupplierName("");
-        setOrderDate(null); // 초기값 null
-        setDeliveryDate(null); // 초기값 null
-        setItems([
-            {
-                product_id: null,
-                variant: null,
-                quantity: 1,
-                unit_price: 0,
-                unit: "EA",
-                remark: "",
-                spec: "",
-            },
-        ]);
-        setWorkInstructions("로고 디자인은 첨부파일대로 적용해 주시기 바랍니다. 샘플 확인 후 본 생산 진행 예정입니다.");
-        setNote("");
-        setIncludesTax(true);
-        setHasPackaging(true);
-        setFormErrors([]);
-    };
-
-    const handleAddItem = () => {
-        setItems([
-            ...items,
-            {
-                product_id: null,
-                variant: null,
-                quantity: 1,
-                unit_price: 0,
-                unit: "EA",
-                remark: "",
-                spec: "",
-            },
-        ]);
-    };
-
-    const handleRemoveItem = (idx: number) => {
-        if (items.length > 1) {
-            setItems(items.filter((_, i) => i !== idx));
-        } else {
-            alert("최소 하나의 발주 항목이 필요합니다.");
-        }
-    };
-
-    const handleItemChange = (idx: number, field: string, value: any) => {
-        setItems(items.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
-    };
-
-    const calculateTotal = (): number => {
-        const total = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
-        return includesTax ? total : Math.round(total * 1.1);
-    };
-
-    const validateForm = (): boolean => {
-        const errors: string[] = [];
-        if (!supplier) {
-            errors.push("공급업체를 선택해주세요.");
-        }
-        if (!orderDate) {
-            errors.push("발주일자를 선택해주세요.");
-        }
-        if (!deliveryDate) {
-            errors.push("예상 납품일을 선택해주세요.");
-        }
-        items.forEach((item, index) => {
-            if (!item.product_id) {
-                errors.push(`${index + 1}번 항목의 상품을 선택해주세요.`);
-            }
-            if (
-                !item.variant ||
-                !(item.product_id && variantsByProduct[item.product_id]?.find((v: any) => v.option === item.variant))
-            ) {
-                errors.push(`${index + 1}번 항목의 품목을 선택해주세요.`);
-            }
-            if (!item.spec) {
-                errors.push(`${index + 1}번 항목의 규격을 입력해주세요.`);
-            }
-            if (item.quantity <= 0) {
-                errors.push(`${index + 1}번 항목의 수량은 0보다 커야 합니다.`);
-            }
-            if (item.unit_price <= 0) {
-                errors.push(`${index + 1}번 항목의 단가는 0보다 커야 합니다.`);
-            }
+  useEffect(() => {
+    if (isOpen) {
+      fetchSuppliers()
+        .then((res) => {
+          const supplierData = Array.isArray(res.data) ? res.data : [];
+          setSuppliers(supplierData);
+        })
+        .catch((error) => {
+          console.error('Failed to fetch suppliers:', error);
+          setSuppliers([]);
+          setFormErrors((prev) => [...prev, '공급업체 목록을 불러오는데 실패했습니다.']);
         });
-        if (!workInstructions.trim()) {
-            errors.push("작업지시사항을 입력해주세요.");
-        }
-        setFormErrors(errors);
-        return errors.length === 0;
-    };
 
-    const handleSubmit = async () => {
-        if (!supplier) {
-            setFormErrors(["공급업체를 선택해주세요."]);
-            return;
-        }
-        if (!validateForm()) {
-            alert("필수 입력값을 모두 입력해주세요.");
-            return;
-        }
-        setIsSubmitting(true);
-        try {
-            const payload = {
-                supplier,
-                order_date: orderDate ? orderDate.toISOString().slice(0, 10) : "",
-                expected_delivery_date: deliveryDate ? deliveryDate.toISOString().slice(0, 10) : "",
-                status: "PENDING",
-                instruction_note: workInstructions,
-                note: note,
-                vat_included: includesTax,
-                packaging_included: hasPackaging,
-                manager_name: user?.first_name || user?.username || "",
-                items: items.map((item) => {
-                    const product_id = item.product_id;
-                    const variantObj =
-                        product_id && variantsByProduct[product_id]?.find((v: any) => v.option === item.variant);
-                    return {
-                        variant_code: variantObj ? variantObj.variant_code : undefined,
-                        quantity: item.quantity,
-                        unit_price: includesTax ? item.unit_price : Math.round(item.unit_price * 1.1),
-                        unit: item.unit,
-                        remark: item.remark,
-                        spec: item.spec,
-                    };
-                }),
-            };
-            const res = await createOrder(payload);
-            alert("발주가 성공적으로 신청되었습니다.");
-            if (onSuccess) onSuccess(res.data);
-            onClose();
-        } catch (error) {
-            setFormErrors(["발주 신청 중 오류가 발생했습니다. 다시 시도해주세요."]);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+      fetchInventories()
+        .then((res) => {
+          const productData = Array.isArray(res.data) ? res.data : [];
+          setProducts(productData);
+        })
+        .catch((error) => {
+          console.error('Failed to fetch inventories:', error);
+          setProducts([]);
+          setFormErrors((prev) => [...prev, '상품 목록을 불러오는데 실패했습니다.']);
+        });
 
-    // 공급업체 선택 핸들러
-    const handleSupplierChange = (name: string) => {
-        setSupplierName(name);
-        if (!Array.isArray(suppliers)) {
-            setSupplier(0);
-            return;
-        }
-        const found = suppliers.find((s) => s.name === name);
-        setSupplier(found ? found.id : 0);
-    };
+      resetForm();
+      setSupplierName('');
+    }
+  }, [isOpen]);
 
-    // 2. 행별 상품 선택 핸들러
-    const handleProductChange = async (idx: number, name: string) => {
-        if (!Array.isArray(products)) return;
-
-        const found = products.find((p) => p.name === name);
-        const product_id = found ? found.product_id : null;
-        // 품목 캐시 없으면 fetch
-        if (product_id && !variantsByProduct[product_id]) {
-            try {
-                const res = await fetchVariantsByProductId(product_id);
-                setVariantsByProduct((prev) => ({ ...prev, [product_id]: res.data.variants || [] }));
-            } catch (e) {
-                console.error("Failed to fetch variants:", e);
-                setVariantsByProduct((prev) => ({ ...prev, [product_id]: [] }));
-            }
-        }
-        // 상품 바뀌면 품목, 규격 초기화
-        setItems(items.map((item, i) => (i === idx ? { ...item, product_id, variant: null, spec: "" } : item)));
-    };
-
-    // 5. 행별 품목 선택 핸들러
-    const handleVariantChange = (idx: number, option: string) => {
-        console.log("품목(variant) 선택:", option);
-        handleItemChange(idx, "variant", option);
-    };
-
-    // 신상품 추가 성공 핸들러
-    const handleProductAdded = async () => {
-        try {
-            // 상품 목록 다시 불러오기
-            const res = await fetchInventories();
-            const productData = Array.isArray(res.data) ? res.data : [];
-            setProducts(productData);
-            setIsAddProductModalOpen(false);
-        } catch (error) {
-            console.error("Failed to refresh products:", error);
-        }
-    };
-
-    // 새 공급자 추가 성공 핸들러
-    const handleSupplierAdded = async () => {
-        try {
-            // 공급자 목록 다시 불러오기
-            const res = await fetchSuppliers();
-            const supplierData = Array.isArray(res.data) ? res.data : [];
-            setSuppliers(supplierData);
-            setIsAddSupplierModalOpen(false);
-        } catch (error) {
-            console.error("Failed to refresh suppliers:", error);
-        }
-    };
-
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="relative w-[900px] max-h-[90vh] bg-white rounded-lg shadow-xl overflow-auto">
-                {/* 전체 로딩 상태 표시 */}
-                {isEmployeesLoading && (
-                    <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-20 rounded-lg">
-                        <div className="text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                            <p className="text-lg font-medium text-gray-800">잠시만 기다려주세요</p>
-                            <p className="text-sm text-gray-600 mt-1">직원 데이터를 불러오는 중입니다...</p>
-                        </div>
-                    </div>
-                )}
-                {/* Header */}
-                <div className="px-4 py-4 border-b border-gray-200 flex justify-between items-center">
-                    <div className="flex items-center">
-                        <FiShoppingBag className="w-6 h-6 text-indigo-500 mr-2" />
-                        <h2 className="text-lg font-medium text-gray-900">새 발주 신청</h2>
-                    </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-500" disabled={isSubmitting}>
-                        <FiX className="w-6 h-6" />
-                    </button>
-                </div>
-
-                {/* Content */}
-                <div className="p-6 space-y-6">
-                    {/* 에러 상태 표시 */}
-                    {employeesError && (
-                        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                            <div className="flex items-start">
-                                <FiAlertTriangle className="w-5 h-5 text-red-600 mt-0.5 mr-2" />
-                                <div>
-                                    <h3 className="text-sm font-medium text-red-800">직원 데이터 로딩 오류</h3>
-                                    <p className="mt-1 text-sm text-red-700">
-                                        직원 목록을 불러오는 중 오류가 발생했습니다. 일부 기능이 제한될 수 있습니다.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    {/* 폼 오류 메시지 표시 */}
-                    {formErrors.length > 0 && (
-                        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                            <div className="flex items-start">
-                                <FiAlertTriangle className="w-5 h-5 text-red-600 mt-0.5 mr-2" />
-                                <div>
-                                    <h3 className="text-sm font-medium text-red-800">다음 오류를 확인해주세요:</h3>
-                                    <ul className="mt-2 text-sm text-red-700 list-disc list-inside">
-                                        {formErrors.map((error, index) => (
-                                            <li key={index}>{error}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 공급업체 정보 + 발주 정보 레이아웃 복구 */}
-                    <div className="flex justify-center items-start gap-6">
-                        {/* 왼쪽: 공급업체 정보 */}
-                        <div className="w-96 space-y-4">
-                            <div className="flex items-center">
-                                <FiShoppingBag className="w-6 h-6 text-gray-900 mr-2" />
-                                <h3 className="text-base font-medium text-gray-900">공급업체 정보</h3>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-700">
-                                    공급업체 선택 <span className="text-red-500">*</span>
-                                </label>
-                                <div className="flex gap-2">
-                                    <div className="flex-1">
-                                        <SelectInput
-                                            defaultText="공급업체 선택"
-                                            options={Array.isArray(suppliers) ? suppliers.map((s: any) => s.name) : []}
-                                            value={supplierName}
-                                            onChange={handleSupplierChange}
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={() => setIsAddSupplierModalOpen(true)}
-                                        className="px-3 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 flex items-center"
-                                        disabled={isSubmitting}
-                                    >
-                                        <FiPlus className="w-4 h-4 mr-1" />새 공급자
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-700">담당자</label>
-                                {isEmployeesLoading ? (
-                                    <div className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-500">
-                                        직원 목록 로딩 중...
-                                    </div>
-                                ) : employeesError ? (
-                                    <div className="px-3 py-2 border border-gray-300 rounded-md text-sm text-red-500">
-                                        직원 목록을 불러올 수 없습니다
-                                    </div>
-                                ) : (
-                                    <SelectInput
-                                        defaultText="담당자 선택"
-                                        options={employees.map((e: any) => e.first_name || e.username)}
-                                        value={user?.first_name || user?.username || ""}
-                                        onChange={() => {}}
-                                        disabled={isSubmitting}
-                                    />
-                                )}
-                            </div>
-                        </div>
-                        {/* 오른쪽: 발주 정보 */}
-                        <div className="w-96 space-y-4">
-                            <div className="flex items-center">
-                                <FiCalendar className="w-6 h-6 text-gray-900 mr-2" />
-                                <h3 className="text-base font-medium text-gray-900">발주 정보</h3>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-700">
-                                    발주일자 <span className="text-red-500">*</span>
-                                </label>
-                                <DateInput placeholder="발주일자 선택" value={orderDate} onChange={setOrderDate} />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-700">
-                                    예상 납품일 <span className="text-red-500">*</span>
-                                </label>
-                                <DateInput
-                                    placeholder="예상 납품일 선택"
-                                    value={deliveryDate}
-                                    onChange={setDeliveryDate}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Order Items */}
-                    <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                            <div className="flex items-center">
-                                <FiShoppingBag className="w-6 h-6 text-gray-900 mr-2" />
-                                <h3 className="text-base font-medium text-gray-900">
-                                    발주 품목 <span className="text-red-500">*</span>
-                                </h3>
-                            </div>
-                            <button
-                                onClick={handleAddItem}
-                                className="px-3 py-1 bg-indigo-600 text-white rounded-md flex items-center text-sm font-medium"
-                                disabled={isSubmitting || !supplier}
-                            >
-                                <FiPlus className="w-3.5 h-3.5 mr-1" />
-                                항목 추가
-                            </button>
-                        </div>
-                        <div className="border border-gray-200 rounded-md overflow-hidden">
-                            <div className="min-w-[952px]">
-                                {" "}
-                                {/* 기존보다 100px 넓힘 */}
-                                {/* Table Header */}
-                                <div className="bg-gray-50 h-8">
-                                    <div className="h-8 flex">
-                                        <div className="w-32 px-3 py-2 flex items-center">
-                                            <span className="text-xs font-medium text-gray-500 uppercase">
-                                                상품 <span className="text-red-500">*</span>
-                                            </span>
-                                        </div>
-                                        <div className="w-32 px-3 py-2 flex items-center">
-                                            <span className="text-xs font-medium text-gray-500 uppercase">
-                                                상세 <span className="text-red-500">*</span>
-                                            </span>
-                                        </div>
-                                        <div className="w-32 px-3 py-2 flex items-center">
-                                            <span className="text-xs font-medium text-gray-500 uppercase">
-                                                규격 <span className="text-red-500">*</span>
-                                            </span>
-                                        </div>
-                                        <div className="w-20 px-3 py-2 flex items-center">
-                                            <span className="text-xs font-medium text-gray-500 uppercase">단위</span>
-                                        </div>
-                                        <div className="w-24 px-3 py-2 flex items-center">
-                                            <span className="text-xs font-medium text-gray-500 uppercase">
-                                                수량 <span className="text-red-500">*</span>
-                                            </span>
-                                        </div>
-                                        <div className="w-32 px-3 py-2 flex items-center">
-                                            <span className="text-xs font-medium text-gray-500 uppercase">
-                                                단가 <span className="text-red-500">*</span>
-                                            </span>
-                                        </div>
-                                        <div className="w-20 px-3 py-2 flex items-center">
-                                            <span className="text-xs font-medium text-gray-500 uppercase">금액</span>
-                                        </div>
-                                        <div className="w-32 px-3 py-2 flex items-center">
-                                            <span className="text-xs font-medium text-gray-500 uppercase">비고</span>
-                                        </div>
-                                        <div className="w-14 px-4 py-2 flex items-center justify-center">
-                                            <span className="text-xs font-medium text-gray-500 uppercase">삭제</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                {/* Table Body */}
-                                <div className="bg-white">
-                                    {items.map((item, idx) => (
-                                        <div key={idx} className="h-20 flex border-t border-gray-200">
-                                            {/* 상품 드롭다운 */}
-                                            <div className="w-32 px-3 py-3.5 flex items-center">
-                                                <div className="flex flex-col gap-1 w-full">
-                                                    <SelectInput
-                                                        defaultText="상품 선택"
-                                                        options={
-                                                            Array.isArray(products)
-                                                                ? products.map((p: any) => p.name)
-                                                                : []
-                                                        }
-                                                        value={(() => {
-                                                            if (!Array.isArray(products)) return "";
-                                                            const found = products.find(
-                                                                (p: any) => p.product_id === item.product_id
-                                                            );
-                                                            return found ? found.name : "";
-                                                        })()}
-                                                        onChange={(name: string) => {
-                                                            handleProductChange(idx, name);
-                                                        }}
-                                                        disabled={isSubmitting}
-                                                    />
-                                                    <button
-                                                        onClick={() => setIsAddProductModalOpen(true)}
-                                                        className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center justify-center"
-                                                        disabled={isSubmitting}
-                                                    >
-                                                        <FiPlus className="w-3 h-3 mr-1" />
-                                                        신상품
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            {/* 품목 드롭다운 */}
-                                            <div className="w-32 px-3 py-3.5 flex items-center">
-                                                <SelectInput
-                                                    defaultText="품목 선택"
-                                                    options={
-                                                        item.product_id && variantsByProduct[item.product_id]
-                                                            ? variantsByProduct[item.product_id].map(
-                                                                  (v: any) => v.option
-                                                              )
-                                                            : []
-                                                    }
-                                                    onChange={(option: string) => {
-                                                        handleVariantChange(idx, option);
-                                                    }}
-                                                    value={item.variant ?? ""}
-                                                    disabled={isSubmitting || !item.product_id}
-                                                />
-                                            </div>
-                                            <div className="w-32 px-3 py-3.5 flex items-center">
-                                                <input
-                                                    type="text"
-                                                    value={item.spec}
-                                                    onChange={(e) => handleItemChange(idx, "spec", e.target.value)}
-                                                    placeholder="규격"
-                                                    className="w-full px-2 pt-1.5 pb-1 border border-gray-300 rounded-md text-sm placeholder-gray-400"
-                                                    disabled={isSubmitting}
-                                                />
-                                            </div>
-                                            <div className="w-20 px-3 py-3.5 flex items-center">
-                                                <input
-                                                    type="text"
-                                                    value={item.unit}
-                                                    onChange={(e) => handleItemChange(idx, "unit", e.target.value)}
-                                                    className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm text-center"
-                                                    disabled={isSubmitting}
-                                                />
-                                            </div>
-                                            <div className="w-24 px-3 py-3.5 flex items-center">
-                                                <input
-                                                    type="number"
-                                                    value={item.quantity}
-                                                    onChange={(e) =>
-                                                        handleItemChange(idx, "quantity", parseInt(e.target.value) || 0)
-                                                    }
-                                                    className="w-20 px-2 py-1 border border-gray-300 rounded-md text-sm"
-                                                    min="1"
-                                                    disabled={isSubmitting}
-                                                />
-                                            </div>
-                                            <div className="w-32 px-3 py-3.5 flex items-center">
-                                                <input
-                                                    type="number"
-                                                    value={item.unit_price}
-                                                    onChange={(e) =>
-                                                        handleItemChange(
-                                                            idx,
-                                                            "unit_price",
-                                                            parseInt(e.target.value) || 0
-                                                        )
-                                                    }
-                                                    className="w-28 px-2 py-1 border border-gray-300 rounded-md text-sm"
-                                                    min="0"
-                                                    disabled={isSubmitting}
-                                                />
-                                            </div>
-                                            <div className="w-20 px-3 py-2 flex items-center justify-center">
-                                                <div className="text-sm font-normal text-gray-900 leading-tight">
-                                                    {(item.quantity && item.unit_price
-                                                        ? includesTax
-                                                            ? item.quantity * item.unit_price
-                                                            : Math.round(item.quantity * item.unit_price * 1.1)
-                                                        : 0
-                                                    ).toLocaleString()}
-                                                    원
-                                                </div>
-                                            </div>
-                                            <div className="w-32 px-3 py-3.5 flex items-center">
-                                                <input
-                                                    type="text"
-                                                    value={item.remark}
-                                                    onChange={(e) => handleItemChange(idx, "remark", e.target.value)}
-                                                    placeholder="비고"
-                                                    className="w-full px-2 pt-1.5 pb-1 border border-gray-300 rounded-md text-sm placeholder-gray-400"
-                                                    disabled={isSubmitting}
-                                                />
-                                            </div>
-                                            <div className="w-14 px-3 py-3 flex items-center justify-center">
-                                                <button
-                                                    type="button"
-                                                    className="text-red-500 hover:text-red-700"
-                                                    onClick={() => handleRemoveItem(idx)}
-                                                    disabled={isSubmitting}
-                                                >
-                                                    <FiTrash2 className="w-5 h-5" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    {/* Total Row */}
-                                    <div className="h-9 bg-gray-50 border-t border-gray-200 flex">
-                                        <div className="w-[577px] px-3 py-2 flex justify-end items-center">
-                                            <span className="text-sm font-medium text-gray-900">합계</span>
-                                        </div>
-                                        <div className="w-72 px-3 py-2 flex items-center">
-                                            <span className="text-sm font-bold text-gray-900">
-                                                {calculateTotal().toLocaleString()}원
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Additional Information */}
-                    <div className="flex justify-center items-start gap-6">
-                        <div className="w-96 space-y-4">
-                            <h3 className="text-base font-medium text-gray-900">부가 정보</h3>
-                            <div className="flex items-center">
-                                <span className="text-sm font-medium text-gray-700 pr-4">부가세:</span>
-                                <div className="space-x-4 flex">
-                                    <RadioButton
-                                        label="포함"
-                                        value="include"
-                                        checked={includesTax}
-                                        onChange={() => setIncludesTax(true)}
-                                        disabled={isSubmitting}
-                                    />
-                                    <RadioButton
-                                        label="미포함"
-                                        value="exclude"
-                                        checked={!includesTax}
-                                        onChange={() => setIncludesTax(false)}
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex items-center">
-                                <span className="text-sm font-medium text-gray-700 pr-4">포장:</span>
-                                <div className="space-x-4 flex">
-                                    <RadioButton
-                                        label="있음"
-                                        value="yes"
-                                        checked={hasPackaging}
-                                        onChange={() => setHasPackaging(true)}
-                                        disabled={isSubmitting}
-                                    />
-                                    <RadioButton
-                                        label="없음"
-                                        value="no"
-                                        checked={!hasPackaging}
-                                        onChange={() => setHasPackaging(false)}
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="w-96 space-y-3">
-                            <h3 className="text-base font-medium text-gray-900">
-                                작업지시사항 <span className="text-red-500">*</span>
-                            </h3>
-                            <textarea
-                                value={workInstructions}
-                                onChange={(e) => setWorkInstructions(e.target.value)}
-                                className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                placeholder="작업지시사항을 입력해주세요."
-                                disabled={isSubmitting}
-                            />
-                            <h3 className="text-base font-medium text-gray-900">발주 이유 (내부 공유용)</h3>
-                            <textarea
-                                value={note}
-                                onChange={(e) => setNote(e.target.value)}
-                                className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                placeholder="발주 이유를 입력해주세요."
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="pt-4 border-t border-gray-200 flex justify-end items-center">
-                        <div className="flex-1 flex items-center">
-                            <FiCheckCircle className="w-6 h-6 text-green-700 mr-2" />
-                            <span className="text-sm text-green-700">발주 준비가 완료되었습니다.</span>
-                        </div>
-                        <div className="space-x-3 flex">
-                            <button
-                                onClick={onClose}
-                                className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-md shadow-sm text-sm font-medium"
-                                disabled={isSubmitting}
-                            >
-                                취소
-                            </button>
-                            <button
-                                onClick={handleSubmit}
-                                className={`px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm text-sm font-medium ${
-                                    isSubmitting ? "opacity-70 cursor-not-allowed" : ""
-                                }`}
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? "처리 중..." : "발주 신청"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* 신상품 추가 모달 */}
-            {isAddProductModalOpen && (
-                <AddProductModal
-                    isOpen={isAddProductModalOpen}
-                    onClose={() => setIsAddProductModalOpen(false)}
-                    onSave={handleProductAdded}
-                />
-            )}
-
-            {/* 새 공급자 추가 모달 */}
-            {isAddSupplierModalOpen && (
-                <AddSupplierModal
-                    isOpen={isAddSupplierModalOpen}
-                    onClose={() => setIsAddSupplierModalOpen(false)}
-                    onSave={handleSupplierAdded}
-                />
-            )}
-        </div>
+  const resetForm = () => {
+    setSupplier(0);
+    setSupplierName('');
+    setOrderDate(null); // 초기값 null
+    setDeliveryDate(null); // 초기값 null
+    setItems([
+      {
+        product_id: null,
+        variant: null,
+        quantity: 1,
+        unit_price: 0,
+        unit: 'EA',
+        remark: '',
+        spec: '',
+      },
+    ]);
+    setWorkInstructions(
+      '로고 디자인은 첨부파일대로 적용해 주시기 바랍니다. 샘플 확인 후 본 생산 진행 예정입니다.'
     );
+    setNote('');
+    setIncludesTax(true);
+    setHasPackaging(true);
+    setFormErrors([]);
+  };
+
+  const handleAddItem = () => {
+    setItems([
+      ...items,
+      {
+        product_id: null,
+        variant: null,
+        quantity: 1,
+        unit_price: 0,
+        unit: 'EA',
+        remark: '',
+        spec: '',
+      },
+    ]);
+  };
+
+  const handleRemoveItem = (idx: number) => {
+    if (items.length > 1) {
+      setItems(items.filter((_, i) => i !== idx));
+    } else {
+      alert('최소 하나의 발주 항목이 필요합니다.');
+    }
+  };
+
+  const handleItemChange = (idx: number, field: string, value: any) => {
+    setItems(items.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
+  };
+
+  const calculateTotal = (): number => {
+    const total = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+    return includesTax ? total : Math.round(total * 1.1);
+  };
+
+  const validateForm = (): boolean => {
+    const errors: string[] = [];
+    if (!supplier) {
+      errors.push('공급업체를 선택해주세요.');
+    }
+    if (!orderDate) {
+      errors.push('발주일자를 선택해주세요.');
+    }
+    if (!deliveryDate) {
+      errors.push('예상 납품일을 선택해주세요.');
+    }
+    items.forEach((item, index) => {
+      if (!item.product_id) {
+        errors.push(`${index + 1}번 항목의 상품을 선택해주세요.`);
+      }
+      if (
+        !item.variant ||
+        !(
+          item.product_id &&
+          variantsByProduct[item.product_id]?.find((v: any) => v.option === item.variant)
+        )
+      ) {
+        errors.push(`${index + 1}번 항목의 품목을 선택해주세요.`);
+      }
+      if (!item.spec) {
+        errors.push(`${index + 1}번 항목의 규격을 입력해주세요.`);
+      }
+      if (item.quantity <= 0) {
+        errors.push(`${index + 1}번 항목의 수량은 0보다 커야 합니다.`);
+      }
+      if (item.unit_price <= 0) {
+        errors.push(`${index + 1}번 항목의 단가는 0보다 커야 합니다.`);
+      }
+    });
+    if (!workInstructions.trim()) {
+      errors.push('작업지시사항을 입력해주세요.');
+    }
+    setFormErrors(errors);
+    return errors.length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!supplier) {
+      setFormErrors(['공급업체를 선택해주세요.']);
+      return;
+    }
+    if (!validateForm()) {
+      alert('필수 입력값을 모두 입력해주세요.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        supplier,
+        order_date: orderDate ? orderDate.toISOString().slice(0, 10) : '',
+        expected_delivery_date: deliveryDate ? deliveryDate.toISOString().slice(0, 10) : '',
+        status: 'PENDING',
+        instruction_note: workInstructions,
+        note: note,
+        vat_included: includesTax,
+        packaging_included: hasPackaging,
+        manager_name: user?.first_name || user?.username || '',
+        items: items.map((item) => {
+          const product_id = item.product_id;
+          const variantObj =
+            product_id &&
+            variantsByProduct[product_id]?.find((v: any) => v.option === item.variant);
+          return {
+            variant_code: variantObj ? variantObj.variant_code : undefined,
+            quantity: item.quantity,
+            unit_price: includesTax ? item.unit_price : Math.round(item.unit_price * 1.1),
+            unit: item.unit,
+            remark: item.remark,
+            spec: item.spec,
+          };
+        }),
+      };
+      const res = await createOrder(payload);
+      alert('발주가 성공적으로 신청되었습니다.');
+      if (onSuccess) onSuccess(res.data);
+      onClose();
+    } catch (error) {
+      setFormErrors(['발주 신청 중 오류가 발생했습니다. 다시 시도해주세요.']);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 공급업체 선택 핸들러
+  const handleSupplierChange = (name: string) => {
+    setSupplierName(name);
+    if (!Array.isArray(suppliers)) {
+      setSupplier(0);
+      return;
+    }
+    const found = suppliers.find((s) => s.name === name);
+    setSupplier(found ? found.id : 0);
+  };
+
+  // 2. 행별 상품 선택 핸들러
+  const handleProductChange = async (idx: number, name: string) => {
+    if (!Array.isArray(products)) return;
+
+    const found = products.find((p) => p.name === name);
+    const product_id = found ? found.product_id : null;
+    // 품목 캐시 없으면 fetch
+    if (product_id && !variantsByProduct[product_id]) {
+      try {
+        const res = await fetchVariantsByProductId(product_id);
+        setVariantsByProduct((prev) => ({ ...prev, [product_id]: res.data.variants || [] }));
+      } catch (e) {
+        console.error('Failed to fetch variants:', e);
+        setVariantsByProduct((prev) => ({ ...prev, [product_id]: [] }));
+      }
+    }
+    // 상품 바뀌면 품목, 규격 초기화
+    setItems(
+      items.map((item, i) => (i === idx ? { ...item, product_id, variant: null, spec: '' } : item))
+    );
+  };
+
+  // 5. 행별 품목 선택 핸들러
+  const handleVariantChange = (idx: number, option: string) => {
+    console.log('품목(variant) 선택:', option);
+    handleItemChange(idx, 'variant', option);
+  };
+
+  // 신상품 추가 성공 핸들러
+  const handleProductAdded = async () => {
+    try {
+      // 상품 목록 다시 불러오기
+      const res = await fetchInventories();
+      const productData = Array.isArray(res.data) ? res.data : [];
+      setProducts(productData);
+      setIsAddProductModalOpen(false);
+    } catch (error) {
+      console.error('Failed to refresh products:', error);
+    }
+  };
+
+  // 새 공급자 추가 성공 핸들러
+  const handleSupplierAdded = async () => {
+    try {
+      // 공급자 목록 다시 불러오기
+      const res = await fetchSuppliers();
+      const supplierData = Array.isArray(res.data) ? res.data : [];
+      setSuppliers(supplierData);
+      setIsAddSupplierModalOpen(false);
+    } catch (error) {
+      console.error('Failed to refresh suppliers:', error);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black'>
+      <div className='relative max-h-[90vh] w-[900px] overflow-auto rounded-lg bg-white shadow-xl'>
+        {/* 전체 로딩 상태 표시 */}
+        {isEmployeesLoading && (
+          <div className='bg-opacity-90 absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-white'>
+            <div className='text-center'>
+              <div className='mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-indigo-600'></div>
+              <p className='text-lg font-medium text-gray-800'>잠시만 기다려주세요</p>
+              <p className='mt-1 text-sm text-gray-600'>직원 데이터를 불러오는 중입니다...</p>
+            </div>
+          </div>
+        )}
+        {/* Header */}
+        <div className='flex items-center justify-between border-b border-gray-200 px-4 py-4'>
+          <div className='flex items-center'>
+            <FiShoppingBag className='mr-2 h-6 w-6 text-indigo-500' />
+            <h2 className='text-lg font-medium text-gray-900'>새 발주 신청</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className='text-gray-400 hover:text-gray-500'
+            disabled={isSubmitting}>
+            <FiX className='h-6 w-6' />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className='space-y-6 p-6'>
+          {/* 에러 상태 표시 */}
+          {employeesError && (
+            <div className='rounded-md border border-red-200 bg-red-50 p-4'>
+              <div className='flex items-start'>
+                <FiAlertTriangle className='mt-0.5 mr-2 h-5 w-5 text-red-600' />
+                <div>
+                  <h3 className='text-sm font-medium text-red-800'>직원 데이터 로딩 오류</h3>
+                  <p className='mt-1 text-sm text-red-700'>
+                    직원 목록을 불러오는 중 오류가 발생했습니다. 일부 기능이 제한될 수 있습니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* 폼 오류 메시지 표시 */}
+          {formErrors.length > 0 && (
+            <div className='rounded-md border border-red-200 bg-red-50 p-4'>
+              <div className='flex items-start'>
+                <FiAlertTriangle className='mt-0.5 mr-2 h-5 w-5 text-red-600' />
+                <div>
+                  <h3 className='text-sm font-medium text-red-800'>다음 오류를 확인해주세요:</h3>
+                  <ul className='mt-2 list-inside list-disc text-sm text-red-700'>
+                    {formErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 공급업체 정보 + 발주 정보 레이아웃 복구 */}
+          <div className='flex items-start justify-center gap-6'>
+            {/* 왼쪽: 공급업체 정보 */}
+            <div className='w-96 space-y-4'>
+              <div className='flex items-center'>
+                <FiShoppingBag className='mr-2 h-6 w-6 text-gray-900' />
+                <h3 className='text-base font-medium text-gray-900'>공급업체 정보</h3>
+              </div>
+              <div className='space-y-1'>
+                <label className='block text-sm font-medium text-gray-700'>
+                  공급업체 선택 <span className='text-red-500'>*</span>
+                </label>
+                <div className='flex gap-2'>
+                  <div className='flex-1'>
+                    <SelectInput
+                      defaultText='공급업체 선택'
+                      options={Array.isArray(suppliers) ? suppliers.map((s: any) => s.name) : []}
+                      value={supplierName}
+                      onChange={handleSupplierChange}
+                    />
+                  </div>
+                  <button
+                    onClick={() => setIsAddSupplierModalOpen(true)}
+                    className='flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700'
+                    disabled={isSubmitting}>
+                    <FiPlus className='mr-1 h-4 w-4' />새 공급자
+                  </button>
+                </div>
+              </div>
+              <div className='space-y-1'>
+                <label className='block text-sm font-medium text-gray-700'>담당자</label>
+                {isEmployeesLoading ? (
+                  <div className='rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-500'>
+                    직원 목록 로딩 중...
+                  </div>
+                ) : employeesError ? (
+                  <div className='rounded-md border border-gray-300 px-3 py-2 text-sm text-red-500'>
+                    직원 목록을 불러올 수 없습니다
+                  </div>
+                ) : (
+                  <SelectInput
+                    defaultText='담당자 선택'
+                    options={employees.map((e: any) => e.first_name || e.username)}
+                    value={user?.first_name || user?.username || ''}
+                    onChange={() => {}}
+                    disabled={isSubmitting}
+                  />
+                )}
+              </div>
+            </div>
+            {/* 오른쪽: 발주 정보 */}
+            <div className='w-96 space-y-4'>
+              <div className='flex items-center'>
+                <FiCalendar className='mr-2 h-6 w-6 text-gray-900' />
+                <h3 className='text-base font-medium text-gray-900'>발주 정보</h3>
+              </div>
+              <div className='space-y-1'>
+                <label className='block text-sm font-medium text-gray-700'>
+                  발주일자 <span className='text-red-500'>*</span>
+                </label>
+                <DateInput placeholder='발주일자 선택' value={orderDate} onChange={setOrderDate} />
+              </div>
+              <div className='space-y-1'>
+                <label className='block text-sm font-medium text-gray-700'>
+                  예상 납품일 <span className='text-red-500'>*</span>
+                </label>
+                <DateInput
+                  placeholder='예상 납품일 선택'
+                  value={deliveryDate}
+                  onChange={setDeliveryDate}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Order Items */}
+          <div className='space-y-3'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center'>
+                <FiShoppingBag className='mr-2 h-6 w-6 text-gray-900' />
+                <h3 className='text-base font-medium text-gray-900'>
+                  발주 품목 <span className='text-red-500'>*</span>
+                </h3>
+              </div>
+              <button
+                onClick={handleAddItem}
+                className='flex items-center rounded-md bg-indigo-600 px-3 py-1 text-sm font-medium text-white'
+                disabled={isSubmitting || !supplier}>
+                <FiPlus className='mr-1 h-3.5 w-3.5' />
+                항목 추가
+              </button>
+            </div>
+            <div className='overflow-hidden rounded-md border border-gray-200'>
+              <div className='min-w-[952px]'>
+                {' '}
+                {/* 기존보다 100px 넓힘 */}
+                {/* Table Header */}
+                <div className='h-8 bg-gray-50'>
+                  <div className='flex h-8'>
+                    <div className='flex w-32 items-center px-3 py-2'>
+                      <span className='text-xs font-medium text-gray-500 uppercase'>
+                        상품 <span className='text-red-500'>*</span>
+                      </span>
+                    </div>
+                    <div className='flex w-32 items-center px-3 py-2'>
+                      <span className='text-xs font-medium text-gray-500 uppercase'>
+                        상세 <span className='text-red-500'>*</span>
+                      </span>
+                    </div>
+                    <div className='flex w-32 items-center px-3 py-2'>
+                      <span className='text-xs font-medium text-gray-500 uppercase'>
+                        규격 <span className='text-red-500'>*</span>
+                      </span>
+                    </div>
+                    <div className='flex w-20 items-center px-3 py-2'>
+                      <span className='text-xs font-medium text-gray-500 uppercase'>단위</span>
+                    </div>
+                    <div className='flex w-24 items-center px-3 py-2'>
+                      <span className='text-xs font-medium text-gray-500 uppercase'>
+                        수량 <span className='text-red-500'>*</span>
+                      </span>
+                    </div>
+                    <div className='flex w-32 items-center px-3 py-2'>
+                      <span className='text-xs font-medium text-gray-500 uppercase'>
+                        단가 <span className='text-red-500'>*</span>
+                      </span>
+                    </div>
+                    <div className='flex w-20 items-center px-3 py-2'>
+                      <span className='text-xs font-medium text-gray-500 uppercase'>금액</span>
+                    </div>
+                    <div className='flex w-32 items-center px-3 py-2'>
+                      <span className='text-xs font-medium text-gray-500 uppercase'>비고</span>
+                    </div>
+                    <div className='flex w-14 items-center justify-center px-4 py-2'>
+                      <span className='text-xs font-medium text-gray-500 uppercase'>삭제</span>
+                    </div>
+                  </div>
+                </div>
+                {/* Table Body */}
+                <div className='bg-white'>
+                  {items.map((item, idx) => (
+                    <div key={idx} className='flex h-20 border-t border-gray-200'>
+                      {/* 상품 드롭다운 */}
+                      <div className='flex w-32 items-center px-3 py-3.5'>
+                        <div className='flex w-full flex-col gap-1'>
+                          <SelectInput
+                            defaultText='상품 선택'
+                            options={
+                              Array.isArray(products) ? products.map((p: any) => p.name) : []
+                            }
+                            value={(() => {
+                              if (!Array.isArray(products)) return '';
+                              const found = products.find(
+                                (p: any) => p.product_id === item.product_id
+                              );
+                              return found ? found.name : '';
+                            })()}
+                            onChange={(name: string) => {
+                              handleProductChange(idx, name);
+                            }}
+                            disabled={isSubmitting}
+                          />
+                          <button
+                            onClick={() => setIsAddProductModalOpen(true)}
+                            className='flex items-center justify-center rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600'
+                            disabled={isSubmitting}>
+                            <FiPlus className='mr-1 h-3 w-3' />
+                            신상품
+                          </button>
+                        </div>
+                      </div>
+                      {/* 품목 드롭다운 */}
+                      <div className='flex w-32 items-center px-3 py-3.5'>
+                        <SelectInput
+                          defaultText='품목 선택'
+                          options={
+                            item.product_id && variantsByProduct[item.product_id]
+                              ? variantsByProduct[item.product_id].map((v: any) => v.option)
+                              : []
+                          }
+                          onChange={(option: string) => {
+                            handleVariantChange(idx, option);
+                          }}
+                          value={item.variant ?? ''}
+                          disabled={isSubmitting || !item.product_id}
+                        />
+                      </div>
+                      <div className='flex w-32 items-center px-3 py-3.5'>
+                        <input
+                          type='text'
+                          value={item.spec}
+                          onChange={(e) => handleItemChange(idx, 'spec', e.target.value)}
+                          placeholder='규격'
+                          className='w-full rounded-md border border-gray-300 px-2 pt-1.5 pb-1 text-sm placeholder-gray-400'
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div className='flex w-20 items-center px-3 py-3.5'>
+                        <input
+                          type='text'
+                          value={item.unit}
+                          onChange={(e) => handleItemChange(idx, 'unit', e.target.value)}
+                          className='w-full rounded-md border border-gray-300 px-2 py-1 text-center text-sm'
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div className='flex w-24 items-center px-3 py-3.5'>
+                        <input
+                          type='number'
+                          value={item.quantity}
+                          onChange={(e) =>
+                            handleItemChange(idx, 'quantity', parseInt(e.target.value) || 0)
+                          }
+                          className='w-20 rounded-md border border-gray-300 px-2 py-1 text-sm'
+                          min='1'
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div className='flex w-32 items-center px-3 py-3.5'>
+                        <input
+                          type='number'
+                          value={item.unit_price}
+                          onChange={(e) =>
+                            handleItemChange(idx, 'unit_price', parseInt(e.target.value) || 0)
+                          }
+                          className='w-28 rounded-md border border-gray-300 px-2 py-1 text-sm'
+                          min='0'
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div className='flex w-20 items-center justify-center px-3 py-2'>
+                        <div className='text-sm leading-tight font-normal text-gray-900'>
+                          {(item.quantity && item.unit_price
+                            ? includesTax
+                              ? item.quantity * item.unit_price
+                              : Math.round(item.quantity * item.unit_price * 1.1)
+                            : 0
+                          ).toLocaleString()}
+                          원
+                        </div>
+                      </div>
+                      <div className='flex w-32 items-center px-3 py-3.5'>
+                        <input
+                          type='text'
+                          value={item.remark}
+                          onChange={(e) => handleItemChange(idx, 'remark', e.target.value)}
+                          placeholder='비고'
+                          className='w-full rounded-md border border-gray-300 px-2 pt-1.5 pb-1 text-sm placeholder-gray-400'
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div className='flex w-14 items-center justify-center px-3 py-3'>
+                        <button
+                          type='button'
+                          className='text-red-500 hover:text-red-700'
+                          onClick={() => handleRemoveItem(idx)}
+                          disabled={isSubmitting}>
+                          <FiTrash2 className='h-5 w-5' />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Total Row */}
+                  <div className='flex h-9 border-t border-gray-200 bg-gray-50'>
+                    <div className='flex w-[577px] items-center justify-end px-3 py-2'>
+                      <span className='text-sm font-medium text-gray-900'>합계</span>
+                    </div>
+                    <div className='flex w-72 items-center px-3 py-2'>
+                      <span className='text-sm font-bold text-gray-900'>
+                        {calculateTotal().toLocaleString()}원
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Information */}
+          <div className='flex items-start justify-center gap-6'>
+            <div className='w-96 space-y-4'>
+              <h3 className='text-base font-medium text-gray-900'>부가 정보</h3>
+              <div className='flex items-center'>
+                <span className='pr-4 text-sm font-medium text-gray-700'>부가세:</span>
+                <div className='flex space-x-4'>
+                  <RadioButton
+                    label='포함'
+                    value='include'
+                    checked={includesTax}
+                    onChange={() => setIncludesTax(true)}
+                    disabled={isSubmitting}
+                  />
+                  <RadioButton
+                    label='미포함'
+                    value='exclude'
+                    checked={!includesTax}
+                    onChange={() => setIncludesTax(false)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+              <div className='flex items-center'>
+                <span className='pr-4 text-sm font-medium text-gray-700'>포장:</span>
+                <div className='flex space-x-4'>
+                  <RadioButton
+                    label='있음'
+                    value='yes'
+                    checked={hasPackaging}
+                    onChange={() => setHasPackaging(true)}
+                    disabled={isSubmitting}
+                  />
+                  <RadioButton
+                    label='없음'
+                    value='no'
+                    checked={!hasPackaging}
+                    onChange={() => setHasPackaging(false)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className='w-96 space-y-3'>
+              <h3 className='text-base font-medium text-gray-900'>
+                작업지시사항 <span className='text-red-500'>*</span>
+              </h3>
+              <textarea
+                value={workInstructions}
+                onChange={(e) => setWorkInstructions(e.target.value)}
+                className='h-24 w-full rounded-md border border-gray-300 px-3 py-2 text-sm'
+                placeholder='작업지시사항을 입력해주세요.'
+                disabled={isSubmitting}
+              />
+              <h3 className='text-base font-medium text-gray-900'>발주 이유 (내부 공유용)</h3>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className='h-24 w-full rounded-md border border-gray-300 px-3 py-2 text-sm'
+                placeholder='발주 이유를 입력해주세요.'
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className='flex items-center justify-end border-t border-gray-200 pt-4'>
+            <div className='flex flex-1 items-center'>
+              <FiCheckCircle className='mr-2 h-6 w-6 text-green-700' />
+              <span className='text-sm text-green-700'>발주 준비가 완료되었습니다.</span>
+            </div>
+            <div className='flex space-x-3'>
+              <button
+                onClick={onClose}
+                className='rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm'
+                disabled={isSubmitting}>
+                취소
+              </button>
+              <button
+                onClick={handleSubmit}
+                className={`rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm ${
+                  isSubmitting ? 'cursor-not-allowed opacity-70' : ''
+                }`}
+                disabled={isSubmitting}>
+                {isSubmitting ? '처리 중...' : '발주 신청'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 신상품 추가 모달 */}
+      {isAddProductModalOpen && (
+        <AddProductModal
+          isOpen={isAddProductModalOpen}
+          onClose={() => setIsAddProductModalOpen(false)}
+          onSave={handleProductAdded}
+        />
+      )}
+
+      {/* 새 공급자 추가 모달 */}
+      {isAddSupplierModalOpen && (
+        <AddSupplierModal
+          isOpen={isAddSupplierModalOpen}
+          onClose={() => setIsAddSupplierModalOpen(false)}
+          onSave={handleSupplierAdded}
+        />
+      )}
+    </div>
+  );
 };
 
 export default NewOrderModal;

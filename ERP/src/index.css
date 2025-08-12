@@ -2,10 +2,9 @@
 /* Remove spinner for number inputs when .no-spin is present */
 input[type='number'].no-spin::-webkit-outer-spin-button,
 input[type='number'].no-spin::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+  -webkit-appearance: none;
+  margin: 0;
 }
 input[type='number'].no-spin {
-    -moz-appearance: textfield;
+  -moz-appearance: textfield;
 }
-

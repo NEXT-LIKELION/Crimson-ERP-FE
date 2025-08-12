@@ -9,13 +9,13 @@ import AuthProvider from './components/AuthProvider';
 const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-    <React.StrictMode>
-        <QueryClientProvider client={queryClient}>
-            <BrowserRouter>
-                <AuthProvider>
-                    <AppRoutes />
-                </AuthProvider>
-            </BrowserRouter>
-        </QueryClientProvider>
-    </React.StrictMode>
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  </React.StrictMode>
 );

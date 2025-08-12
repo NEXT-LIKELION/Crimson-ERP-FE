@@ -13,16 +13,8 @@ const GreenButton: React.FC<GreenButtonProps> = ({ text, icon, onClick }) => {
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`
-        inline-flex items-center justify-center
-        h-10 px-4 py-2 rounded-md
-        text-white text-sm font-medium leading-tight
-        bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:bg-gray-300
-        transition-colors duration-200 ease-in-out
-        ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}
-      `}
-    >
-      {icon && <span className="mr-2 w-4 h-4">{icon}</span>}
+      className={`inline-flex h-10 items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm leading-tight font-medium text-white transition-colors duration-200 ease-in-out hover:bg-green-700 active:bg-green-800 disabled:bg-gray-300 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'} `}>
+      {icon && <span className='mr-2 h-4 w-4'>{icon}</span>}
       {text}
     </button>
   );

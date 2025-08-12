@@ -5,7 +5,7 @@ interface SmallButtonProps {
   backgroundColor: string;
   color: string;
   onClick?: () => void;
-};
+}
 
 const SmallButton: React.FC<SmallButtonProps> = ({ text, backgroundColor, color, onClick }) => {
   return (
@@ -15,14 +15,7 @@ const SmallButton: React.FC<SmallButtonProps> = ({ text, backgroundColor, color,
         backgroundColor: backgroundColor,
         color: color,
       }}
-      className={`
-        inline-flex items-center justify-center
-        h-8 px-3 py-1 rounded-md
-        text-xs font-medium leading-none
-        transition-colors duration-200 ease-in-out
-        cursor-pointer
-      `}
-    >
+      className={`inline-flex h-8 cursor-pointer items-center justify-center rounded-md px-3 py-1 text-xs leading-none font-medium transition-colors duration-200 ease-in-out`}>
       {text}
     </button>
   );
