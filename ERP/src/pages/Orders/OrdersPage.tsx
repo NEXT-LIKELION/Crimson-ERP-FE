@@ -8,7 +8,7 @@ import TextInput from '../../components/input/TextInput';
 import SelectInput from '../../components/input/SelectInput';
 import OrderDetailModal from '../../components/modal/OrderDetailModal';
 import NewOrderModal from '../../components/modal/NewOrderModal';
-import { Order, OrderStatus, OrdersResponse } from '../../store/ordersStore';
+import { Order, OrderStatus } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
 import { useOrder } from '../../hooks/queries/useOrder';
 import axios from '../../api/axios';
@@ -27,16 +27,7 @@ interface SearchFilters {
   endDate: string;
 }
 
-// order_date를 YYYY-MM-DD로 변환
-function parseOrderDate(dateStr: string | undefined | null): string {
-  if (!dateStr) return '';
-  const match = dateStr.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
-  if (match) {
-    const [, year, month, day] = match;
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-  }
-  return dateStr; // 이미 포맷이 맞으면 그대로
-}
+
 
 // 숫자를 한글로 변환하는 함수 추가 (OrderDetailModal.tsx에서 복사)
 function numberToKorean(num: number): string {
@@ -71,7 +62,7 @@ const OrdersPage: React.FC = () => {
   const [isOrderDetailModalOpen, setIsOrderDetailModalOpen] = useState<boolean>(false);
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState<boolean>(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  const [ordersResponse, setOrdersResponse] = useState<OrdersResponse | null>(null);
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchInputs, setSearchInputs] = useState<SearchFilters>({
     orderId: '',
@@ -104,8 +95,8 @@ const OrdersPage: React.FC = () => {
   const { data, isLoading, isError, error, refetch } = useOrder();
   const user = useAuthStore((state) => state.user);
   const isManager = user?.role === '대표';
-  const [variantIdToCode, setVariantIdToCode] = useState<Record<number, string>>({});
-  const [supplierNameToId, setSupplierNameToId] = useState<Record<string, number>>({});
+
+
 
   useEffect(() => {
     if (data) {
@@ -133,7 +124,7 @@ const OrdersPage: React.FC = () => {
       console.log('Setting orders data:', data.data);
       if (data.data.results) {
         // 페이지네이션된 응답
-        setOrdersResponse(data.data);
+
         setOrders(Array.isArray(data.data.results) ? data.data.results : []);
       } else {
         // 기존 배열 응답 (호환성)
@@ -154,12 +145,12 @@ const OrdersPage: React.FC = () => {
             }
           });
         });
-        setVariantIdToCode(mapping);
+
       })
       .catch((error) => {
         console.error('Failed to fetch inventories:', error);
         alert('상품 데이터를 불러오는데 실패했습니다.');
-        setVariantIdToCode({});
+
       });
   }, []);
 
@@ -171,12 +162,12 @@ const OrdersPage: React.FC = () => {
         suppliers.forEach((supplier: any) => {
           mapping[supplier.name] = supplier.id;
         });
-        setSupplierNameToId(mapping);
+
       })
       .catch((error) => {
         console.error('Failed to fetch suppliers:', error);
         alert('공급업체 데이터를 불러오는데 실패했습니다.');
-        setSupplierNameToId({});
+
       });
   }, []);
 
@@ -414,13 +405,7 @@ const OrdersPage: React.FC = () => {
     setCurrentPage(pageNumber);
   }, []);
 
-  const handleFilterChange = useCallback((key: keyof SearchFilters, value: string) => {
-    setSearchFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-    setCurrentPage(1); // 필터 변경 시 첫 페이지로 리셋
-  }, []);
+
 
   const handleInputChange = (key: keyof SearchFilters, value: string) => {
     setSearchInputs((prev) => ({ ...prev, [key]: value }));

@@ -195,11 +195,11 @@ export const fetchFilteredInventoriesForExport = async (appliedFilters: Inventor
 
       // 판매합계 필터
       if (appliedFilters?.min_sales !== undefined && appliedFilters?.min_sales > 0) {
-        const sales = item.sales || 0;
+        const sales = typeof item.sales === 'string' ? Number(item.sales) || 0 : item.sales || 0;
         if (sales < appliedFilters.min_sales) return false;
       }
       if (appliedFilters?.max_sales !== undefined && appliedFilters?.max_sales < 5000000) {
-        const sales = item.sales || 0;
+        const sales = typeof item.sales === 'string' ? Number(item.sales) || 0 : item.sales || 0;
         if (sales > appliedFilters.max_sales) return false;
       }
 

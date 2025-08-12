@@ -327,17 +327,37 @@ const InventoryPage = () => {
       console.log('handleUpdateSave - variantIdentifier:', variantIdentifier);
       console.log('handleUpdateSave - updatedProduct:', updatedProduct);
 
-      await updateInventoryVariant(String(variantIdentifier), {
-        ...updatedProduct,
-        price:
-          typeof updatedProduct.price === 'string'
-            ? Number(updatedProduct.price)
-            : updatedProduct.price,
-        cost_price:
-          typeof updatedProduct.cost_price === 'string'
-            ? Number(updatedProduct.cost_price)
-            : updatedProduct.cost_price,
-      });
+      // suppliers와 readOnly 필드들 제외
+      const { 
+        suppliers, 
+        sales,           // readOnly
+        cost_price,      // readOnly (계산된 값)
+        order_count,     // readOnly
+        return_count,    // readOnly
+        stock,           // readOnly
+        ...editableFields 
+      } = updatedProduct;
+
+      // API에 전송할 수정 가능한 필드들만 포함
+      const updateData = {
+        ...editableFields,
+        price: typeof editableFields.price === 'string' 
+          ? Number(editableFields.price) 
+          : editableFields.price,
+        min_stock: typeof editableFields.min_stock === 'string'
+          ? Number(editableFields.min_stock)
+          : editableFields.min_stock,
+      };
+
+      console.log('Updating variant with data:', updateData);
+      
+      await updateInventoryVariant(String(variantIdentifier), updateData);
+      
+      // 공급업체 정보가 배열로 제공된 경우 (향후 구현)
+      if (Array.isArray(suppliers) && suppliers.length > 0) {
+        console.log('Supplier updates needed:', suppliers);
+        // TODO: 공급업체 매핑 업데이트 API 구현 후 호출
+      }
       alert('상품이 성공적으로 수정되었습니다.');
       handleCloseModal();
       await queryClient.invalidateQueries({ queryKey: ['inventories'] });

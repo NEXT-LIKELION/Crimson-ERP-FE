@@ -145,13 +145,13 @@ export const useInventories = (filters?: {
 
     // 5. 판매합계 필터 확인
     if (filters?.min_sales !== undefined && filters?.min_sales > 0) {
-      const sales = item.sales || 0;
+      const sales = typeof item.sales === 'string' ? Number(item.sales) || 0 : item.sales || 0;
       if (sales < filters.min_sales) {
         return false;
       }
     }
     if (filters?.max_sales !== undefined && filters?.max_sales < 5000000) {
-      const sales = item.sales || 0;
+      const sales = typeof item.sales === 'string' ? Number(item.sales) || 0 : item.sales || 0;
       if (sales > filters.max_sales) {
         return false;
       }
