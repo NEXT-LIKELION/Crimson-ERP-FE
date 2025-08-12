@@ -233,7 +233,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({ o
             onClick={handleBackdropClick}
         >
             <div
-                className="w-full max-w-md bg-white rounded-xl shadow-lg border border-gray-200 max-h-[90vh] flex flex-col"
+                className="w-full max-w-md bg-white rounded-xl shadow-lg border border-gray-200 max-h-[85vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* 헤더 */}
@@ -276,7 +276,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({ o
                 </div>
 
                 {/* 콘텐츠 */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto px-6 py-4">
                     {currentStep === 1 ? (
                         /* 1단계: 계정 정보 */
                         <div className="space-y-4">
@@ -481,13 +481,13 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({ o
 
                 {/* 에러 메시지 */}
                 {errorMessage && (
-                    <div className="mx-6 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="mx-6 mb-2 p-3 bg-red-50 border border-red-200 rounded-lg">
                         <p className="text-sm text-red-800">{errorMessage}</p>
                     </div>
                 )}
 
                 {/* 버튼 영역 - 고정 위치 */}
-                <div className="flex-shrink-0 p-6 pt-4 border-t border-gray-200">
+                <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200">
                     {currentStep === 1 ? (
                         <div className="flex gap-3">
                             <button

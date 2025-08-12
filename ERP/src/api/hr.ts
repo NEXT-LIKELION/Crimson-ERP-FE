@@ -1,10 +1,10 @@
 import api from './axios';
 
 // 직원 목록 조회
-export const fetchEmployees = () => api.get('/hr/employees/');
+export const fetchEmployees = (): Promise<{data: EmployeeList[]}> => api.get('/hr/employees/');
 
 // 직원 상세 조회
-export const fetchEmployee = (employeeId: number) => api.get(`/hr/employees/${employeeId}/`);
+export const fetchEmployee = (employeeId: number): Promise<{data: EmployeeDetail}> => api.get(`/hr/employees/${employeeId}/`);
 
 
 // 직원 정보 부분 수정 (PATCH)
@@ -29,37 +29,51 @@ export const registerEmployee = (data: EmployeeRegistrationData) =>
 // ===== 휴가 관련 API =====
 
 // 휴가 전체 조회
-export const fetchVacations = () => api.get('/hr/vacations/');
+export const fetchVacations = (): Promise<{data: VacationRequest[]}> => api.get('/hr/vacations/');
 
 // 휴가 신청
-export const createVacation = (data: VacationCreateData) =>
+export const createVacation = (data: VacationCreateData): Promise<{data: VacationRequest}> =>
     api.post('/hr/vacations/', data);
 
 // 휴가 승인/거절/취소
-export const reviewVacation = (vacationId: number, status: VacationStatus) => {
-    console.log('휴가 상태 변경 요청:', { vacationId, status });
-    console.log(`API 엔드포인트: /hr/vacations/review/${vacationId}/`);
-    
+export const reviewVacation = (vacationId: number, status: VacationStatus): Promise<{data: VacationRequest}> => {
     return api.patch(`/hr/vacations/review/${vacationId}/`, { status });
 };
 
-// 백엔드 API 응답에 맞는 Employee 타입 (API 스펙 기준)
-export interface Employee {
+// 직원 목록 조회 응답 타입 (GET /hr/employees/)
+export interface EmployeeList {
     id: number;
     username: string;
     email: string;
     role: string;
     status: 'active' | 'terminated';
-    contact: string;
+    contact?: string;
+    first_name: string;
+    is_active: boolean;
+    hire_date: string | null;
+    remaining_leave_days: string;
+}
+
+// 직원 상세 조회 응답 타입 (GET /hr/employees/{id}/)
+export interface EmployeeDetail {
+    id: number;
+    username: string;
+    email: string;
+    role: string;
+    status: 'active' | 'terminated';
+    contact?: string;
     first_name: string;
     is_active: boolean;
     hire_date: string | null;
     annual_leave_days: number;
     allowed_tabs: string[];
-    remaining_leave_days: number;
-    vacation_days: VacationDay[];
-    vacation_pending_days: VacationDay[];
+    remaining_leave_days: string;
+    vacation_days: string;
+    vacation_pending_days: string;
 }
+
+// 백엔드 API 응답에 맞는 Employee 타입 (하위 호환성을 위해 EmployeeDetail과 동일하게 유지)
+export type Employee = EmployeeDetail;
 
 // 프론트엔드에서 사용할 매핑된 Employee 타입 (HR 페이지에서 직접 정의)
 
@@ -98,6 +112,22 @@ export interface VacationDay {
     leave_type: LeaveType;
 }
 
+// 휴가 데이터 파싱 유틸리티 함수
+export const parseVacationDays = (vacationData: string | VacationDay[]): VacationDay[] => {
+    if (!vacationData) return [];
+    
+    // 이미 배열인 경우
+    if (Array.isArray(vacationData)) return vacationData;
+    
+    // 문자열인 경우 JSON 파싱 시도
+    try {
+        const parsed = JSON.parse(vacationData);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        return [];
+    }
+};
+
 // 허용된 탭 옵션
 export const ALLOWED_TABS_OPTIONS = [
     { value: 'INVENTORY', label: '재고 관리' },
@@ -116,20 +146,23 @@ export type LeaveType = 'VACATION' | 'HALF_DAY_AM' | 'HALF_DAY_PM' | 'SICK' | 'O
 // 휴가 상태
 export type VacationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 
-// 백엔드 API 응답에 맞는 Vacation 타입
-export interface Vacation {
-    id: number;
+// 백엔드 API 응답에 맞는 VacationRequest 타입 (GET /hr/vacations/, POST /hr/vacations/, PATCH /hr/vacations/review/{id}/)
+export interface VacationRequest {
+    id: number; // readOnly
     employee: number;
-    employee_name: string;
+    employee_name: string; // readOnly
     start_date: string;
     end_date: string;
-    leave_type: LeaveType;
-    reason: string | null; // API 문서에 따르면 nullable
+    leave_type: LeaveType; // readOnly
+    reason: string | null; // nullable
     status: VacationStatus;
-    status_display: string;
-    created_at: string;
-    reviewed_at: string | null;
+    status_display: string; // readOnly
+    created_at: string; // readOnly
+    reviewed_at: string | null; // readOnly, nullable
 }
+
+// 하위 호환성을 위해 Vacation 타입 유지 (VacationRequest와 동일)
+export type Vacation = VacationRequest;
 
 // 휴가 신청용 데이터 타입
 export interface VacationCreateData {

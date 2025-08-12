@@ -2,7 +2,8 @@
 import React, { useState } from "react";
 import { FiX, FiEdit, FiCheck, FiXCircle, FiFileText, FiCalendar } from "react-icons/fi";
 import { MappedEmployee } from "../../pages/HR/HRPage";
-import { ALLOWED_TABS_OPTIONS } from "../../api/hr";
+import { ALLOWED_TABS_OPTIONS, parseVacationDays } from "../../api/hr";
+import { useEmployee } from "../../hooks/queries/useEmployees";
 import VacationCalendar from "../calendar/VacationCalendar";
 
 interface EmployeeDetailsModalProps {
@@ -37,9 +38,19 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
     const [editedEmployee, setEditedEmployee] = useState<MappedEmployee>(employee);
     const [showVacationCalendar, setShowVacationCalendar] = useState(false);
 
+    // 실시간 직원 상세 정보 조회
+    const { data: employeeDetailData, isLoading: employeeDetailLoading } = useEmployee(employee.id);
+    
+    // 최신 직원 정보 (휴가 데이터 포함)
+    const currentEmployee = employeeDetailData?.data || employee;
+
     React.useEffect(() => {
         setEditedEmployee(employee);
     }, [employee]);
+
+    // 휴가 데이터 파싱
+    const vacationDays = parseVacationDays(currentEmployee.vacation_days);
+    const vacationPendingDays = parseVacationDays(currentEmployee.vacation_pending_days);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -235,7 +246,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                                 />
                             ) : (
                                 <span className="text-gray-900">
-                                    {employee.annual_leave_days}일 (남은 연차: {employee.remaining_leave_days}일)
+                                    {currentEmployee.annual_leave_days}일 (남은 연차: {typeof currentEmployee.remaining_leave_days === 'string' ? parseInt(currentEmployee.remaining_leave_days) || 0 : currentEmployee.remaining_leave_days}일)
                                 </span>
                             )}
                         </div>
@@ -286,10 +297,11 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                             {/* 휴가 캘린더 버튼 */}
                             <button
                                 onClick={() => setShowVacationCalendar(true)}
-                                className="w-full px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 flex items-center justify-center text-sm"
+                                disabled={employeeDetailLoading}
+                                className="w-full px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 flex items-center justify-center text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <FiCalendar className="w-4 h-4 mr-2" />
-                                휴가 캘린더 보기
+                                {employeeDetailLoading ? '로딩 중...' : '휴가 캘린더 보기'}
                             </button>
 
                             {/* 근로계약서 버튼 */}
@@ -347,8 +359,8 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
             {/* 휴가 캘린더 모달 */}
             {showVacationCalendar && (
                 <VacationCalendar
-                    vacationDays={employee.vacation_days || []}
-                    vacationPendingDays={employee.vacation_pending_days || []}
+                    vacationDays={vacationDays}
+                    vacationPendingDays={vacationPendingDays}
                     onClose={() => setShowVacationCalendar(false)}
                     employeeName={employee.name}
                 />
