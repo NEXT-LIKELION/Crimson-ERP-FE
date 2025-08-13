@@ -178,18 +178,15 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
             : step2Data.allowed_tabs,
       };
 
-      console.log('직원 등록 데이터:', registrationData);
-
       // 실제 API 호출
       const response = await registerEmployee(registrationData);
-      console.log('직원 등록 응답:', response.data);
 
       // API 응답으로부터 새 직원 데이터 구성
       const newEmployee: MappedEmployee = {
         id: response.data.id || Date.now(), // API에서 ID를 받지 못하는 경우 임시 ID 사용
         name: step2Data.first_name,
         username: step1Data.username, // API 호출 시 사용할 실제 username
-        role: step2Data.position,
+        role: step2Data.position as 'MANAGER' | 'STAFF' | 'INTERN',
         position:
           step2Data.position === 'STAFF'
             ? '직원'

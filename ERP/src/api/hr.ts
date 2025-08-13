@@ -43,36 +43,36 @@ export const reviewVacation = (
   return api.patch(`/hr/vacations/review/${vacationId}/`, { status });
 };
 
-// 직원 목록 조회 응답 타입 (GET /hr/employees/)
+// 직원 목록 조회 응답 타입 (GET /hr/employees/) - API 스펙 정확히 반영
 export interface EmployeeList {
-  id: number;
-  username: string;
-  email: string;
-  role: string;
-  status: 'active' | 'terminated';
-  contact?: string;
-  first_name: string;
-  is_active: boolean;
-  hire_date: string | null;
-  remaining_leave_days: string;
+  id: number;                    // readOnly
+  username: string;              // required, pattern: ^[\w.@+-]+$, maxLength: 150
+  email: string;                 // email format, maxLength: 254
+  role: 'MANAGER' | 'STAFF' | 'INTERN';  // enum 값으로 정확히 정의
+  contact: string | null;        // maxLength: 20, nullable
+  status: 'APPROVED' | 'DENIED'; // enum 값으로 정확히 정의
+  first_name: string;            // maxLength: 150
+  is_active: boolean;            // 퇴사 여부
+  hire_date: string | null;      // date format, nullable, readOnly
+  remaining_leave_days: string;  // readOnly
 }
 
-// 직원 상세 조회 응답 타입 (GET /hr/employees/{id}/)
+// 직원 상세 조회 응답 타입 (GET /hr/employees/{id}/) - API 스펙 정확히 반영
 export interface EmployeeDetail {
-  id: number;
-  username: string;
-  email: string;
-  role: string;
-  status: 'active' | 'terminated';
-  contact?: string;
-  first_name: string;
-  is_active: boolean;
-  hire_date: string | null;
-  annual_leave_days: number;
-  allowed_tabs: string[];
-  remaining_leave_days: string;
-  vacation_days: string;
-  vacation_pending_days: string;
+  id: number;                          // readOnly
+  username: string;                    // required, pattern: ^[\w.@+-]+$, maxLength: 150
+  email: string;                       // email format, maxLength: 254
+  role: 'MANAGER' | 'STAFF' | 'INTERN'; // enum 값
+  contact: string | null;              // maxLength: 20, nullable
+  status: 'APPROVED' | 'DENIED';       // enum 값
+  first_name: string;                  // maxLength: 150
+  is_active: boolean;                  // 퇴사 여부
+  hire_date: string | null;            // date format, nullable
+  annual_leave_days: number;           // integer, max: 2147483647, min: 0
+  allowed_tabs: string[];              // required, 접근 허용 탭 목록
+  remaining_leave_days: string;        // readOnly
+  vacation_days: string;               // readOnly
+  vacation_pending_days: string;       // readOnly
 }
 
 // 백엔드 API 응답에 맞는 Employee 타입 (하위 호환성을 위해 EmployeeDetail과 동일하게 유지)
@@ -82,14 +82,14 @@ export type Employee = EmployeeDetail;
 
 // PATCH /hr/employees/{employee_id}/ 엔드포인트용 데이터 타입 (API 스펙 기준)
 export interface EmployeeUpdateData {
-  email?: string;
-  first_name?: string;
-  contact?: string;
-  is_active?: boolean;
-  annual_leave_days?: number;
-  allowed_tabs?: string[];
-  hire_date?: string;
-  role?: string;
+  email?: string;                       // 직원 이메일
+  first_name?: string;                  // 이름
+  contact?: string;                     // 직원 연락처
+  is_active?: boolean;                  // 퇴사 여부 (false이면 퇴사)
+  annual_leave_days?: number;           // 연차일수
+  allowed_tabs?: string[];              // 접근 허용 탭 목록
+  hire_date?: string;                   // 입사일 (date format)
+  role?: 'MANAGER' | 'STAFF' | 'INTERN'; // 직무 구분
 }
 
 // EmployeePatchData는 EmployeeUpdateData와 동일 (하위 호환성을 위해 유지)
@@ -136,7 +136,6 @@ export const ALLOWED_TABS_OPTIONS = [
   { value: 'INVENTORY', label: '재고 관리' },
   { value: 'ORDER', label: '발주 관리' },
   { value: 'SUPPLIER', label: '업체 관리' },
-  { value: 'HR', label: 'HR 관리' },
 ] as const;
 
 export type AllowedTab = (typeof ALLOWED_TABS_OPTIONS)[number]['value'];

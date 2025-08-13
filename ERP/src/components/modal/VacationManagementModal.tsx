@@ -9,6 +9,7 @@ import {
 } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
 import StatusBadge from '../common/StatusBadge';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface VacationManagementModalProps {
   onClose: () => void;
@@ -16,7 +17,8 @@ interface VacationManagementModalProps {
 
 const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClose }) => {
   const currentUser = useAuthStore((state) => state.user);
-  const isAdmin = currentUser?.role === 'MANAGER';
+  const permissions = usePermissions();
+  const isAdmin = permissions.hasPermission('HR'); // HR 탭에서의 권한 체크
 
   const { data: vacationsData, isLoading, error } = useVacations();
   const reviewVacationMutation = useReviewVacation();

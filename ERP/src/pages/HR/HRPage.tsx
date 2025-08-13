@@ -1,5 +1,5 @@
 // src/pages/HR/HRPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   FiUser,
   FiUsers,
@@ -16,9 +16,9 @@ import EmployeeRegistrationModal from '../../components/modal/EmployeeRegistrati
 import VacationRequestModal from '../../components/modal/VacationRequestModal';
 import VacationManagementModal from '../../components/modal/VacationManagementModal';
 import OrganizationVacationCalendar from '../../components/calendar/OrganizationVacationCalendar';
-import { useEmployees, useTerminateEmployee } from '../../hooks/queries/useEmployees';
+import { useEmployees, useTerminateEmployee, usePatchEmployee, useApproveEmployee } from '../../hooks/queries/useEmployees';
 import { useQueryClient } from '@tanstack/react-query';
-import { EmployeeList, approveEmployee, patchEmployee } from '../../api/hr';
+import { EmployeeList } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
 
 // 직원 상태 타입
@@ -83,26 +83,46 @@ const mapRoleToKorean = (role: string): string => {
   }
 };
 
-// 프론트엔드에서 사용할 매핑된 Employee 타입
+// 프론트엔드에서 사용할 통합 Employee 타입 (API 스펙 기반)
 export interface MappedEmployee {
   id: number;
-  name: string; // 화면 표시용 이름 (실제로는 first_name)
-  username: string; // API 호출 시 사용할 실제 username
-  role: string; // 추가: 영문 role(MANAGER/STAFF/INTERN)
-  position: string;
-  department: string;
+  name: string;                          // 화면 표시용 (실제: first_name)
+  username: string;                      // API 호출용
+  role: 'MANAGER' | 'STAFF' | 'INTERN';   // 정확한 enum 타입
+  position: string;                      // UI 표시용 한글 직책
+  department: string;                    // UI 표시용 부서
   email: string;
-  phone: string;
-  status: 'active' | 'terminated' | 'denied';
+  phone: string;                         // contact 필드 매핑
+  status: 'active' | 'terminated' | 'denied'; // UI 상태
   hire_date: string;
   annual_leave_days: number;
   allowed_tabs: string[];
   remaining_leave_days: number;
-  vacation_days: any[];
-  vacation_pending_days: any[];
-  created_at: string;
-  updated_at: string;
+  vacation_days: any[];                  // 휴가 데이터 (파싱 필요)
+  vacation_pending_days: any[];          // 대기 중인 휴가
+  // UI용 필드들 (선택적)
+  created_at?: string;
+  updated_at?: string;
 }
+
+// 직원 상태를 정확히 판단하는 유틸리티 함수
+const getEmployeeStatus = (status: string, isActive: boolean): 'active' | 'denied' | 'terminated' => {
+  // is_active가 false면 상태에 상관없이 퇴사
+  if (!isActive) {
+    return 'terminated';
+  }
+  
+  // is_active가 true일 때 status에 따라 구분 (대소문자 구분 없이)
+  const normalizedStatus = status?.toLowerCase();
+  if (normalizedStatus === 'approved') {
+    return 'active';      // 재직중
+  } else if (normalizedStatus === 'denied') {
+    return 'denied';      // 승인대기중
+  }
+  
+  // 기본값 (예상치 못한 상태)
+  return 'denied';
+};
 
 // 백엔드 EmployeeList를 프론트엔드 MappedEmployee로 변환
 const mapEmployeeData = (emp: EmployeeList): MappedEmployee => ({
@@ -114,7 +134,7 @@ const mapEmployeeData = (emp: EmployeeList): MappedEmployee => ({
   department: emp.role === 'MANAGER' ? '경영진' : '일반',
   email: emp.email,
   phone: emp.contact || '',
-  status: emp.status,
+  status: getEmployeeStatus(emp.status, emp.is_active), // 정확한 상태 판단
   hire_date: emp.hire_date || '',
   annual_leave_days: 0, // 목록 조회에서는 제공되지 않음
   allowed_tabs: [], // 목록 조회에서는 제공되지 않음
@@ -130,13 +150,21 @@ const HRPage: React.FC = () => {
   const currentUser = useAuthStore((state) => state.user);
   const isAdmin = currentUser?.role === 'MANAGER';
 
-  // API 훅 사용
+  // API 훅 사용 - React Query로 데이터 관리
   const { data: employeesData, isLoading, error } = useEmployees();
   const terminateEmployee = useTerminateEmployee();
+  const patchEmployeeMutation = usePatchEmployee();
+  const approveEmployeeMutation = useApproveEmployee();
   const queryClient = useQueryClient();
 
-  // 직원 목록 상태
-  const [employees, setEmployees] = useState<MappedEmployee[]>([]);
+  // 로컬 상태 제거 - React Query만 사용
+  // const [employees, setEmployees] = useState<MappedEmployee[]>([]); // 제거
+
+  // 매핑된 직원 데이터 계산된 값으로 사용
+  const employees = React.useMemo(() => {
+    if (!employeesData?.data) return [];
+    return employeesData.data.map((emp: EmployeeList) => mapEmployeeData(emp));
+  }, [employeesData?.data]);
 
   // 모달 상태 관리
   const [selectedEmployee, setSelectedEmployee] = useState<MappedEmployee | null>(null);
@@ -147,15 +175,79 @@ const HRPage: React.FC = () => {
   const [showVacationManagementModal, setShowVacationManagementModal] = useState(false);
   const [showOrganizationVacationCalendar, setShowOrganizationVacationCalendar] = useState(false);
 
-  // API 데이터 로드
-  useEffect(() => {
-    if (employeesData?.data) {
-      const mapped = employeesData.data.map((emp: EmployeeList) => mapEmployeeData(emp));
-      setEmployees(mapped);
-    }
-  }, [employeesData]);
+  // API 데이터 로드 useEffect 제거 - useMemo로 대체
+  // useEffect(() => {
+  //   if (employeesData?.data) {
+  //     const mapped = employeesData.data.map((emp: EmployeeList) => mapEmployeeData(emp));
+  //     setEmployees(mapped);
+  //   }
+  // }, [employeesData]); // 제거
 
-  // 직원 정보 업데이트
+  // 직원을 상태별로 그룹화하는 함수
+  const groupEmployeesByStatus = () => {
+    const activeEmployees = employees.filter(emp => emp.status === 'active');
+    const pendingEmployees = employees.filter(emp => emp.status === 'denied'); // API에서 DENIED = 승인대기 상태
+    const terminatedEmployees = employees.filter(emp => emp.status === 'terminated');
+    
+    return {
+      active: activeEmployees,
+      pending: pendingEmployees,
+      terminated: terminatedEmployees
+    };
+  };
+
+  // 섹션별 직원 카드를 렌더링하는 함수
+  const renderEmployeeSections = () => {
+    const { active, pending, terminated } = groupEmployeesByStatus();
+    
+    return (
+      <div className='space-y-8'>
+        {/* 재직중 섹션 */}
+        {active.length > 0 && (
+          <div>
+            <div className='mb-4'>
+              <h2 className='text-lg font-semibold text-gray-900'>재직중 ({active.length}명)</h2>
+            </div>
+            <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
+              {active.map((employee) => (
+                <EmployeeCard key={employee.id} employee={employee} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 승인대기중 섹션 */}
+        {pending.length > 0 && (
+          <div>
+            <div className='mb-4'>
+              <h2 className='text-lg font-semibold text-gray-900'>승인대기중 ({pending.length}명)</h2>
+            </div>
+            <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
+              {pending.map((employee) => (
+                <EmployeeCard key={employee.id} employee={employee} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 퇴사 섹션 */}
+        {terminated.length > 0 && (
+          <div>
+            <div className='mb-4'>
+              <h2 className='text-lg font-semibold text-gray-900'>퇴사 ({terminated.length}명)</h2>
+            </div>
+            <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
+              {terminated.map((employee) => (
+                <EmployeeCard key={employee.id} employee={employee} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // 직원 정보 업데이트 - Optimistic Updates 적용
   const handleUpdateEmployee = async (updatedEmployee: MappedEmployee) => {
     // 관리자 권한 확인
     if (!isAdmin) {
@@ -163,37 +255,28 @@ const HRPage: React.FC = () => {
       return;
     }
 
+    // 백엔드 API에 맞게 필드명 변경 (PATCH API 스펙에 맞춤)
+    const updateData = {
+      email: updatedEmployee.email,
+      first_name: updatedEmployee.name,
+      contact: updatedEmployee.phone,
+      // is_active는 퇴사 처리가 아닌 한 항상 true 유지
+      annual_leave_days: updatedEmployee.annual_leave_days,
+      allowed_tabs: updatedEmployee.allowed_tabs,
+      hire_date: updatedEmployee.hire_date,
+      role: updatedEmployee.role,
+    };
+
     try {
-      // 백엔드 API에 맞게 필드명 변경 (PATCH API 스펙에 맞춤)
-      const updateData = {
-        email: updatedEmployee.email,
-        first_name: updatedEmployee.name,
-        contact: updatedEmployee.phone,
-        is_active: updatedEmployee.status === 'active',
-        annual_leave_days: updatedEmployee.annual_leave_days,
-        allowed_tabs: updatedEmployee.allowed_tabs,
-        hire_date: updatedEmployee.hire_date,
-        role: updatedEmployee.role,
-      };
+      await patchEmployeeMutation.mutateAsync({
+        employeeId: updatedEmployee.id,
+        data: updateData
+      });
 
-      console.log('직원 정보 수정 요청 데이터:', JSON.stringify(updateData, null, 2));
-
-      // patchEmployee 사용 (PATCH 엔드포인트)
-      await patchEmployee(updatedEmployee.id, updateData);
-
-      // React Query 캐시 무효화하여 최신 데이터 가져오기
-      queryClient.invalidateQueries({ queryKey: ['employees'] });
-
-      // 로컬 상태 업데이트
-      setEmployees((prev) =>
-        prev.map((emp) => (emp.id === updatedEmployee.id ? { ...emp, ...updatedEmployee } : emp))
-      );
       setSelectedEmployee(updatedEmployee);
     } catch (error: any) {
       console.error('직원 정보 업데이트 실패:', error);
-      console.error('업데이트 응답 데이터:', error.response?.data);
-      console.error('업데이트 상태 코드:', error.response?.status);
-      throw error; // 에러를 다시 던져서 모달에서 처리하도록 함
+      throw error;
     }
   };
 
@@ -234,12 +317,12 @@ const HRPage: React.FC = () => {
         try {
           await terminateEmployee.mutateAsync(employee.id);
 
-          // 로컬 상태 업데이트 - 해당 직원의 status를 'terminated'로 변경
-          setEmployees((prev) =>
-            prev.map((emp) =>
-              emp.id === employee.id ? { ...emp, status: 'terminated' as const } : emp
-            )
-          );
+          // React Query가 자동으로 캐시를 업데이트하므로 로컬 상태 업데이트 제거
+          // setEmployees((prev) =>
+          //   prev.map((emp) =>
+          //     emp.id === employee.id ? { ...emp, status: 'terminated' as const } : emp
+          //   )
+          // );
 
           alert('퇴사 처리가 완료되었습니다.');
         } catch (error: any) {
@@ -326,50 +409,53 @@ const HRPage: React.FC = () => {
                 퇴사
               </button>
             )}
-            {isAdmin && employee.role === 'STAFF' && !isTerminated && (
-              <>
-                {employee.status === 'denied' ? (
-                  <button
-                    className='flex items-center rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 shadow-sm transition-all duration-200 hover:border-green-300 hover:bg-green-100'
-                    onClick={async () => {
-                      try {
-                        await approveEmployee(employee.username, 'approved');
-                        setEmployees((prev) =>
-                          prev.map((emp) =>
-                            emp.id === employee.id ? { ...emp, status: 'active' as const } : emp
-                          )
-                        );
-                        // React Query 캐시 무효화
-                        queryClient.invalidateQueries({ queryKey: ['employees'] });
-                        alert('승인 완료!');
-                      } catch (e: any) {
-                        alert(e?.response?.data?.error || '승인 실패');
-                      }
-                    }}>
-                    승인
-                  </button>
-                ) : (
-                  <button
-                    className='flex items-center rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-1.5 text-sm font-medium text-yellow-700 shadow-sm transition-all duration-200 hover:border-yellow-300 hover:bg-yellow-100'
-                    onClick={async () => {
-                      try {
-                        await approveEmployee(employee.username, 'denied');
-                        setEmployees((prev) =>
-                          prev.map((emp) =>
-                            emp.id === employee.id ? { ...emp, status: 'denied' as const } : emp
-                          )
-                        );
-                        // React Query 캐시 무효화
-                        queryClient.invalidateQueries({ queryKey: ['employees'] });
-                        alert('거절 처리 완료!');
-                      } catch (e: any) {
-                        alert(e?.response?.data?.error || '거절 실패');
-                      }
-                    }}>
-                    거절
-                  </button>
-                )}
-              </>
+            {/* 승인대기중 직원에게만 승인/거절 버튼 표시 */}
+            {isAdmin && employee.status === 'denied' && (
+              <div className='flex space-x-2'>
+                {/* 승인 버튼 */}
+                <button
+                  className='flex items-center rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 shadow-sm transition-all duration-200 hover:border-green-300 hover:bg-green-100'
+                  onClick={async () => {
+                    try {
+                      await approveEmployeeMutation.mutateAsync({
+                        username: employee.username,
+                        status: 'approved'
+                      });
+                      alert('승인 완료!');
+                    } catch (e: any) {
+                      console.error('승인 처리 실패:', e);
+                      alert(e?.response?.data?.error || '승인 실패');
+                    }
+                  }}>
+                  승인
+                </button>
+                
+                {/* 거절 버튼 */}
+                <button
+                  className='flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 shadow-sm transition-all duration-200 hover:border-red-300 hover:bg-red-100'
+                  onClick={async () => {
+                    try {
+                      await approveEmployeeMutation.mutateAsync({
+                        username: employee.username,
+                        status: 'denied'
+                      });
+                      
+                      await patchEmployeeMutation.mutateAsync({
+                        employeeId: employee.id,
+                        data: {
+                          is_active: false
+                        }
+                      });
+                      
+                      alert('거절 및 퇴사 처리 완료!');
+                    } catch (e: any) {
+                      console.error('거절 처리 실패:', e);
+                      alert(e?.response?.data?.error || '거절 처리 실패');
+                    }
+                  }}>
+                  거절
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -395,13 +481,12 @@ const HRPage: React.FC = () => {
   };
 
   // 직원 등록 완료 핸들러
-  const handleEmployeeRegistrationComplete = (newEmployee: MappedEmployee) => {
-    // 로컬 상태 업데이트
-    setEmployees((prev) => [...prev, newEmployee]);
+  const handleEmployeeRegistrationComplete = (_newEmployee: MappedEmployee) => {
     setShowEmployeeRegistrationModal(false);
-
-    // React Query 캐시 무효화하여 최신 데이터 가져오기
+    
+    // React Query 캐시 무효화로 최신 데이터 가져오기
     queryClient.invalidateQueries({ queryKey: ['employees'] });
+    // setEmployees((prev) => [...prev, newEmployee]); // 제거
   };
 
   if (isLoading)
@@ -502,12 +587,8 @@ const HRPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 직원 카드 그리드 */}
-        <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
-          {employees.map((employee) => (
-            <EmployeeCard key={employee.id} employee={employee} />
-          ))}
-        </div>
+        {/* 직원 섹션별 배치 */}
+        {renderEmployeeSections()}
 
         {/* 결과가 없을 경우 메시지 */}
         {employees.length === 0 && (

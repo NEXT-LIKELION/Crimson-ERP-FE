@@ -9,7 +9,7 @@ import SelectInput from '../../components/input/SelectInput';
 import OrderDetailModal from '../../components/modal/OrderDetailModal';
 import NewOrderModal from '../../components/modal/NewOrderModal';
 import { Order, OrderStatus } from '../../store/ordersStore';
-import { useAuthStore } from '../../store/authStore';
+// import { useAuthStore } from '../../store/authStore'; // 제거 - permissions 사용
 import { useOrder } from '../../hooks/queries/useOrder';
 import axios from '../../api/axios';
 import { deleteOrder, exportOrders } from '../../api/orders';
@@ -93,8 +93,9 @@ const OrdersPage: React.FC = () => {
     error: null,
   });
   const { data, isLoading, isError, error, refetch } = useOrder();
-  const user = useAuthStore((state) => state.user);
-  const isManager = user?.role === '대표';
+  // isManager 대신 permissions.hasPermission('ORDER') 사용로 변경
+  // const user = useAuthStore((state) => state.user); // 제거
+  // const isManager = user?.role === 'MANAGER'; // 제거
 
 
 
@@ -986,7 +987,7 @@ const OrdersPage: React.FC = () => {
           orderId={selectedOrderId}
           isOpen={isOrderDetailModalOpen}
           onClose={() => setIsOrderDetailModalOpen(false)}
-          isManager={isManager}
+          isManager={permissions.hasPermission('ORDER')}
           onApproveSuccess={() => refetch()}
         />
       )}

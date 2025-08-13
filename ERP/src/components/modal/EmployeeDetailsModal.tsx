@@ -40,13 +40,41 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
 
   // 실시간 직원 상세 정보 조회
   const { data: employeeDetailData, isLoading: employeeDetailLoading } = useEmployee(employee.id);
+  
 
-  // 최신 직원 정보 (휴가 데이터 포함)
-  const currentEmployee = employeeDetailData?.data || employee;
+  // 최신 직원 정보 (휴가 데이터 포함) - API 데이터 우선 사용
+  const currentEmployee = React.useMemo(() => {
+    if (employeeDetailData?.data) {
+      // API 데이터를 MappedEmployee 형식으로 변환
+      const apiData = employeeDetailData.data;
+      return {
+        ...employee, // 기본 데이터
+        // API에서 받은 최신 데이터로 업데이트
+        name: apiData.first_name,
+        email: apiData.email,
+        phone: apiData.contact || '',
+        role: apiData.role,
+        status: !apiData.is_active ? 'terminated' : (apiData.status?.toLowerCase() === 'approved' ? 'active' : 'denied') as 'active' | 'terminated' | 'denied',
+        annual_leave_days: apiData.annual_leave_days,
+        allowed_tabs: apiData.allowed_tabs,
+        hire_date: apiData.hire_date || '',
+        remaining_leave_days: parseInt(apiData.remaining_leave_days) || 0,
+        vacation_days: typeof apiData.vacation_days === 'string' ? [] : apiData.vacation_days,
+        vacation_pending_days: typeof apiData.vacation_pending_days === 'string' ? [] : apiData.vacation_pending_days,
+      };
+    }
+    return employee;
+  }, [employeeDetailData?.data, employee]);
 
+  // 최신 데이터로 editedEmployee 동기화
   React.useEffect(() => {
-    setEditedEmployee(employee);
-  }, [employee]);
+    setEditedEmployee(currentEmployee);
+  }, [currentEmployee]);
+
+  // 모달이 열릴 때마다 편집 모드 종료
+  React.useEffect(() => {
+    setIsEditing(false);
+  }, [employee.id]);
 
   // 휴가 데이터 파싱
   const vacationDays = parseVacationDays(currentEmployee.vacation_days);
@@ -75,16 +103,35 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
   };
 
   const handleSave = async () => {
-    if (!editedEmployee.email || !editedEmployee.phone) {
-      alert('이메일과 전화번호를 입력해주세요.');
+    // 필수 필드 검증
+    if (!editedEmployee.email?.trim()) {
+      alert('이메일을 입력해주세요.');
       return;
     }
 
-    if (!editedEmployee.name || !editedEmployee.hire_date) {
-      alert('이름과 입사일을 입력해주세요.');
+    if (!editedEmployee.phone?.trim()) {
+      alert('전화번호를 입력해주세요.');
       return;
     }
 
+    if (!editedEmployee.name?.trim()) {
+      alert('이름을 입력해주세요.');
+      return;
+    }
+
+    if (!editedEmployee.hire_date?.trim()) {
+      alert('입사일을 입력해주세요.');
+      return;
+    }
+
+    // 이메일 형식 검증
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(editedEmployee.email)) {
+      alert('올바른 이메일 형식을 입력해주세요.');
+      return;
+    }
+
+    // 연차 일수 검증
     if (editedEmployee.annual_leave_days < 0 || editedEmployee.annual_leave_days > 365) {
       alert('연차 일수는 0일에서 365일 사이여야 합니다.');
       return;
@@ -110,7 +157,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
   };
 
   const handleCancel = () => {
-    setEditedEmployee(employee);
+    setEditedEmployee(currentEmployee); // 최신 데이터로 리셋
     setIsEditing(false);
   };
 
@@ -127,24 +174,24 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
       onClick={handleBackdropClick}>
       <div
-        className='w-full max-w-sm rounded-lg border border-gray-200 bg-white shadow-lg'
+        className='flex h-full max-h-[90vh] w-full max-w-md flex-col rounded-lg border border-gray-200 bg-white shadow-lg'
         onClick={(e) => e.stopPropagation()}>
-        {/* 헤더 */}
-        <div className='flex items-center justify-between border-b border-gray-200 px-6 py-4'>
+        {/* 헤더 - 고정 */}
+        <div className='flex flex-shrink-0 items-center justify-between border-b border-gray-200 px-6 py-4'>
           <h2 className='text-lg font-semibold text-gray-900'>직원 정보</h2>
           <button onClick={onClose} className='text-gray-400 transition-colors hover:text-gray-600'>
             <FiX className='h-5 w-5' />
           </button>
         </div>
 
-        {/* 콘텐츠 */}
-        <div className='p-6'>
+        {/* 콘텐츠 - 스크롤 가능 */}
+        <div className='flex-1 overflow-y-auto p-6'>
           <div className='space-y-4'>
             {/* 이름 */}
             <div>
               <label className='mb-1 block text-sm font-medium text-gray-700'>이름</label>
               <div className='flex items-center justify-between'>
-                <span className='text-gray-900'>{employee.name}</span>
+                <span className='text-gray-900'>{currentEmployee.name}</span>
                 {isEditing && (
                   <span className='rounded bg-gray-100 px-2 py-1 text-xs text-gray-500'>
                     수정 불가
@@ -272,17 +319,20 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                   </div>
                 ) : (
                   <div className='flex flex-wrap gap-1'>
-                    {(employee.allowed_tabs || []).map((tab) => {
-                      const tabOption = ALLOWED_TABS_OPTIONS.find((opt) => opt.value === tab);
-                      return (
-                        <span
-                          key={tab}
-                          className='inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800'>
-                          {tabOption?.label || tab}
-                        </span>
-                      );
-                    })}
-                    {(!employee.allowed_tabs || employee.allowed_tabs.length === 0) && (
+                    {(currentEmployee.allowed_tabs || [])
+                      .filter((tab) => ALLOWED_TABS_OPTIONS.some((opt) => opt.value === tab))
+                      .map((tab) => {
+                        const tabOption = ALLOWED_TABS_OPTIONS.find((opt) => opt.value === tab);
+                        return (
+                          <span
+                            key={tab}
+                            className='inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800'>
+                            {tabOption?.label}
+                          </span>
+                        );
+                      })}
+                    {(!currentEmployee.allowed_tabs || 
+                      currentEmployee.allowed_tabs.filter((tab) => ALLOWED_TABS_OPTIONS.some((opt) => opt.value === tab)).length === 0) && (
                       <span className='text-sm text-gray-500'>권한이 설정되지 않았습니다</span>
                     )}
                   </div>
@@ -291,61 +341,62 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
             )}
           </div>
 
-          {/* 버튼 영역 */}
-          <div className='mt-6 border-t border-gray-200 pt-4'>
-            <div className='space-y-3'>
-              {/* 휴가 캘린더 버튼 */}
-              <button
-                onClick={() => setShowVacationCalendar(true)}
-                disabled={employeeDetailLoading}
-                className='flex w-full items-center justify-center rounded-md bg-blue-100 px-4 py-2 text-sm text-blue-700 hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50'>
-                <FiCalendar className='mr-2 h-4 w-4' />
-                {employeeDetailLoading ? '로딩 중...' : '휴가 캘린더 보기'}
-              </button>
+        </div>
 
-              {/* 근로계약서 버튼 */}
-              {isAdmin && (
+        {/* 버튼 영역 - 고정 */}
+        <div className='flex-shrink-0 border-t border-gray-200 px-6 py-4'>
+          <div className='space-y-3'>
+            {/* 휴가 캘린더 버튼 */}
+            <button
+              onClick={() => setShowVacationCalendar(true)}
+              disabled={employeeDetailLoading}
+              className='flex w-full items-center justify-center rounded-md bg-blue-100 px-4 py-2 text-sm text-blue-700 hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50'>
+              <FiCalendar className='mr-2 h-4 w-4' />
+              {employeeDetailLoading ? '로딩 중...' : '휴가 캘린더 보기'}
+            </button>
+
+            {/* 근로계약서 버튼 */}
+            {isAdmin && (
+              <button
+                onClick={onViewContract}
+                className='flex w-full items-center justify-center rounded-md bg-gray-100 px-4 py-2 text-sm text-gray-700 hover:bg-gray-200'>
+                <FiFileText className='mr-2 h-4 w-4' />
+                근로계약서 보기
+              </button>
+            )}
+
+            {/* 수정 관련 버튼들 */}
+            {isAdmin &&
+              (!isEditing ? (
                 <button
-                  onClick={onViewContract}
-                  className='flex w-full items-center justify-center rounded-md bg-gray-100 px-4 py-2 text-sm text-gray-700 hover:bg-gray-200'>
-                  <FiFileText className='mr-2 h-4 w-4' />
-                  근로계약서 보기
+                  onClick={() => setIsEditing(true)}
+                  className='flex w-full items-center justify-center rounded-md bg-rose-500 px-4 py-2 text-sm text-white hover:bg-rose-600'>
+                  <FiEdit className='mr-2 h-4 w-4' />
+                  정보 수정
                 </button>
-              )}
-
-              {/* 수정 관련 버튼들 */}
-              {isAdmin &&
-                (!isEditing ? (
+              ) : (
+                <div className='space-y-2'>
                   <button
-                    onClick={() => setIsEditing(true)}
-                    className='flex w-full items-center justify-center rounded-md bg-rose-500 px-4 py-2 text-sm text-white hover:bg-rose-600'>
-                    <FiEdit className='mr-2 h-4 w-4' />
-                    정보 수정
+                    onClick={handleSave}
+                    className='flex w-full items-center justify-center rounded-md bg-green-500 px-4 py-2 text-sm text-white hover:bg-green-600'>
+                    <FiCheck className='mr-2 h-4 w-4' />
+                    저장
                   </button>
-                ) : (
-                  <div className='space-y-2'>
-                    <button
-                      onClick={handleSave}
-                      className='flex w-full items-center justify-center rounded-md bg-green-500 px-4 py-2 text-sm text-white hover:bg-green-600'>
-                      <FiCheck className='mr-2 h-4 w-4' />
-                      저장
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      className='flex w-full items-center justify-center rounded-md bg-gray-500 px-4 py-2 text-sm text-white hover:bg-gray-600'>
-                      <FiXCircle className='mr-2 h-4 w-4' />
-                      취소
-                    </button>
-                  </div>
-                ))}
+                  <button
+                    onClick={handleCancel}
+                    className='flex w-full items-center justify-center rounded-md bg-gray-500 px-4 py-2 text-sm text-white hover:bg-gray-600'>
+                    <FiXCircle className='mr-2 h-4 w-4' />
+                    취소
+                  </button>
+                </div>
+              ))}
 
-              {/* 닫기 버튼 */}
-              <button
-                onClick={onClose}
-                className='w-full rounded-md bg-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-300'>
-                닫기
-              </button>
-            </div>
+            {/* 닫기 버튼 */}
+            <button
+              onClick={onClose}
+              className='w-full rounded-md bg-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-300'>
+              닫기
+            </button>
           </div>
         </div>
       </div>
