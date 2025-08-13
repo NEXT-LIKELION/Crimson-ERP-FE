@@ -87,15 +87,22 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
     }
 
     // 사용자 ID 확인 (여러 필드 시도)
-    let employeeId = currentUser.id;
+    let employeeId: number | undefined = currentUser.id;
 
     if (!employeeId) {
       // 다른 필드명들도 시도해보기
-      employeeId =
-        (currentUser as any).employee_id ||
-        (currentUser as any).user_id ||
-        (currentUser as any).pk ||
-        currentUser.username; // username도 시도
+      // 다른 필드들을 확인 (타입 안정성을 위해 in 연산자 사용)
+      const userWithId = currentUser as unknown as Record<string, unknown>;
+      if ('employee_id' in currentUser) {
+        const value = userWithId.employee_id;
+        employeeId = typeof value === 'number' ? value : typeof value === 'string' ? parseInt(value, 10) : undefined;
+      } else if ('user_id' in currentUser) {
+        const value = userWithId.user_id;
+        employeeId = typeof value === 'number' ? value : typeof value === 'string' ? parseInt(value, 10) : undefined;
+      } else if ('pk' in currentUser) {
+        const value = userWithId.pk;
+        employeeId = typeof value === 'number' ? value : typeof value === 'string' ? parseInt(value, 10) : undefined;
+      }
 
       console.log('대체 ID 필드 시도 결과:', employeeId);
     }
@@ -145,7 +152,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
             console.log('직원 목록:', employees);
 
             const currentEmployee = employees.find(
-              (emp: any) => emp.username === employeeId || emp.username === currentUser.username
+              (emp: { username: string }) => emp.username === employeeId || emp.username === currentUser.username
             );
 
             if (currentEmployee) {
@@ -180,15 +187,18 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
       alert('휴가 신청이 완료되었습니다.');
       onSuccess?.();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('휴가 신청 실패:', error);
-      console.error('오류 응답 데이터:', error.response?.data);
+      const apiError = error as ApiError;
+      if ('response' in (error as object)) {
+        console.error('오류 응답 데이터:', apiError.response?.data);
+      }
 
       let errorMessage = '휴가 신청에 실패했습니다.';
 
-      if (error.response?.data) {
+      if ('response' in (error as object) && apiError.response?.data) {
         // 다양한 오류 메시지 형식 처리
-        const responseData = error.response.data;
+        const responseData = apiError.response.data;
         if (typeof responseData === 'string') {
           errorMessage = responseData;
         } else if (responseData.message) {
@@ -197,10 +207,11 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
           errorMessage = responseData.error;
         } else if (responseData.detail) {
           errorMessage = responseData.detail;
-        } else if (responseData.non_field_errors) {
-          errorMessage = Array.isArray(responseData.non_field_errors)
-            ? responseData.non_field_errors.join(', ')
-            : responseData.non_field_errors;
+        } else if ('non_field_errors' in responseData) {
+          const nonFieldErrors = (responseData as { non_field_errors: string | string[] }).non_field_errors;
+          errorMessage = Array.isArray(nonFieldErrors)
+            ? nonFieldErrors.join(', ')
+            : nonFieldErrors;
         } else {
           // 필드별 오류 메시지 처리
           const fieldErrors = Object.entries(responseData)

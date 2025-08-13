@@ -22,9 +22,16 @@ export const fetchDashboardData = () => api.get('/');
 export const approveEmployee = (username: string, status: 'approved' | 'denied') =>
   api.post('/authentication/approve/', { username, status });
 
-// 직원 등록 (회원가입)
-export const registerEmployee = (data: EmployeeRegistrationData) =>
-  api.post('/authentication/signup/', data);
+// 직원 등록 (회원가입) - 기본 필드만 사용
+export const registerEmployee = (data: EmployeeRegistrationData | {
+  username: string;
+  email: string;
+  password: string;
+  first_name: string;
+  contact: string;
+}) => {
+  return api.post('/authentication/signup/', data);
+}
 
 // ===== 휴가 관련 API =====
 
@@ -126,7 +133,7 @@ export const parseVacationDays = (vacationData: string | VacationDay[]): Vacatio
   try {
     const parsed = JSON.parse(vacationData);
     return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
+  } catch {
     return [];
   }
 };

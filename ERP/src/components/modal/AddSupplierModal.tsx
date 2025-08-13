@@ -5,8 +5,8 @@ import TextInput from '../input/TextInput';
 interface AddSupplierModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (supplier: any) => void;
-  initialData?: any;
+  onSave: (supplier: Record<string, unknown>) => void;
+  initialData?: Record<string, unknown>;
   title?: string;
 }
 
@@ -19,18 +19,18 @@ const AddSupplierModal = ({
   initialData,
   title = '공급업체 추가',
 }: AddSupplierModalProps) => {
-  const [form, setForm] = useState<any>(initialData ?? defaultForm);
+  const [form, setForm] = useState<Record<string, string>>(initialData as Record<string, string> ?? defaultForm);
   const [errors, setErrors] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
-      setForm(initialData ?? defaultForm);
+      setForm((initialData as Record<string, string>) ?? defaultForm);
       setErrors([]);
     }
   }, [isOpen, initialData]);
 
   const handleChange = (field: string, value: string) => {
-    setForm((prev: any) => ({ ...prev, [field]: value }));
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = () => {

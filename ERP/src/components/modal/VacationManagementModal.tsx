@@ -90,26 +90,28 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
 
       const statusText = VACATION_STATUS_OPTIONS.find((opt) => opt.value === newStatus)?.label;
       alert(`휴가 상태가 "${statusText}"로 변경되었습니다.`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('휴가 상태 변경 실패:', error);
-      console.error('에러 상세 정보:', {
-        message: error.message,
-        response: error.response,
-        status: error.response?.status,
-        data: error.response?.data,
-        config: error.config,
-      });
+      const apiError = error as ApiError;
+      if ('response' in (error as object)) {
+        console.error('에러 상세 정보:', {
+          message: apiError.message,
+          response: apiError.response,
+          status: apiError.response?.status,
+          data: apiError.response?.data,
+        });
+      }
 
       let errorMessage = '상태 변경에 실패했습니다.';
 
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
-      } else if (error.response?.status) {
-        switch (error.response.status) {
+      if ('response' in (error as object) && apiError.response?.data?.message) {
+        errorMessage = apiError.response.data.message;
+      } else if ('response' in (error as object) && apiError.response?.data?.error) {
+        errorMessage = apiError.response.data.error;
+      } else if ('response' in (error as object) && apiError.response?.data?.detail) {
+        errorMessage = apiError.response.data.detail;
+      } else if ('response' in (error as object) && apiError.response?.status) {
+        switch (apiError.response.status) {
           case 401:
             errorMessage = '인증이 필요합니다. 다시 로그인해주세요.';
             break;
@@ -123,7 +125,7 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
             errorMessage = '서버 오류가 발생했습니다.';
             break;
           default:
-            errorMessage = `오류 (${error.response.status}): ${error.response.statusText}`;
+            errorMessage = `오류 (${apiError.response?.status}): ${apiError.response?.data?.error || '알 수 없는 오류'}`;
         }
       }
 

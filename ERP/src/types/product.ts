@@ -113,12 +113,7 @@ export interface InventoryAdjustment {
 
 export type InventoryAdjustmentResponse = PaginatedResponse<InventoryAdjustment>;
 
-// API ProductOption (조회용)
-export interface ProductOption {
-  id: number;
-  product_id: string;
-  name: string;
-}
+// ProductOption 중복 제거 - 위에서 이미 정의됨
 
 // 기본 Supplier 엔티티 (GET /supplier/, GET /supplier/{id}/ 응답)
 export interface Supplier {
@@ -169,7 +164,7 @@ export interface ProductFormData {
 export interface ProductSupplierData {
   supplier_name: string;
   cost_price: number;
-  is_primary: boolean;
+  is_primary?: boolean; // 옵셔널로 변경
 }
 
 // 타입 가드 함수들

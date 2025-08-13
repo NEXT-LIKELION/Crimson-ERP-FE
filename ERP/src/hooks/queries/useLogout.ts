@@ -17,11 +17,15 @@ export const useLogout = () => {
       logoutStore();
       navigate('/auth');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       console.error('로그아웃 실패:', err);
-      console.error('로그아웃 응답 데이터:', err.response?.data);
-      console.error('로그아웃 상태 코드:', err.response?.status);
-      console.error('로그아웃 요청 URL:', err.config?.url);
+      // axios 에러인 경우에만 response 정보 로그
+      if ('response' in err && 'config' in err) {
+        const axiosError = err as ApiError & { config?: { url?: string } };
+        console.error('로그아웃 응답 데이터:', axiosError.response?.data);
+        console.error('로그아웃 상태 코드:', axiosError.response?.status);
+        console.error('로그아웃 요청 URL:', axiosError.config?.url);
+      }
 
       clearAuthTokens();
       localStorage.removeItem('auth-storage');

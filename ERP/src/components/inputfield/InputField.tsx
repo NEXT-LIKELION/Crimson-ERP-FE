@@ -77,7 +77,7 @@ const InputField: React.FC<InputFieldProps> = ({
     if (stockSliderValues[0] !== min || stockSliderValues[1] !== max) {
       setStockSliderValues([min, max]);
     }
-  }, [minStock, maxStock]);
+  }, [minStock, maxStock, stockSliderValues]);
 
   // 엔터키 입력 시 검색 실행
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

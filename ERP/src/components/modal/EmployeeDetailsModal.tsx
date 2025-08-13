@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { FiX, FiEdit, FiCheck, FiXCircle, FiFileText, FiCalendar } from 'react-icons/fi';
 import { MappedEmployee } from '../../pages/HR/HRPage';
-import { ALLOWED_TABS_OPTIONS, parseVacationDays } from '../../api/hr';
+import { ALLOWED_TABS_OPTIONS, parseVacationDays, VacationDay } from '../../api/hr';
 import { useEmployee } from '../../hooks/queries/useEmployees';
 import VacationCalendar from '../calendar/VacationCalendar';
 
@@ -47,7 +47,8 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
     if (employeeDetailData?.data) {
       // API 데이터를 MappedEmployee 형식으로 변환
       const apiData = employeeDetailData.data;
-      return {
+
+      const mappedEmployee = {
         ...employee, // 기본 데이터
         // API에서 받은 최신 데이터로 업데이트
         name: apiData.first_name,
@@ -56,12 +57,14 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
         role: apiData.role,
         status: !apiData.is_active ? 'terminated' : (apiData.status?.toLowerCase() === 'approved' ? 'active' : 'denied') as 'active' | 'terminated' | 'denied',
         annual_leave_days: apiData.annual_leave_days,
-        allowed_tabs: apiData.allowed_tabs,
+        allowed_tabs: apiData.allowed_tabs || [], // API 데이터 우선 사용
         hire_date: apiData.hire_date || '',
         remaining_leave_days: parseInt(apiData.remaining_leave_days) || 0,
-        vacation_days: typeof apiData.vacation_days === 'string' ? [] : apiData.vacation_days,
-        vacation_pending_days: typeof apiData.vacation_pending_days === 'string' ? [] : apiData.vacation_pending_days,
+        vacation_days: typeof apiData.vacation_days === 'string' ? [] as VacationDay[] : apiData.vacation_days as VacationDay[],
+        vacation_pending_days: typeof apiData.vacation_pending_days === 'string' ? [] as VacationDay[] : apiData.vacation_pending_days as VacationDay[],
       };
+      
+      return mappedEmployee;
     }
     return employee;
   }, [employeeDetailData?.data, employee]);
@@ -77,8 +80,8 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
   }, [employee.id]);
 
   // 휴가 데이터 파싱
-  const vacationDays = parseVacationDays(currentEmployee.vacation_days);
-  const vacationPendingDays = parseVacationDays(currentEmployee.vacation_pending_days);
+  const vacationDays = parseVacationDays(currentEmployee.vacation_days as string | VacationDay[]);
+  const vacationPendingDays = parseVacationDays(currentEmployee.vacation_pending_days as string | VacationDay[]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -316,23 +319,43 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                         <span className='text-sm text-gray-700'>{tab.label}</span>
                       </label>
                     ))}
+                    <p className='text-xs text-gray-500 mt-2'>
+                      * HR 관리 권한은 Manager에게만 제공됩니다.
+                    </p>
                   </div>
                 ) : (
                   <div className='flex flex-wrap gap-1'>
+
+                    
                     {(currentEmployee.allowed_tabs || [])
-                      .filter((tab) => ALLOWED_TABS_OPTIONS.some((opt) => opt.value === tab))
+                      .filter((tab) => tab !== 'HR') // HR 권한은 제외
                       .map((tab) => {
+                        // 알려진 권한인지 확인
                         const tabOption = ALLOWED_TABS_OPTIONS.find((opt) => opt.value === tab);
+                        
+                        // 알려진 권한인 경우
+                        if (tabOption) {
+                          return (
+                            <span
+                              key={tab}
+                              className='inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800'>
+                              {tabOption.label}
+                            </span>
+                          );
+                        }
+                        
+                        // 알 수 없는 권한인 경우 (디버깅용)
                         return (
                           <span
                             key={tab}
-                            className='inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800'>
-                            {tabOption?.label}
+                            className='inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800'>
+                            {tab} (알수없음)
                           </span>
                         );
                       })}
+                      
                     {(!currentEmployee.allowed_tabs || 
-                      currentEmployee.allowed_tabs.filter((tab) => ALLOWED_TABS_OPTIONS.some((opt) => opt.value === tab)).length === 0) && (
+                      currentEmployee.allowed_tabs.filter(tab => tab !== 'HR').length === 0) && (
                       <span className='text-sm text-gray-500'>권한이 설정되지 않았습니다</span>
                     )}
                   </div>

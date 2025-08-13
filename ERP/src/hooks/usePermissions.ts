@@ -18,10 +18,14 @@ export const usePermissions = () => {
       return isAdmin;
     }
     
-    if (isAdmin) return true;
+    if (isAdmin) {
+      return true;
+    }
     
     const userAllowedTabs = user?.allowed_tabs || [];
-    return userAllowedTabs.includes(tab as AllowedTab);
+    const hasTabPermission = userAllowedTabs.includes(tab as AllowedTab);
+    
+    return hasTabPermission;
   };
 
   const canEdit = (tab: AllowedTab | 'HR'): boolean => {

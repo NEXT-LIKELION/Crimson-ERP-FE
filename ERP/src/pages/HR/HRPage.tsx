@@ -20,6 +20,7 @@ import { useEmployees, useTerminateEmployee, usePatchEmployee, useApproveEmploye
 import { useQueryClient } from '@tanstack/react-query';
 import { EmployeeList } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
+import { isApiError, getErrorMessage } from '../../utils/errorHandling';
 
 // 직원 상태 타입
 type EmployeeStatus = 'active' | 'terminated' | 'denied';
@@ -98,8 +99,8 @@ export interface MappedEmployee {
   annual_leave_days: number;
   allowed_tabs: string[];
   remaining_leave_days: number;
-  vacation_days: any[];                  // 휴가 데이터 (파싱 필요)
-  vacation_pending_days: any[];          // 대기 중인 휴가
+  vacation_days: unknown[];                  // 휴가 데이터 (파싱 필요)
+  vacation_pending_days: unknown[];          // 대기 중인 휴가
   // UI용 필드들 (선택적)
   created_at?: string;
   updated_at?: string;
@@ -274,7 +275,7 @@ const HRPage: React.FC = () => {
       });
 
       setSelectedEmployee(updatedEmployee);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('직원 정보 업데이트 실패:', error);
       throw error;
     }
@@ -325,15 +326,14 @@ const HRPage: React.FC = () => {
           // );
 
           alert('퇴사 처리가 완료되었습니다.');
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('퇴사 처리 실패:', error);
-          console.error('퇴사 처리 응답 데이터:', error.response?.data);
-          console.error('퇴사 처리 상태 코드:', error.response?.status);
-
-          let errorMessage = '퇴사 처리에 실패했습니다.';
-          if (error.response?.data?.message) {
-            errorMessage += ` 오류: ${error.response.data.message}`;
+          if (isApiError(error)) {
+            console.error('퇴사 처리 응답 데이터:', error.response?.data);
+            console.error('퇴사 처리 상태 코드:', error.response?.status);
           }
+
+          const errorMessage = getErrorMessage(error, '퇴사 처리에 실패했습니다.');
           alert(errorMessage);
         }
       }
@@ -422,9 +422,10 @@ const HRPage: React.FC = () => {
                         status: 'approved'
                       });
                       alert('승인 완료!');
-                    } catch (e: any) {
+                    } catch (e: unknown) {
                       console.error('승인 처리 실패:', e);
-                      alert(e?.response?.data?.error || '승인 실패');
+                      const errorMsg = getErrorMessage(e, '승인 실패');
+                      alert(errorMsg);
                     }
                   }}>
                   승인
@@ -448,9 +449,10 @@ const HRPage: React.FC = () => {
                       });
                       
                       alert('거절 및 퇴사 처리 완료!');
-                    } catch (e: any) {
+                    } catch (e: unknown) {
                       console.error('거절 처리 실패:', e);
-                      alert(e?.response?.data?.error || '거절 처리 실패');
+                      const errorMsg = getErrorMessage(e, '거절 처리 실패');
+                      alert(errorMsg);
                     }
                   }}>
                   거절
@@ -481,7 +483,7 @@ const HRPage: React.FC = () => {
   };
 
   // 직원 등록 완료 핸들러
-  const handleEmployeeRegistrationComplete = (_newEmployee: MappedEmployee) => {
+  const handleEmployeeRegistrationComplete = () => {
     setShowEmployeeRegistrationModal(false);
     
     // React Query 캐시 무효화로 최신 데이터 가져오기

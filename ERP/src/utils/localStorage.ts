@@ -5,7 +5,7 @@ export const getLocalStorage = (key: string) => {
 export const removeLocalStorage = (key: string) => {
   return localStorage.removeItem(key);
 };
-export const setLocalStorage = (key: string, value: any) => {
+export const setLocalStorage = (key: string, value: string) => {
   return localStorage.setItem(key, value);
 };
 

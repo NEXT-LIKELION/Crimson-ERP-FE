@@ -1,5 +1,5 @@
 import api from './axios';
-import { Product, ProductVariant, ProductOption } from '../types/product';
+import { Product, ProductVariant, ProductVariantCreate, ProductOption } from '../types/product';
 
 interface InventoryFilterParams {
   name?: string;
@@ -40,7 +40,7 @@ export const updateInventoryVariant = (variantId: string, data: Partial<ProductV
     });
 };
 
-export const createInventoryVariant = async (itemPayload: Omit<ProductVariant, 'variant_code'>) => {
+export const createInventoryVariant = async (itemPayload: Omit<ProductVariantCreate, 'category_name'>) => {
   const res = await api.post(`/inventory/variants/`, itemPayload);
   return res.data;
 };
@@ -51,7 +51,7 @@ export const createInventoryItem = async (itemPayload: Omit<Product, 'id' | 'var
 
 // 상품과 variant를 함께 생성하는 함수 (백엔드 구조에 따라 사용)
 export const createProductWithVariant = async (
-  itemPayload: Omit<ProductVariant, 'variant_code'>
+  itemPayload: Omit<ProductVariantCreate, 'category_name'>
 ) => {
   const res = await api.post(`/inventory/variants/`, itemPayload);
   return res.data;

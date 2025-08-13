@@ -51,7 +51,7 @@ export const useLogin = (onSuccessCallback?: (userData: User) => void) =>
         } else {
           handleUserSuccess(createUserWithTabs());
         }
-      } catch (error) {
+      } catch {
         handleUserSuccess(createUserWithTabs());
       }
     },

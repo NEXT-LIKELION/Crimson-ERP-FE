@@ -20,6 +20,7 @@ import { fetchSuppliers } from '../../api/supplier';
 import { fetchInventories, fetchVariantsByProductId } from '../../api/inventory';
 import { createOrder } from '../../api/orders';
 import { useEmployees } from '../../hooks/queries/useEmployees';
+import { Supplier, ProductOption } from '../../types/product';
 
 interface NewOrderModalProps {
   isOpen: boolean;
@@ -38,8 +39,8 @@ interface OrderItemPayload {
 }
 
 const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
   const [supplier, setSupplier] = useState<number>(0);
   const [supplierName, setSupplierName] = useState<string>('');
   const [orderDate, setOrderDate] = useState<Date | null>(null); // 초기값 null
@@ -63,7 +64,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   const [hasPackaging, setHasPackaging] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
-  const [variantsByProduct, setVariantsByProduct] = useState<{ [productId: string]: any[] }>({});
+  const [variantsByProduct, setVariantsByProduct] = useState<{ [productId: string]: Array<{ variant_code: string; option: string }> }>({});
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState<boolean>(false);
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState<boolean>(false);
   const {
@@ -151,7 +152,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     }
   };
 
-  const handleItemChange = (idx: number, field: string, value: any) => {
+  const handleItemChange = (idx: number, field: string, value: string | number) => {
     setItems(items.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
   };
 
@@ -179,7 +180,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         !item.variant ||
         !(
           item.product_id &&
-          variantsByProduct[item.product_id]?.find((v: any) => v.option === item.variant)
+          variantsByProduct[item.product_id]?.find((v) => v.option === item.variant)
         )
       ) {
         errors.push(`${index + 1}번 항목의 품목을 선택해주세요.`);
@@ -226,22 +227,22 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
           const product_id = item.product_id;
           const variantObj =
             product_id &&
-            variantsByProduct[product_id]?.find((v: any) => v.option === item.variant);
+            variantsByProduct[product_id]?.find((v) => v.option === item.variant);
           return {
-            variant_code: variantObj ? variantObj.variant_code : undefined,
+            variant_code: (variantObj && typeof variantObj === 'object' && 'variant_code' in variantObj) ? variantObj.variant_code : '',
             quantity: item.quantity,
             unit_price: includesTax ? item.unit_price : Math.round(item.unit_price * 1.1),
             unit: item.unit,
             remark: item.remark,
             spec: item.spec,
           };
-        }),
+        }).filter(item => item.variant_code !== ''),
       };
       const res = await createOrder(payload);
       alert('발주가 성공적으로 신청되었습니다.');
       if (onSuccess) onSuccess(res.data);
       onClose();
-    } catch (error) {
+    } catch {
       setFormErrors(['발주 신청 중 오류가 발생했습니다. 다시 시도해주세요.']);
     } finally {
       setIsSubmitting(false);
@@ -251,18 +252,12 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   // 공급업체 선택 핸들러
   const handleSupplierChange = (name: string) => {
     setSupplierName(name);
-    if (!Array.isArray(suppliers)) {
-      setSupplier(0);
-      return;
-    }
     const found = suppliers.find((s) => s.name === name);
     setSupplier(found ? found.id : 0);
   };
 
   // 2. 행별 상품 선택 핸들러
   const handleProductChange = async (idx: number, name: string) => {
-    if (!Array.isArray(products)) return;
-
     const found = products.find((p) => p.name === name);
     const product_id = found ? found.product_id : null;
     // 품목 캐시 없으면 fetch
@@ -391,7 +386,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                   <div className='flex-1'>
                     <SelectInput
                       defaultText='공급업체 선택'
-                      options={Array.isArray(suppliers) ? suppliers.map((s: any) => s.name) : []}
+                      options={suppliers.map((s) => s.name)}
                       value={supplierName}
                       onChange={handleSupplierChange}
                     />
@@ -417,7 +412,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 ) : (
                   <SelectInput
                     defaultText='담당자 선택'
-                    options={employees.map((e: any) => e.first_name || e.username)}
+                    options={employees.map((e: { first_name?: string; username: string }) => e.first_name || e.username)}
                     value={user?.first_name || user?.username || ''}
                     onChange={() => {}}
                     disabled={isSubmitting}
@@ -523,12 +518,11 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           <SelectInput
                             defaultText='상품 선택'
                             options={
-                              Array.isArray(products) ? products.map((p: any) => p.name) : []
+                              products.map((p) => p.name)
                             }
                             value={(() => {
-                              if (!Array.isArray(products)) return '';
                               const found = products.find(
-                                (p: any) => p.product_id === item.product_id
+                                (p) => p.product_id === item.product_id
                               );
                               return found ? found.name : '';
                             })()}
@@ -552,7 +546,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           defaultText='품목 선택'
                           options={
                             item.product_id && variantsByProduct[item.product_id]
-                              ? variantsByProduct[item.product_id].map((v: any) => v.option)
+                              ? variantsByProduct[item.product_id].map((v) => v.option)
                               : []
                           }
                           onChange={(option: string) => {

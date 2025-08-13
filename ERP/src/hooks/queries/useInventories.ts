@@ -37,9 +37,7 @@ export const useInventories = (filters?: {
       filters?.max_sales !== undefined
   );
 
-  console.log('useInventories 필터 입력:', filters);
-  console.log('프론트엔드 상태 필터:', frontendStatus);
-  console.log('필터 활성화:', hasAnyFilter);
+
 
   delete backendFilters.status; // 백엔드에는 status 필터 제외
 
@@ -48,15 +46,15 @@ export const useInventories = (filters?: {
     delete backendFilters.page;
   }
 
-  console.log('백엔드로 보낼 필터:', backendFilters);
+
 
   // 필터가 있을 때는 모든 페이지 데이터를 가져오는 커스텀 훅 사용
-  const query = useQuery<any, Error>({
+  const query = useQuery({
     queryKey: ['inventories', backendFilters, frontendStatus], // 캐시 키에는 모든 필터 포함
     queryFn: async () => {
       if (hasAnyFilter) {
         // 모든 페이지를 순차적으로 가져와서 합치기
-        let allData: any[] = [];
+        let allData: unknown[] = [];
         let page = 1;
         let hasMoreData = true;
 
@@ -68,9 +66,7 @@ export const useInventories = (filters?: {
           hasMoreData = response.data.next !== null;
           page++;
 
-          console.log(
-            `필터 적용 - 페이지 ${page - 1} 로드: ${pageData.length}개, 누적: ${allData.length}개`
-          );
+
         }
 
         return {
@@ -91,9 +87,6 @@ export const useInventories = (filters?: {
   });
 
   useEffect(() => {
-    if (query.isSuccess) {
-      console.log('✅ 재고 목록 응답:', query.data.data);
-    }
     if (query.isError) {
       console.error('❌ 재고 목록 불러오기 실패:', query.error);
     }
@@ -101,7 +94,7 @@ export const useInventories = (filters?: {
 
   // 프론트엔드 상태 필터링 적용
   const allData = query.data?.data?.results || [];
-  console.log('백엔드에서 받은 전체 데이터:', allData.length);
+
 
   const filteredData = allData.filter((item: Product) => {
     // 1. 상품명 필터 확인
@@ -161,7 +154,7 @@ export const useInventories = (filters?: {
     return true;
   });
 
-  console.log('필터링 후 데이터:', filteredData.length);
+
 
   // 필터가 있을 때는 프론트엔드 페이지네이션 적용
   const currentPage = filters?.page ?? 1;
@@ -182,9 +175,7 @@ export const useInventories = (filters?: {
       previous: currentPage > 1 ? `page=${currentPage - 1}` : null,
     };
 
-    console.log(
-      `필터 적용: 전체 ${totalItems}개 중 페이지 ${currentPage}/${totalPages}, 표시 ${paginatedData.length}개`
-    );
+
 
     return {
       ...query,

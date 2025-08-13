@@ -42,10 +42,11 @@ export const useSignup = (onSuccess?: () => void, onError?: (msg: string) => voi
         onSuccess();
       }
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       let msg = '회원가입 실패';
-      if (error.response?.data) {
-        const data = error.response.data;
+      const apiError = error as ApiError;
+      if ('response' in error && apiError.response?.data) {
+        const data = apiError.response.data;
         if (typeof data === 'string') {
           msg = data;
         } else if (data.message) {

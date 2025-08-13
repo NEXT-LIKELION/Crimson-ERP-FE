@@ -29,7 +29,19 @@ export const useCreateSupplier = () => {
 export const useUpdateSupplier = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => supplierApi.updateSupplier(id, data),
+    mutationFn: ({ 
+      id, 
+      data 
+    }: { 
+      id: number; 
+      data: {
+        name?: string;
+        contact?: string;
+        manager?: string;
+        email?: string;
+        address?: string;
+      }
+    }) => supplierApi.updateSupplier(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['suppliers'] }),
   });
 };

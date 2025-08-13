@@ -10,9 +10,10 @@ import {
   fetchAllInventoriesForMerge,
   checkProductNameExists,
 } from '../../api/inventory';
+import { ProductSupplierData } from '../../types/product';
 import { useSuppliers } from '../../hooks/queries/useSuppliers';
 import { useQuery } from '@tanstack/react-query';
-import { ProductFormData, ProductVariant, Supplier, ProductOption, CreatedProductData } from '../../types/product';
+import { ProductFormData, ProductVariant, ProductVariantCreate, Supplier, ProductOption, CreatedProductData } from '../../types/product';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -101,21 +102,21 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
   const handleCategoryChange = (value: string) => {
     if (value === '직접 입력') {
       setIsCustomCategory(true);
-      setForm((prev: any) => ({ ...prev, category: '' }));
+      setForm((prev) => ({ ...prev, category: '' }));
     } else {
       setIsCustomCategory(false);
-      setForm((prev: any) => ({ ...prev, category: value }));
+      setForm((prev) => ({ ...prev, category: value }));
     }
   };
 
-  const handleSupplierChange = (index: number, field: string, value: any) => {
+  const handleSupplierChange = (index: number, field: string, value: string | number | boolean) => {
     const newSuppliers = [...form.suppliers];
     newSuppliers[index] = { ...newSuppliers[index], [field]: value };
-    setForm((prev: any) => ({ ...prev, suppliers: newSuppliers }));
+    setForm((prev) => ({ ...prev, suppliers: newSuppliers }));
   };
 
   const handleAddSupplier = () => {
-    setForm((prev: any) => ({
+    setForm((prev) => ({
       ...prev,
       suppliers: [...prev.suppliers, { supplier_name: '', cost_price: 0, is_primary: false }],
     }));
@@ -125,7 +126,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     if (form.suppliers.length > 1) {
       const newSuppliers = [...form.suppliers];
       newSuppliers.splice(index, 1);
-      setForm((prev: any) => ({ ...prev, suppliers: newSuppliers }));
+      setForm((prev) => ({ ...prev, suppliers: newSuppliers }));
     }
   };
 
@@ -173,7 +174,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     };
 
     try {
-      let variantPayload: any;
+      let variantPayload: Omit<ProductVariantCreate, 'category_name'>;
 
       if (productType === 'new') {
         // 새로운 상품
@@ -188,11 +189,11 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
           description: form.description || '',
           memo: form.memo || '',
           suppliers: form.suppliers
-            .filter((s: any) => s.supplier_name)
-            .map((s: any) => ({
+            .filter((s: { supplier_name: string }) => s.supplier_name)
+            .map((s: ProductSupplierData) => ({
               name: s.supplier_name,
               cost_price: Number(s.cost_price) || 0,
-              is_primary: s.is_primary,
+              is_primary: s.is_primary ?? false,
             })),
         };
       } else {
@@ -217,11 +218,11 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
           description: form.description || '',
           memo: form.memo || '',
           suppliers: form.suppliers
-            .filter((s: any) => s.supplier_name)
-            .map((s: any) => ({
+            .filter((s: { supplier_name: string }) => s.supplier_name)
+            .map((s: ProductSupplierData) => ({
               name: s.supplier_name,
               cost_price: Number(s.cost_price) || 0,
-              is_primary: s.is_primary,
+              is_primary: s.is_primary ?? false,
             })),
         };
       }
@@ -235,7 +236,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
 
       onSave(newProduct);
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('상품 생성 실패:', err);
       alert('상품 생성 중 오류가 발생했습니다.');
     }
@@ -316,7 +317,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                       onChange={(e) => setSelectedProductId(e.target.value)}
                       className='h-9 w-full rounded-md border border-gray-300 bg-zinc-100 py-2 pr-14 pl-4 text-sm font-normal text-gray-700 focus:border-indigo-600 focus:outline-none'>
                       <option value=''>-- 상품을 선택하세요 --</option>
-                      {productOptions.map((p: any, index: number) => (
+                      {productOptions.map((p: { value: string; label: string }, index: number) => (
                         <option key={index} value={p.value}>
                           {p.label}
                         </option>
@@ -417,7 +418,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                   + 공급업체 추가
                 </button>
               </div>
-              {form.suppliers.map((supplier: any, index: number) => (
+              {form.suppliers.map((supplier: ProductSupplierData, index: number) => (
                 <div
                   key={index}
                   className='space-y-3 rounded-md border border-gray-300 bg-gray-50 p-4'>

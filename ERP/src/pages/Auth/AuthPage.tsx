@@ -23,9 +23,10 @@ const AuthPage = () => {
     loginMutation.mutate(
       { username: loginId, password: loginPassword },
       {
-        onError: (err: any) => {
-          const msg = err?.response?.data?.message ?? '로그인 실패';
-          setErrorMessage(msg);
+        onError: (err: unknown) => {
+          const apiError = err as ApiError;
+          const msg = (err && typeof err === 'object' && 'response' in err && apiError?.response?.data?.message) || '로그인 실패';
+          setErrorMessage(String(msg));
         },
       }
     );

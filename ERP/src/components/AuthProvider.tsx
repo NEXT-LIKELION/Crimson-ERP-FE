@@ -19,7 +19,6 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         // 구형 토큰이 있다면 정리
         localStorage.removeItem('token');
         localStorage.removeItem('refresh');
-        console.log('구형 localStorage 토큰을 정리했습니다.');
       }
     };
 
