@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiX, FiUser, FiChevronRight, FiCalendar, FiUserCheck } from 'react-icons/fi';
+import { FiX, FiUser, FiChevronRight, FiUserCheck } from 'react-icons/fi';
 import { MappedEmployee } from '../../pages/HR/HRPage';
 import { registerEmployee, ALLOWED_TABS_OPTIONS, fetchEmployees, patchEmployee } from '../../api/hr';
 import { getAccessToken } from '../../utils/localStorage';
@@ -56,6 +56,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
   const positionOptions = [
     { value: 'STAFF', label: '직원' },
     { value: 'MANAGER', label: '대표' },
+    { value: 'INTERN', label: '인턴' },
   ];
 
   // 1단계 폼 처리
@@ -340,11 +341,9 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
     }
   };
 
-  // 배경 클릭 시 모달 닫기
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
+  // 배경 클릭 시 모달 닫기 비활성화
+  const handleBackdropClick = () => {
+    // 배경 클릭으로 모달이 닫히지 않도록 비활성화
   };
 
   return (
@@ -536,17 +535,31 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                 <label htmlFor='hire_date' className='mb-2 block text-sm font-medium text-gray-700'>
                   입사일 <span className='text-red-500'>*</span>
                 </label>
-                <div className='relative'>
-                  <input
-                    id='hire_date'
-                    name='hire_date'
-                    type='date'
-                    value={step2Data.hire_date}
-                    onChange={handleStep2Change}
-                    className='w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'
-                  />
-                  <FiCalendar className='absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 transform text-gray-400' />
-                </div>
+                <input
+                  id='hire_date'
+                  name='hire_date'
+                  type='date'
+                  value={step2Data.hire_date}
+                  onChange={handleStep2Change}
+                  className='w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'
+                  style={{
+                    position: 'relative',
+                    WebkitAppearance: 'none'
+                  }}
+                />
+                <style dangerouslySetInnerHTML={{
+                  __html: `
+                    input[type="date"]::-webkit-calendar-picker-indicator {
+                      position: absolute;
+                      top: 0;
+                      left: 0;
+                      width: 100%;
+                      height: 100%;
+                      opacity: 0;
+                      cursor: pointer;
+                    }
+                  `
+                }} />
               </div>
 
               <div>
