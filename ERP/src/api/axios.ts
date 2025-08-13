@@ -12,7 +12,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // 쿠키 전송을 위해 필요
+  withCredentials: false
 });
 
 api.interceptors.request.use((config) => {
