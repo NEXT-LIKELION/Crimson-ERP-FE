@@ -11,7 +11,6 @@ const AuthPage = () => {
   const navigate = useNavigate();
 
   const loginMutation = useLogin(() => {
-    alert('로그인 성공!');
 
     // useLogin 훅에서 이미 사용자 정보를 저장했으므로 바로 이동
     navigate('/');
