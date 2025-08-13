@@ -86,7 +86,7 @@ const InventoryPage = () => {
     setMinSales(urlMinSales);
     setMaxSales(urlMaxSales);
 
-    const filters: any = { page: urlPage };
+    const filters: Record<string, string | number> = { page: urlPage };
     if (urlName) filters.name = urlName;
     if (urlCategory && urlCategory !== '모든 카테고리') filters.category = urlCategory;
     if (urlStatus && urlStatus !== '모든 상태') filters.status = urlStatus;
@@ -111,7 +111,7 @@ const InventoryPage = () => {
   // 자동 적용: 상품명 텍스트는 디바운스 후 바로 필터 반영
   useEffect(() => {
     if (!isInitialized) return;
-    const newFilters: any = { ...appliedFilters, page: 1 };
+    const newFilters: Record<string, string | number> = { ...appliedFilters, page: 1 };
     if (debouncedProductName.trim()) {
       newFilters.name = debouncedProductName.trim();
     } else {
@@ -126,7 +126,7 @@ const InventoryPage = () => {
   // 자동 적용: 카테고리 드롭다운 변경 시 즉시 필터 반영
   useEffect(() => {
     if (!isInitialized) return;
-    const newFilters: any = { ...appliedFilters, page: 1 };
+    const newFilters: Record<string, string | number> = { ...appliedFilters, page: 1 };
 
     // 기존 필터에서 이름 유지
     if (debouncedProductName.trim()) {
@@ -149,7 +149,7 @@ const InventoryPage = () => {
   // 자동 적용: 상태 드롭다운 변경 시 즉시 필터 반영
   useEffect(() => {
     if (!isInitialized) return;
-    const newFilters: any = { ...appliedFilters, page: 1 };
+    const newFilters: Record<string, string | number> = { ...appliedFilters, page: 1 };
 
     // 기존 필터 유지
     if (debouncedProductName.trim()) {
@@ -175,7 +175,7 @@ const InventoryPage = () => {
   // 자동 적용: 슬라이더 값 변경 시 즉시 필터 반영
   useEffect(() => {
     if (!isInitialized) return;
-    const newFilters: any = { ...appliedFilters, page: 1 };
+    const newFilters: Record<string, string | number> = { ...appliedFilters, page: 1 };
 
     // 기존 필터 유지
     if (debouncedProductName.trim()) {
@@ -223,14 +223,14 @@ const InventoryPage = () => {
   const adjustStockMutation = useAdjustStock();
 
   // 병합 모달용 전체 데이터 (모든 페이지 데이터 합치기)
-  const [allMergeData, setAllMergeData] = useState<any[]>([]);
+  const [allMergeData, setAllMergeData] = useState<unknown[]>([]);
 
   // 전체 데이터에서 카테고리 목록 추출 (병합용 데이터 사용)
   const categoryOptions = useMemo(() => {
     if (!allMergeData || allMergeData.length === 0) return ['모든 카테고리'];
 
     const uniqueCategories = Array.from(
-      new Set(allMergeData.map((item) => item.category).filter(Boolean))
+      new Set((allMergeData as { category?: string }[]).map((item) => item.category).filter(Boolean) as string[])
     );
 
     return ['모든 카테고리', ...uniqueCategories.sort()];
@@ -251,13 +251,13 @@ const InventoryPage = () => {
 
   // URL 업데이트 함수
   const updateURL = useCallback(
-    (newFilters: any, page: number) => {
+    (newFilters: Record<string, string | number>, page: number) => {
       const params = new URLSearchParams();
 
       if (page > 1) params.set('page', page.toString());
-      if (newFilters.name) params.set('name', newFilters.name);
-      if (newFilters.category) params.set('category', newFilters.category);
-      if (newFilters.status) params.set('status', newFilters.status);
+      if (newFilters.name) params.set('name', String(newFilters.name));
+      if (newFilters.category) params.set('category', String(newFilters.category));
+      if (newFilters.status) params.set('status', String(newFilters.status));
       if (newFilters.min_stock !== undefined)
         params.set('min_stock', newFilters.min_stock.toString());
       if (newFilters.max_stock !== undefined)
@@ -280,7 +280,7 @@ const InventoryPage = () => {
   const selectedProduct = useMemo(() => {
     if (!data || !editId) return null;
     // 백엔드에서 이미 평면화된 데이터를 직접 사용
-    const result = data.find((item: any) => item.variant_code === String(editId));
+    const result = data.find((item: { variant_code: string }) => item.variant_code === String(editId));
     if (!result) return null;
 
     const processedResult = {
@@ -296,8 +296,7 @@ const InventoryPage = () => {
       suppliers: result.suppliers || [],
     };
 
-    console.log('selectedProduct:', processedResult);
-    console.log('editId:', editId);
+
     return processedResult;
   }, [data, editId]);
 
@@ -324,20 +323,47 @@ const InventoryPage = () => {
         throw new Error('variant 식별자를 찾을 수 없습니다.');
       }
 
-      console.log('handleUpdateSave - variantIdentifier:', variantIdentifier);
-      console.log('handleUpdateSave - updatedProduct:', updatedProduct);
 
-      await updateInventoryVariant(String(variantIdentifier), {
-        ...updatedProduct,
-        price:
-          typeof updatedProduct.price === 'string'
-            ? Number(updatedProduct.price)
-            : updatedProduct.price,
-        cost_price:
-          typeof updatedProduct.cost_price === 'string'
-            ? Number(updatedProduct.cost_price)
-            : updatedProduct.cost_price,
-      });
+
+      // suppliers와 readOnly 필드들 제외
+      const { 
+        suppliers, 
+        sales, 
+        cost_price, 
+        order_count, 
+        return_count, 
+        stock,
+        ...editableFields 
+      } = updatedProduct;
+      
+      // readOnly 필드들은 사용되지 않지만 구조분해할당으로 제외하기 위해 필요
+      void suppliers;
+      void sales;
+      void cost_price;
+      void order_count;
+      void return_count;
+      void stock;
+
+      // API에 전송할 수정 가능한 필드들만 포함
+      const updateData = {
+        ...editableFields,
+        price: typeof editableFields.price === 'string' 
+          ? Number(editableFields.price) 
+          : editableFields.price,
+        min_stock: typeof editableFields.min_stock === 'string'
+          ? Number(editableFields.min_stock)
+          : editableFields.min_stock,
+      };
+
+
+      
+      await updateInventoryVariant(String(variantIdentifier), updateData);
+      
+      // 공급업체 정보가 배열로 제공된 경우 (향후 구현)
+      if (Array.isArray(suppliers) && suppliers.length > 0) {
+
+        // TODO: 공급업체 매핑 업데이트 API 구현 후 호출
+      }
       alert('상품이 성공적으로 수정되었습니다.');
       handleCloseModal();
       await queryClient.invalidateQueries({ queryKey: ['inventories'] });
@@ -350,7 +376,7 @@ const InventoryPage = () => {
 
   const handleVariantDelete = async (variantCode: string) => {
     // 백엔드에서 이미 평면화된 데이터를 직접 사용
-    const variantToDelete = data?.find((item: any) => item.variant_code === variantCode);
+    const variantToDelete = data?.find((item: { variant_code: string }) => item.variant_code === variantCode);
 
     if (!variantToDelete) {
       alert('삭제할 품목을 찾을 수 없습니다.');
@@ -363,14 +389,19 @@ const InventoryPage = () => {
       await deleteProductVariant(variantCode);
       alert('품목이 삭제되었습니다.');
       refetch();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('품목 삭제 실패:', err);
-      if (err?.response?.status === 500) {
-        alert(
-          '❌ 삭제 불가\n\n해당 상품은 주문 이력이 있어 삭제할 수 없습니다.\n주문 이력을 먼저 처리하거나 관리자에게 문의하세요.'
-        );
+      if ('response' in (err as object)) {
+        const errorResponse = err as { response?: { status?: number } };
+        if (errorResponse.response?.status === 500) {
+          alert(
+            '❌ 삭제 불가\n\n해당 상품은 주문 이력이 있어 삭제할 수 없습니다.\n주문 이력을 먼저 처리하거나 관리자에게 문의하세요.'
+          );
+        } else {
+          alert('품목 삭제에 실패했습니다.');
+        }
       } else {
-        alert(err?.response?.data?.error || '삭제 중 오류가 발생했습니다.');
+        alert('삭제 중 오류가 발생했습니다.');
       }
     }
   };
@@ -424,7 +455,7 @@ const InventoryPage = () => {
 
       // 필터 초기화해서 최신 데이터 확인
       setAppliedFilters({});
-      console.log('병합 완료 - 캐시 클리어 및 데이터 갱신됨');
+
     } catch (error) {
       console.error('병합 실패:', error);
       throw error; // 모달에서 에러 처리하도록 re-throw
@@ -433,10 +464,10 @@ const InventoryPage = () => {
 
   const handleExportToExcel = async () => {
     try {
-      console.log('엑셀 Export 시작 - 현재 필터:', appliedFilters);
+
 
       // 현재 필터링된 전체 데이터 가져오기 (페이지네이션 무시)
-      let exportData: any[] = [];
+      let exportData: unknown[] = [];
 
       if (
         Object.keys(appliedFilters).length === 0 ||
@@ -444,7 +475,7 @@ const InventoryPage = () => {
       ) {
         // 필터가 없거나 페이지만 있는 경우 → 전체 데이터 가져오기
         exportData = allMergeData; // 이미 로드된 전체 데이터 사용
-        console.log('필터 없음 - 전체 데이터 사용:', exportData.length);
+
       } else {
         // 필터가 있는 경우 → api에서 처리
         exportData = await fetchFilteredInventoriesForExport(appliedFilters);
@@ -456,7 +487,7 @@ const InventoryPage = () => {
       }
 
       // 엑셀에 표시할 데이터 변환
-      const excelData = exportData.map((item: any, index: number) => ({
+      const excelData = (exportData as Product[]).map((item, index: number) => ({
         번호: index + 1,
         상품코드: item.product_id,
         품목코드: item.variant_code,
@@ -467,13 +498,16 @@ const InventoryPage = () => {
         매입가: item.cost_price,
         재고수량: Math.max(0, Number(item.stock) || 0),
         최소재고: Math.max(0, Number(item.min_stock) || 0),
-        상태: item.stock === 0 ? '품절' : item.stock < (item.min_stock || 0) ? '재고부족' : '정상',
+        상태: item.stock === 0 ? '품절' : (item.stock || 0) < (item.min_stock || 0) ? '재고부족' : '정상',
         결제수량: item.order_count,
         환불수량: item.return_count,
         판매합계: item.sales,
         설명: item.description,
         메모: item.memo,
-        '주요 공급업체': item.suppliers?.find((s: any) => s.is_primary)?.name || '',
+        '주요 공급업체': (() => {
+          const itemWithSuppliers = item as { suppliers?: { is_primary: boolean; name: string }[] };
+          return itemWithSuppliers.suppliers?.find((s) => s.is_primary)?.name || '';
+        })(),
       }));
 
       // 워크시트 생성
@@ -514,7 +548,7 @@ const InventoryPage = () => {
       // 파일 다운로드
       XLSX.writeFile(workbook, filename);
 
-      console.log(`엑셀 파일 생성 완료: ${filename}`);
+
     } catch (error) {
       console.error('엑셀 Export 오류:', error);
       alert('엑셀 파일 생성 중 오류가 발생했습니다.');
@@ -632,7 +666,7 @@ const InventoryPage = () => {
 
             // 유효성 검사 통과 시 자동 필터링 로직이 이미 적용되어 있으므로
             // 별도 처리 불필요
-            console.log('검색 버튼 클릭 - 자동 필터링이 이미 적용됨');
+
           }}
           onReset={handleReset}
         />
@@ -671,7 +705,7 @@ const InventoryPage = () => {
         <MergeVariantsModal
           isOpen={isMergeModalOpen}
           onClose={() => setMergeModalOpen(false)}
-          variants={allMergeData}
+          variants={allMergeData as Product[]}
           onMerge={handleMerge}
         />
       )}

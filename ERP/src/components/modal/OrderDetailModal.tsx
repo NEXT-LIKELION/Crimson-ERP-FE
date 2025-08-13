@@ -1,5 +1,5 @@
 // src/components/modal/OrderDetailModal.tsx
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { FiX, FiPrinter, FiDownload, FiCheck } from 'react-icons/fi';
 import { useOrdersStore } from '../../store/ordersStore';
 import axios from '../../api/axios';
@@ -78,14 +78,60 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const { updateOrder } = useOrdersStore();
   const printRef = useRef<HTMLDivElement>(null);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [supplierDetail, setSupplierDetail] = useState<any | null>(null);
+  const [suppliers, setSuppliers] = useState<Array<{ id: number; name: string; contact: string; manager: string; email: string; address: string }>>([]);
+  const [supplierDetail, setSupplierDetail] = useState<{ id: number; name: string; contact: string; manager: string; email: string; address: string } | null>(null);
+
+  const fetchOrderDetails = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(`/orders/${orderId}`);
+      const orderData = response.data;
+
+      // 필수 필드 검증 (id, supplier, items 등)
+      if (!orderData.id || !orderData.supplier || !orderData.items) {
+        throw new Error('필수 주문 정보가 누락되었습니다.');
+      }
+
+      // OrderDetail 형식으로 변환
+      const formattedOrderDetail: OrderDetail = {
+        id: orderData.id,
+        supplier: orderData.supplier,
+        manager: orderData.manager,
+        order_date: orderData.order_date,
+        expected_delivery_date: orderData.expected_delivery_date,
+        status: orderData.status,
+        instruction_note: orderData.instruction_note || '',
+        note: orderData.note || '',
+        created_at: orderData.created_at,
+        vat_included: orderData.vat_included || false,
+        packaging_included: orderData.packaging_included || false,
+
+        items: orderData.items.map((item: OrderItem) => ({
+          id: item.id,
+          variant_code: item.variant_code,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          unit: item.unit || '',
+          remark: item.remark || '',
+          spec: item.spec || '',
+          item_name: item.item_name || '',
+        })),
+      };
+
+      setOrderDetail(formattedOrderDetail);
+    } catch (error) {
+      console.error('주문 세부사항 로드 실패:', error);
+      setOrderDetail(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [orderId]);
 
   useEffect(() => {
     if (isOpen && orderId) {
       fetchOrderDetails();
     }
-  }, [isOpen, orderId]);
+  }, [isOpen, orderId, fetchOrderDetails]);
 
   useEffect(() => {
     if (isOpen) {
@@ -100,41 +146,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     }
   }, [orderDetail, suppliers]);
 
-  const fetchOrderDetails = async () => {
-    setIsLoading(true);
-    try {
-      const response = await axios.get(`/orders/${orderId}`);
-      const orderData = response.data;
-
-      // 필수 필드 검증 (id, supplier, items 등)
-      if (!orderData.id || !orderData.supplier || !orderData.items) {
-        throw new Error('필수 주문 정보가 누락되었습니다.');
-      }
-
-      // OrderDetail 형식으로 변환
-      const orderDetail: OrderDetail = {
-        id: orderData.id,
-        supplier: orderData.supplier,
-        manager: orderData.manager,
-        order_date: orderData.order_date,
-        expected_delivery_date: orderData.expected_delivery_date,
-        status: orderData.status,
-        note: orderData.note,
-        instruction_note: orderData.instruction_note,
-        created_at: orderData.created_at,
-        vat_included: orderData.vat_included,
-        packaging_included: orderData.packaging_included,
-        items: orderData.items,
-      };
-
-      setOrderDetail(orderDetail);
-    } catch (error) {
-      console.error('주문 상세정보 조회 실패:', error);
-      alert('주문 상세정보를 불러오는데 실패했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleApprove = async () => {
     if (!orderDetail) return;
@@ -533,7 +544,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         // 재고 변경이 있는 경우
         const stockMessage = stock_changes
           .map(
-            (s: any) =>
+            (s: { name: string; option: string; stock_before: number; stock_after: number; quantity: number }) =>
               `${s.name}(${s.option}): ${s.stock_before} → ${s.stock_after} (+${s.quantity})`
           )
           .join('\n');
@@ -542,8 +553,9 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         // 재고 변경이 없는 경우
         alert(`상태가 ${statusText}로 변경되었습니다.`);
       }
-    } catch (e: any) {
-      alert(e.response?.data?.detail || '상태 변경 실패');
+    } catch (e: unknown) {
+      const apiError = e as ApiError;
+      alert(apiError.response?.data?.detail || '상태 변경 실패');
     }
   };
 

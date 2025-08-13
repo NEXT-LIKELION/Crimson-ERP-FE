@@ -7,6 +7,7 @@ import {
   LEAVE_TYPE_OPTIONS,
   VACATION_STATUS_OPTIONS,
   VacationStatus,
+  EmployeeList,
 } from '../../api/hr';
 
 interface OrganizationVacationCalendarProps {
@@ -25,11 +26,9 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
   const { data: vacationsData, isLoading: vacationsLoading } = useVacations();
   const { data: employeesData, isLoading: employeesLoading } = useEmployees();
 
-  const vacations: Vacation[] = vacationsData?.data || [];
-  const employees = employeesData?.data || [];
-
   // 직원별 고유 색상 생성
   const employeeColors = useMemo(() => {
+    const employees = employeesData?.data || [];
     const colors = [
       'bg-blue-500',
       'bg-green-500',
@@ -54,10 +53,11 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
     });
 
     return colorMap;
-  }, [employees]);
+  }, [employeesData?.data]);
 
   // 필터링된 휴가 데이터 (취소/거절된 건 제외)
   const filteredVacations = useMemo(() => {
+    const vacations: Vacation[] = vacationsData?.data || [];
     return vacations.filter((vacation) => {
       // 취소/거절된 휴가는 표시하지 않음
       if (vacation.status === 'CANCELLED' || vacation.status === 'REJECTED') {
@@ -71,7 +71,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
 
       return employeeMatch && leaveTypeMatch && statusMatch;
     });
-  }, [vacations, selectedEmployeeIds, selectedLeaveType, selectedStatus]);
+  }, [vacationsData?.data, selectedEmployeeIds, selectedLeaveType, selectedStatus]);
 
   // 날짜별 휴가 그룹화
   const vacationsByDate = useMemo(() => {
@@ -101,7 +101,8 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
 
   // 직원 이름 가져오기
   const getEmployeeName = (employeeId: number): string => {
-    const employee = employees.find((emp) => emp.id === employeeId);
+    const employees = employeesData?.data || [];
+    const employee = employees.find((emp: EmployeeList) => emp.id === employeeId);
     return employee?.first_name || `직원 #${employeeId}`;
   };
 
@@ -363,7 +364,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
             <div>
               <label className='mb-1 block text-sm font-medium text-gray-700'>직원 선택</label>
               <div className='max-h-24 overflow-y-auto rounded-lg border border-gray-200 bg-white p-2'>
-                {employees.slice(0, 10).map((employee) => (
+                {(employeesData?.data || []).slice(0, 10).map((employee: EmployeeList) => (
                   <label key={employee.id} className='flex items-center space-x-2 py-1'>
                     <input
                       type='checkbox'
@@ -375,8 +376,8 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                     <span className='text-sm text-gray-700'>{employee.first_name}</span>
                   </label>
                 ))}
-                {employees.length > 10 && (
-                  <div className='py-1 text-xs text-gray-500'>+{employees.length - 10}명 더...</div>
+                {(employeesData?.data || []).length > 10 && (
+                  <div className='py-1 text-xs text-gray-500'>+{(employeesData?.data || []).length - 10}명 더...</div>
                 )}
               </div>
             </div>

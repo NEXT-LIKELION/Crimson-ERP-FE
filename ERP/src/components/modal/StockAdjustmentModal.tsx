@@ -103,9 +103,11 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       alert('재고 조정이 완료되었습니다.');
       onSuccess();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('재고 조정 실패:', error);
-      setErrors([error?.response?.data?.error || '재고 조정 중 오류가 발생했습니다.']);
+      const apiError = error as ApiError;
+      const errorMsg = ('response' in (error as object) && apiError?.response?.data?.error) || '재고 조정 중 오류가 발생했습니다.';
+      setErrors([errorMsg]);
     } finally {
       setIsLoading(false);
     }

@@ -5,12 +5,13 @@ import SelectInput from '../input/SelectInput';
 import { FaBoxArchive, FaClipboardList } from 'react-icons/fa6';
 import { BsCoin } from 'react-icons/bs';
 import { useSuppliers } from '../../hooks/queries/useSuppliers';
+import { Product, Supplier } from '../../types/product';
 
 interface EditProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  product: any;
-  onSave: (product: any) => void;
+  product: Product;
+  onSave: (product: Product) => void;
   onStockAdjustClick: (variant: {
     variant_code: string;
     product_id: string;
@@ -50,15 +51,18 @@ const EditProductModal = ({
   onStockAdjustClick,
 }: EditProductModalProps) => {
   const { data: suppliersData, isLoading: isLoadingSuppliers } = useSuppliers();
-  const supplierOptions = suppliersData?.data?.map((s: any) => s.name) || [];
+  const supplierOptions = suppliersData?.data?.map((s: Supplier) => s.name) || [];
   const [form, setForm] = useState<EditForm>({
     ...product,
-    suppliers: product.suppliers || [{ supplier_name: '', cost_price: 0, is_primary: false }],
+    stock: product.stock ?? 0,
+    suppliers: Array.isArray(product.suppliers) 
+      ? product.suppliers.map(s => ({ supplier_name: s.name, cost_price: s.cost_price, is_primary: s.is_primary }))
+      : [{ supplier_name: '', cost_price: 0, is_primary: false }],
   });
   const [errors, setErrors] = useState<string[]>([]);
 
   // 숫자 입력에서 음수/지수 입력 차단
-  const handleNumberKeyDown = (e: any) => {
+  const handleNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const blockedKeys = ['-', '+', 'e', 'E'];
     if (blockedKeys.includes(e.key)) {
       e.preventDefault();
@@ -74,10 +78,10 @@ const EditProductModal = ({
   };
 
   const handleChange = (field: string, value: string | number) => {
-    setForm((prev: any) => ({ ...prev, [field]: value }));
+    setForm((prev: EditForm) => ({ ...prev, [field]: value }));
   };
 
-  const handleSupplierChange = (index: number, field: keyof SupplierForm, value: any) => {
+  const handleSupplierChange = (index: number, field: keyof SupplierForm, value: string | number | boolean) => {
     const newSuppliers = [...form.suppliers];
     newSuppliers[index] = { ...newSuppliers[index], [field]: value };
     setForm((prev) => ({ ...prev, suppliers: newSuppliers }));
@@ -135,16 +139,16 @@ const EditProductModal = ({
       setForm({
         ...product,
         product_id: product.product_id ?? '',
+        stock: product.stock ?? 0,
         description: product.description || '',
         memo: product.memo || '',
         min_stock: product.min_stock || 0, // 최소재고가 없는 경우 0으로 설정
         cost_price: product.cost_price || 0, // 원가 데이터가 없는 경우 0으로 설정
-        suppliers:
-          product.suppliers && product.suppliers.length > 0
-            ? product.suppliers.map((s: any) => ({
+        suppliers: Array.isArray(product.suppliers)
+            ? product.suppliers.map((s: { name: string; cost_price?: number; is_primary?: boolean }) => ({
                 supplier_name: s.name,
                 cost_price: s.cost_price || 0,
-                is_primary: s.is_primary,
+                is_primary: s.is_primary ?? false,
               }))
             : [{ supplier_name: '', cost_price: 0, is_primary: false }],
       });

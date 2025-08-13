@@ -35,16 +35,24 @@ export async function precheckMergeConflicts(
   });
 
   // 2) target/sources의 공급업체를 ID 기반 집합으로 변환
+  interface SupplierInfo {
+    name: string;
+  }
+  
+  interface VariantData {
+    suppliers?: SupplierInfo[];
+  }
+  
   const targetIds = new Set(
     (target?.suppliers || [])
-      .map((s: any) => nameToId.get(normalize(String(s?.name))))
+      .map((s: SupplierInfo) => nameToId.get(normalize(String(s?.name))))
       .filter((id: number | undefined): id is number => typeof id === 'number')
   );
 
   const sourceIds = new Set(
     sources
-      .flatMap((v: any) =>
-        (v?.suppliers || []).map((s: any) => nameToId.get(normalize(String(s?.name))))
+      .flatMap((v: VariantData) =>
+        (v?.suppliers || []).map((s: SupplierInfo) => nameToId.get(normalize(String(s?.name))))
       )
       .filter((id: number | undefined): id is number => typeof id === 'number')
   );

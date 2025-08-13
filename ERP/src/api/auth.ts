@@ -11,6 +11,11 @@ export const signup = (payload: {
   password: string;
   first_name?: string;
   contact?: string;
+  email?: string;
+  role?: string;
+  hire_date?: string;
+  annual_leave_days?: number;
+  allowed_tabs?: string[];
 }) => api.post('/authentication/signup/', payload);
 
 // 토큰 유효성 검증

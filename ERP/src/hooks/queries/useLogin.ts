@@ -1,34 +1,58 @@
 import { useMutation } from '@tanstack/react-query';
 import { login } from '../../api/auth';
+import { fetchEmployees, fetchEmployee } from '../../api/hr';
 import { setTokens } from '../../utils/localStorage';
 import { useAuthStore } from '../../store/authStore';
 
 export interface User {
   id?: number;
   username: string;
-  role: string;
+  role: 'MANAGER' | 'STAFF' | 'INTERN';
   first_name?: string;
   email?: string;
   contact?: string;
   status?: string;
+  allowed_tabs?: string[];
 }
 
 export const useLogin = (onSuccessCallback?: (userData: User) => void) =>
   useMutation({
     mutationFn: login,
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       const access = res.data.access_token;
       const refresh = res.data.refresh_token;
-      const user = res.data.user as User;
+      const basicUser = {
+        ...res.data.user,
+        role: res.data.user.role as 'MANAGER' | 'STAFF' | 'INTERN'
+      } as User;
 
-      // localStorage에 토큰 저장
       setTokens(access, refresh);
 
-      // zustand에 user 정보 저장
-      useAuthStore.getState().setUser(user);
+      const createUserWithTabs = (allowed_tabs: string[] = []): User => ({
+        ...basicUser,
+        allowed_tabs
+      });
 
-      if (onSuccessCallback) {
-        onSuccessCallback(user);
+      const handleUserSuccess = (user: User) => {
+        useAuthStore.getState().setUser(user);
+        if (onSuccessCallback) {
+          onSuccessCallback(user);
+        }
+      };
+
+      try {
+        const employeesRes = await fetchEmployees();
+        const currentEmployee = employeesRes.data.find(emp => emp.username === basicUser.username);
+        
+        if (currentEmployee) {
+          const detailRes = await fetchEmployee(currentEmployee.id);
+          const completeUser = createUserWithTabs(detailRes.data.allowed_tabs || []);
+          handleUserSuccess(completeUser);
+        } else {
+          handleUserSuccess(createUserWithTabs());
+        }
+      } catch {
+        handleUserSuccess(createUserWithTabs());
       }
     },
     onError: (err: unknown) => {

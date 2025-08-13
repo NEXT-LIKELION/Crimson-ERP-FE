@@ -8,8 +8,8 @@ import TextInput from '../../components/input/TextInput';
 import SelectInput from '../../components/input/SelectInput';
 import OrderDetailModal from '../../components/modal/OrderDetailModal';
 import NewOrderModal from '../../components/modal/NewOrderModal';
-import { Order, OrderStatus, OrdersResponse } from '../../store/ordersStore';
-import { useAuthStore } from '../../store/authStore';
+import { Order, OrderStatus } from '../../store/ordersStore';
+// import { useAuthStore } from '../../store/authStore'; // 제거 - permissions 사용
 import { useOrder } from '../../hooks/queries/useOrder';
 import axios from '../../api/axios';
 import { deleteOrder, exportOrders } from '../../api/orders';
@@ -27,16 +27,7 @@ interface SearchFilters {
   endDate: string;
 }
 
-// order_date를 YYYY-MM-DD로 변환
-function parseOrderDate(dateStr: string | undefined | null): string {
-  if (!dateStr) return '';
-  const match = dateStr.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
-  if (match) {
-    const [, year, month, day] = match;
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-  }
-  return dateStr; // 이미 포맷이 맞으면 그대로
-}
+
 
 // 숫자를 한글로 변환하는 함수 추가 (OrderDetailModal.tsx에서 복사)
 function numberToKorean(num: number): string {
@@ -51,7 +42,7 @@ function numberToKorean(num: number): string {
     if (n > 0) {
       let d = 1000;
       for (let j = 0; j < 4; j++) {
-        let q = Math.floor(n / d);
+        const q = Math.floor(n / d);
         if (q > 0) {
           str += hanA[q] + (d > 1 ? hanA[10] : '');
         }
@@ -71,7 +62,7 @@ const OrdersPage: React.FC = () => {
   const [isOrderDetailModalOpen, setIsOrderDetailModalOpen] = useState<boolean>(false);
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState<boolean>(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  const [ordersResponse, setOrdersResponse] = useState<OrdersResponse | null>(null);
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchInputs, setSearchInputs] = useState<SearchFilters>({
     orderId: '',
@@ -102,10 +93,11 @@ const OrdersPage: React.FC = () => {
     error: null,
   });
   const { data, isLoading, isError, error, refetch } = useOrder();
-  const user = useAuthStore((state) => state.user);
-  const isManager = user?.role === '대표';
-  const [variantIdToCode, setVariantIdToCode] = useState<Record<number, string>>({});
-  const [supplierNameToId, setSupplierNameToId] = useState<Record<string, number>>({});
+  // isManager 대신 permissions.hasPermission('ORDER') 사용로 변경
+  // const user = useAuthStore((state) => state.user); // 제거
+  // const isManager = user?.role === 'MANAGER'; // 제거
+
+
 
   useEffect(() => {
     if (data) {
@@ -133,7 +125,7 @@ const OrdersPage: React.FC = () => {
       console.log('Setting orders data:', data.data);
       if (data.data.results) {
         // 페이지네이션된 응답
-        setOrdersResponse(data.data);
+
         setOrders(Array.isArray(data.data.results) ? data.data.results : []);
       } else {
         // 기존 배열 응답 (호환성)
@@ -147,19 +139,19 @@ const OrdersPage: React.FC = () => {
       .then((res) => {
         const mapping: Record<number, string> = {};
         const products = Array.isArray(res.data) ? res.data : [];
-        products.forEach((product: any) => {
-          (product.variants || []).forEach((variant: any) => {
+        products.forEach((product: { variants?: unknown[] }) => {
+          (product.variants as { id?: number; variant_code?: string }[] || []).forEach((variant) => {
             if (variant.id && variant.variant_code) {
               mapping[variant.id] = variant.variant_code;
             }
           });
         });
-        setVariantIdToCode(mapping);
+
       })
       .catch((error) => {
         console.error('Failed to fetch inventories:', error);
         alert('상품 데이터를 불러오는데 실패했습니다.');
-        setVariantIdToCode({});
+
       });
   }, []);
 
@@ -168,15 +160,15 @@ const OrdersPage: React.FC = () => {
       .then((res) => {
         const mapping: Record<string, number> = {};
         const suppliers = Array.isArray(res.data) ? res.data : [];
-        suppliers.forEach((supplier: any) => {
+        suppliers.forEach((supplier: { name: string; id: number }) => {
           mapping[supplier.name] = supplier.id;
         });
-        setSupplierNameToId(mapping);
+
       })
       .catch((error) => {
         console.error('Failed to fetch suppliers:', error);
         alert('공급업체 데이터를 불러오는데 실패했습니다.');
-        setSupplierNameToId({});
+
       });
   }, []);
 
@@ -321,7 +313,7 @@ const OrdersPage: React.FC = () => {
       console.log('공급업체 목록 응답', suppliersRes.data);
       const suppliers = suppliersRes.data;
       // 3. orderDetail.supplier(이름)과 suppliers의 name을 비교해 매칭
-      const supplierDetail = suppliers.find((s: any) => s.name === orderDetail.supplier) || {
+      const supplierDetail = suppliers.find((s: { name: string }) => s.name === orderDetail.supplier) || {
         name: orderDetail.supplier,
         contact: '',
         manager: '',
@@ -353,7 +345,7 @@ const OrdersPage: React.FC = () => {
         );
       sheet.cell('E17').value('고려대학교 100주년기념관(크림슨스토어)');
       const totalAmount = orderDetail.items.reduce(
-        (sum: any, item: any) => sum + item.quantity * item.unit_price,
+        (sum: number, item: { quantity: number; unit_price: number }) => sum + item.quantity * item.unit_price,
         0
       );
       sheet.cell('G18').value(numberToKorean(totalAmount));
@@ -378,7 +370,7 @@ const OrdersPage: React.FC = () => {
           sheet.row(templateRow).copyTo(sheet.row(startRow + i));
         }
       }
-      orderDetail.items.forEach((item: any, idx: number) => {
+      orderDetail.items.forEach((item: { item_name: string; spec?: string; quantity: number; unit_price: number; remark?: string }, idx: number) => {
         const row = startRow + idx;
         sheet.cell(`C${row}`).value(item.item_name);
         sheet.cell(`H${row}`).value(item.spec);
@@ -414,13 +406,7 @@ const OrdersPage: React.FC = () => {
     setCurrentPage(pageNumber);
   }, []);
 
-  const handleFilterChange = useCallback((key: keyof SearchFilters, value: string) => {
-    setSearchFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-    setCurrentPage(1); // 필터 변경 시 첫 페이지로 리셋
-  }, []);
+
 
   const handleInputChange = (key: keyof SearchFilters, value: string) => {
     setSearchInputs((prev) => ({ ...prev, [key]: value }));
@@ -443,13 +429,11 @@ const OrdersPage: React.FC = () => {
   useEffect(() => {
     setSearchFilters((prev) => ({ ...prev, orderId: debouncedOrderId }));
     setCurrentPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedOrderId]);
 
   useEffect(() => {
     setSearchFilters((prev) => ({ ...prev, supplier: debouncedSupplier }));
     setCurrentPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSupplier]);
 
   // 자동 적용: 상태 드롭다운 변경 시 즉시 필터 반영
@@ -539,7 +523,7 @@ const OrdersPage: React.FC = () => {
     setIsExporting(true);
     try {
       // 현재 필터 조건으로 export API 호출
-      const params: any = {};
+      const params: Record<string, string> = {};
 
       if (searchFilters.orderId) params.product_name = searchFilters.orderId;
       if (searchFilters.supplier) params.supplier = searchFilters.supplier;
@@ -593,7 +577,7 @@ const OrdersPage: React.FC = () => {
           '상품명',
           '비고',
         ],
-        ...orders.map((order: any) => [
+        ...orders.map((order: { id: number; supplier: string; manager: string; order_date: string; expected_delivery_date: string; status: string; total_quantity: number; total_price: number; product_names: string; note?: string }) => [
           order.id,
           order.supplier,
           order.manager,
@@ -610,7 +594,7 @@ const OrdersPage: React.FC = () => {
           order.expected_delivery_date || '',
           order.total_quantity,
           order.total_price,
-          order.product_names ? order.product_names.join(', ') : '',
+          order.product_names && Array.isArray(order.product_names) ? order.product_names.join(', ') : order.product_names || '',
           order.note || '',
         ]),
       ];
@@ -1001,7 +985,7 @@ const OrdersPage: React.FC = () => {
           orderId={selectedOrderId}
           isOpen={isOrderDetailModalOpen}
           onClose={() => setIsOrderDetailModalOpen(false)}
-          isManager={isManager}
+          isManager={permissions.hasPermission('ORDER')}
           onApproveSuccess={() => refetch()}
         />
       )}

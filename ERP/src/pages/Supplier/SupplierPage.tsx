@@ -10,17 +10,11 @@ import {
 } from '../../hooks/queries/useSuppliers';
 import AddSupplierModal from '../../components/modal/AddSupplierModal';
 import { fetchInventories } from '../../api/inventory';
+import { Supplier, SupplierCreateData } from '../../types/product';
 import { updateSupplierVariant } from '../../api/supplier';
 import { usePermissions } from '../../hooks/usePermissions';
 
-interface Supplier {
-  id: number;
-  name: string;
-  contact: string;
-  manager: string;
-  email: string;
-  address: string;
-}
+// Supplier 인터페이스는 types/product.ts에서 import됨
 
 const SupplierPage: React.FC = () => {
   const { data, isLoading, error } = useSuppliers();
@@ -150,9 +144,15 @@ const SupplierPage: React.FC = () => {
         onClose={() => setAddModalOpen(false)}
         onSave={async (form) => {
           try {
-            await createSupplier.mutateAsync(form);
-          } catch (error: any) {
-            alert(error?.response?.data?.detail || '공급업체 추가 중 오류가 발생했습니다.');
+            await createSupplier.mutateAsync(form as unknown as SupplierCreateData);
+          } catch (error: unknown) {
+            let errorMsg = '공급업체 추가 중 오류가 발생했습니다.';
+            if ('response' in (error as object)) {
+              const errorObj = error as { response?: { data?: { detail?: string } } };
+              const responseError = errorObj.response?.data?.detail;
+              if (responseError) errorMsg = responseError;
+            }
+            alert(errorMsg);
           }
         }}
       />
@@ -165,7 +165,7 @@ const SupplierPage: React.FC = () => {
       <AddSupplierModal
         isOpen={!!editId}
         onClose={() => setEditId(null)}
-        initialData={editId ? suppliers.find((s) => s.id === editId) : {}}
+        initialData={editId ? suppliers.find((s) => s.id === editId) as unknown as Record<string, unknown> : {}}
         title='공급업체 정보 수정'
         onSave={(form) => {
           if (editId != null) {
@@ -193,9 +193,9 @@ const SupplierDetailModal = ({
   const [savingId, setSavingId] = useState<string | null>(null);
   useEffect(() => {
     fetchInventories().then((res) => {
-      const flatVariants: any[] = [];
-      res.data.forEach((product: any) => {
-        (product.variants || []).forEach((variant: any) => {
+      const flatVariants: unknown[] = [];
+      res.data.forEach((product: { variants?: unknown[] }) => {
+        (product.variants || []).forEach((variant: unknown) => {
           flatVariants.push(variant);
         });
       });
@@ -208,7 +208,7 @@ const SupplierDetailModal = ({
   const handleEditChange = (
     code: string,
     field: 'cost_price' | 'is_primary',
-    value: any,
+    value: number | boolean,
     original: { cost_price: number; is_primary: boolean }
   ) => {
     setVariantEdits((prev) => {
@@ -227,7 +227,7 @@ const SupplierDetailModal = ({
   };
 
   // 저장 버튼 클릭 시 PATCH
-  const handleSave = async (variant: any) => {
+  const handleSave = async (variant: { variant_code?: string; cost_price?: number; is_primary?: boolean }) => {
     const code = variant.variant_code;
     if (!code) {
       alert('variant_code가 없습니다.');
@@ -244,7 +244,7 @@ const SupplierDetailModal = ({
         is_primary: edit.is_primary,
       }); // 백엔드에서 처리하는 것이므로 파라미터 순서 중요
       alert('저장되었습니다.');
-    } catch (e) {
+    } catch {
       alert('저장 실패');
     } finally {
       setSavingId(null);
@@ -292,7 +292,7 @@ const SupplierDetailModal = ({
                 </tr>
               </thead>
               <tbody>
-                {supplier.variants.map((variant: any) => {
+                {supplier.variants.map((variant: { variant_code: string; cost_price: number; is_primary: boolean; product_name?: string }) => {
                   const code = variant.variant_code;
                   const edit = variantEdits[code] || {
                     cost_price: variant.cost_price,
@@ -301,9 +301,9 @@ const SupplierDetailModal = ({
                   return (
                     <tr key={code}>
                       <td className='border-b px-4 py-2 text-center'>{variant.variant_code}</td>
-                      <td className='border-b px-4 py-2 text-center'>{variant.name}</td>
-                      <td className='border-b px-4 py-2 text-center'>{variant.option}</td>
-                      <td className='border-b px-4 py-2 text-center'>{variant.stock}</td>
+                      <td className='border-b px-4 py-2 text-center'>{variant.product_name || '-'}</td>
+                      <td className='border-b px-4 py-2 text-center'>-</td>
+                      <td className='border-b px-4 py-2 text-center'>-</td>
                       <td className='border-b px-4 py-2 text-center'>
                         <input
                           type='number'

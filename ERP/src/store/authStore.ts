@@ -5,7 +5,7 @@ import { clearAuthTokens } from '../utils/localStorage';
 interface User {
   id?: number;
   username: string;
-  role: string; // 영문 role(MANAGER/STAFF/INTERN)
+  role: 'MANAGER' | 'STAFF' | 'INTERN'; // 정확한 enum 타입
   first_name?: string;
   email?: string;
   contact?: string;
@@ -19,6 +19,7 @@ interface AuthState {
   login: (userData: User) => void;
   logout: () => void;
   setUser: (user: User | null) => void;
+  updateUser: (userData: Partial<User>) => void; // 사용자 정보 부분 업데이트
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -36,6 +37,9 @@ export const useAuthStore = create<AuthState>()(
         set({ user: null, isAuthenticated: false });
       },
       setUser: (user) => set({ user, isAuthenticated: !!user }),
+      updateUser: (userData) => set((state) => ({
+        user: state.user ? { ...state.user, ...userData } : null
+      })),
     }),
     {
       name: 'auth-storage', // Zustand persist 스토리지 키

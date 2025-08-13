@@ -6,33 +6,41 @@ export const usePermissions = () => {
 
   const isAdmin = user?.role === 'MANAGER';
 
-  // MANAGER는 모든 권한을 가짐
   const getAllowedTabs = (): string[] => {
     if (isAdmin) {
-      return ['INVENTORY', 'ORDER', 'SUPPLIER', 'HR'];
+      return ['INVENTORY', 'ORDER', 'SUPPLIER'];
     }
     return user?.allowed_tabs || [];
   };
 
-  const hasPermission = (tab: AllowedTab): boolean => {
-    if (isAdmin) return true;
-    return getAllowedTabs().includes(tab);
+  const hasPermission = (tab: AllowedTab | 'HR'): boolean => {
+    if (tab === 'HR') {
+      return isAdmin;
+    }
+    
+    if (isAdmin) {
+      return true;
+    }
+    
+    const userAllowedTabs = user?.allowed_tabs || [];
+    const hasTabPermission = userAllowedTabs.includes(tab as AllowedTab);
+    
+    return hasTabPermission;
   };
 
-  const canEdit = (tab: AllowedTab): boolean => {
+  const canEdit = (tab: AllowedTab | 'HR'): boolean => {
     return hasPermission(tab);
   };
 
-  const canCreate = (tab: AllowedTab): boolean => {
+  const canCreate = (tab: AllowedTab | 'HR'): boolean => {
     return hasPermission(tab);
   };
 
-  const canDelete = (tab: AllowedTab): boolean => {
+  const canDelete = (tab: AllowedTab | 'HR'): boolean => {
     return hasPermission(tab);
   };
 
   const canView = (): boolean => {
-    // 기본적으로 모든 사용자는 모든 탭을 볼 수 있지만, 수정/생성 권한은 제한
     return true;
   };
 
