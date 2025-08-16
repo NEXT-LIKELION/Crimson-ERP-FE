@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FiX, FiUser, FiChevronRight, FiUserCheck } from 'react-icons/fi';
 import { MappedEmployee } from '../../pages/HR/HRPage';
-import { registerEmployee, ALLOWED_TABS_OPTIONS, fetchEmployees, patchEmployee } from '../../api/hr';
+import { registerEmployee, ALLOWED_TABS_OPTIONS, fetchEmployees, patchEmployee, checkUsernameAvailability } from '../../api/hr';
 import { getAccessToken } from '../../utils/localStorage';
 
 interface EmployeeRegistrationModalProps {
@@ -33,6 +33,11 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [createdEmployeeId, setCreatedEmployeeId] = useState<number | null>(null); // 1단계에서 생성된 직원 ID
+  
+  // 사용자명 중복 체크 관련 상태
+  const [usernameCheckStatus, setUsernameCheckStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
+  const [checkedUsername, setCheckedUsername] = useState<string>('');
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
 
   // 1단계 데이터 (기본 계정 생성 정보)
   const [step1Data, setStep1Data] = useState<Step1Data>({
@@ -59,6 +64,35 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
     { value: 'INTERN', label: '인턴' },
   ];
 
+  // 사용자명 중복 체크 함수
+  const handleUsernameCheck = async () => {
+    const username = step1Data.username.trim();
+    
+    if (!username) {
+      setErrorMessage('사용자 아이디를 입력해주세요.');
+      return;
+    }
+
+    setIsCheckingUsername(true);
+    setUsernameCheckStatus('checking');
+    setErrorMessage('');
+
+    try {
+      const result = await checkUsernameAvailability(username);
+      setCheckedUsername(username);
+      setUsernameCheckStatus(result.available ? 'available' : 'unavailable');
+      
+      if (!result.available) {
+        setErrorMessage(result.message);
+      }
+    } catch (error) {
+      setUsernameCheckStatus('idle');
+      setErrorMessage(error instanceof Error ? error.message : '중복 확인 중 오류가 발생했습니다.');
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  };
+
   // 1단계 폼 처리
   const handleStep1Change = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -66,6 +100,14 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
       ...prev,
       [name]: value,
     }));
+    
+    // 사용자명이 변경되면 중복 체크 상태 초기화
+    if (name === 'username') {
+      if (value !== checkedUsername) {
+        setUsernameCheckStatus('idle');
+        setCheckedUsername('');
+      }
+    }
   };
 
   // 2단계 폼 처리
@@ -112,6 +154,18 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(step1Data.email)) {
       setErrorMessage('올바른 이메일 형식을 입력해주세요.');
+      return false;
+    }
+
+    // 사용자명 중복 체크 완료 여부 확인
+    if (usernameCheckStatus !== 'available') {
+      setErrorMessage('사용자 아이디 중복 확인을 완료해주세요.');
+      return false;
+    }
+
+    // 중복 체크한 아이디와 현재 입력된 아이디가 다른 경우
+    if (checkedUsername !== step1Data.username) {
+      setErrorMessage('사용자 아이디가 변경되었습니다. 중복 확인을 다시 해주세요.');
       return false;
     }
 
@@ -173,27 +227,57 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
         response = await registerEmployee(signupData);
       } catch (signupError: unknown) {
         let errorMessage = '계정 생성에 실패했습니다.';
+        let specificField = '';
         
         if (signupError && typeof signupError === 'object' && 'response' in signupError) {
           const errorResponse = signupError.response as { data?: unknown };
           const errorData = errorResponse?.data;
+          
           if (typeof errorData === 'string') {
             errorMessage = errorData;
           } else if (errorData && typeof errorData === 'object') {
             const errorObj = errorData as Record<string, unknown>;
+            
             if ('message' in errorObj && typeof errorObj.message === 'string') {
               errorMessage = errorObj.message;
             } else if ('detail' in errorObj && typeof errorObj.detail === 'string') {
               errorMessage = errorObj.detail;
             } else {
-              const fieldErrors = [];
+              // 필드별 에러 처리
+              const fieldErrors: string[] = [];
+              
               for (const [field, errors] of Object.entries(errorObj)) {
+                // 이메일 중복은 에러로 처리하지 않음 (등록 허용)
+                if (field === 'email' && (
+                  (Array.isArray(errors) && errors.some(err => typeof err === 'string' && (err.includes('already exists') || err.includes('must be unique')))) ||
+                  (typeof errors === 'string' && (errors.includes('already exists') || errors.includes('must be unique')))
+                )) {
+                  continue; // 이메일 중복 에러는 무시
+                }
+                
+                let fieldErrorMsg = '';
+                
                 if (Array.isArray(errors)) {
-                  fieldErrors.push(`${field}: ${errors.join(', ')}`);
+                  fieldErrorMsg = errors.join(', ');
                 } else if (typeof errors === 'string') {
-                  fieldErrors.push(`${field}: ${errors}`);
+                  fieldErrorMsg = errors;
+                }
+                
+                // 한국어로 번역
+                if (fieldErrorMsg.includes('already exists') || fieldErrorMsg.includes('must be unique')) {
+                  if (field === 'username') {
+                    specificField = '사용자 아이디';
+                    fieldErrorMsg = '이미 사용 중인 아이디입니다.';
+                  } else {
+                    fieldErrorMsg = '이미 사용 중인 값입니다.';
+                  }
+                }
+                
+                if (fieldErrorMsg) {
+                  fieldErrors.push(fieldErrorMsg);
                 }
               }
+              
               if (fieldErrors.length > 0) {
                 errorMessage = fieldErrors.join(' | ');
               }
@@ -201,7 +285,12 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
           }
         }
         
-        throw new Error(`계정 생성 실패: ${errorMessage}`);
+        // 구체적인 필드 에러가 있을 경우 팝업으로 알림
+        if (specificField) {
+          alert(`❌ ${specificField} 오류\n\n${errorMessage}\n\n다른 값을 입력해주세요.`);
+        }
+        
+        throw new Error(errorMessage);
       }
       
       // 새로 생성된 직원 ID 찾기
@@ -406,15 +495,51 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                 <label htmlFor='username' className='mb-2 block text-sm font-medium text-gray-700'>
                   사용자 아이디 <span className='text-red-500'>*</span>
                 </label>
-                <input
-                  id='username'
-                  name='username'
-                  type='text'
-                  value={step1Data.username}
-                  onChange={handleStep1Change}
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'
-                  placeholder='로그인 아이디를 입력하세요'
-                />
+                <div className='flex gap-2'>
+                  <input
+                    id='username'
+                    name='username'
+                    type='text'
+                    value={step1Data.username}
+                    onChange={handleStep1Change}
+                    className={`flex-1 rounded-lg border px-3 py-2 focus:ring-2 focus:outline-none ${
+                      usernameCheckStatus === 'available' 
+                        ? 'border-green-300 focus:border-green-500 focus:ring-green-500' 
+                        : usernameCheckStatus === 'unavailable'
+                        ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                        : 'border-gray-300 focus:border-rose-500 focus:ring-rose-500'
+                    }`}
+                    placeholder='로그인 아이디를 입력하세요'
+                  />
+                  <button
+                    type='button'
+                    onClick={handleUsernameCheck}
+                    disabled={isCheckingUsername || !step1Data.username.trim()}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      usernameCheckStatus === 'available'
+                        ? 'bg-green-100 text-green-700 border border-green-300'
+                        : usernameCheckStatus === 'unavailable'
+                        ? 'bg-red-100 text-red-700 border border-red-300'
+                        : 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500'
+                    } disabled:cursor-not-allowed`}>
+                    {isCheckingUsername ? (
+                      <div className='flex items-center'>
+                        <div className='mr-1 h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent'></div>
+                        확인중
+                      </div>
+                    ) : usernameCheckStatus === 'available' ? (
+                      '사용가능'
+                    ) : usernameCheckStatus === 'unavailable' ? (
+                      '사용불가'
+                    ) : (
+                      '중복확인'
+                    )}
+                  </button>
+                </div>
+                {/* 중복 체크 결과 메시지 */}
+                {usernameCheckStatus === 'available' && (
+                  <p className='mt-1 text-sm text-green-600'>사용 가능한 아이디입니다.</p>
+                )}
               </div>
 
               <div>

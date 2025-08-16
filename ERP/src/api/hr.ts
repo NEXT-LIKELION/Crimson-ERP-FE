@@ -33,6 +33,22 @@ export const registerEmployee = (data: EmployeeRegistrationData | {
   return api.post('/authentication/signup/', data);
 }
 
+// 사용자명 중복 체크
+export const checkUsernameAvailability = async (username: string): Promise<{ available: boolean; message: string }> => {
+  try {
+    const response = await fetchEmployees();
+    const existingUsernames = response.data.map(employee => employee.username);
+    const isAvailable = !existingUsernames.includes(username);
+    
+    return {
+      available: isAvailable,
+      message: isAvailable ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.'
+    };
+  } catch (error) {
+    throw new Error('중복 확인 중 오류가 발생했습니다.');
+  }
+}
+
 // ===== 휴가 관련 API =====
 
 // 휴가 전체 조회
