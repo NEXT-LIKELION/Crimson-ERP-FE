@@ -51,3 +51,35 @@ export const exportOrders = (params?: {
   start_date?: string;
   end_date?: string;
 }) => api.get('/orders/export/', { params });
+
+// 🔹 7. 업체별 상품 목록 조회 (프론트엔드 최적화용)
+export const fetchProductsBySupplier = async (supplierId: number) => {
+  try {
+    // 업체 정보 조회
+    const supplierRes = await api.get(`/supplier/${supplierId}/`);
+    const supplier = supplierRes.data;
+    
+    if (!supplier.variants || supplier.variants.length === 0) {
+      return { data: [] };
+    }
+    
+    // 업체의 variants에서 유니크한 상품명 추출
+    const uniqueProductNames = [...new Set(
+      supplier.variants.map((v: { name: string }) => v.name)
+    )];
+    
+    // 전체 상품 목록 조회
+    const productsRes = await api.get('/inventory/');
+    const allProducts = productsRes.data || [];
+    
+    // 업체가 공급하는 상품만 필터링
+    const supplierProducts = allProducts.filter((product: { name: string }) => 
+      uniqueProductNames.includes(product.name)
+    );
+    
+    return { data: supplierProducts };
+  } catch (error) {
+    console.error('Failed to fetch products by supplier:', error);
+    throw error;
+  }
+};
