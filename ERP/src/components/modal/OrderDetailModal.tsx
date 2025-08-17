@@ -1,7 +1,7 @@
 // src/components/modal/OrderDetailModal.tsx
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { FiX, FiPrinter, FiDownload, FiCheck } from 'react-icons/fi';
-import { useOrdersStore } from '../../store/ordersStore';
+import { useOrdersStore, OrderItem as StoreOrderItem } from '../../store/ordersStore';
 import axios from '../../api/axios';
 import { fetchSuppliers } from '../../api/supplier';
 import XlsxPopulate from 'xlsx-populate/browser/xlsx-populate';
@@ -17,12 +17,13 @@ interface OrderDetailModalProps {
 
 interface OrderDetailItem {
   id: number;
+  variant_code: string;
   item_name: string;
-  spec: string;
+  spec?: string;
+  unit?: string;
   unit_price: number;
   quantity: number;
   remark?: string;
-  // 필요시 unit, amount 등 추가
 }
 
 interface OrderDetail {
@@ -32,11 +33,11 @@ interface OrderDetail {
   order_date: string;
   expected_delivery_date?: string;
   status: string;
-  note: string;
+  note?: string;
   instruction_note?: string;
   created_at: string;
-  vat_included: boolean;
-  packaging_included: boolean;
+  vat_included?: boolean;
+  packaging_included?: boolean;
   items: OrderDetailItem[];
 }
 
@@ -106,7 +107,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         vat_included: orderData.vat_included || false,
         packaging_included: orderData.packaging_included || false,
 
-        items: orderData.items.map((item: OrderItem) => ({
+        items: orderData.items.map((item: StoreOrderItem) => ({
           id: item.id,
           variant_code: item.variant_code,
           quantity: item.quantity,
@@ -705,9 +706,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                         <td className='border border-stone-300 p-2 text-center'>{index + 1}</td>
                         <td className='border border-stone-300 p-2'>{item.item_name}</td>
                         <td className='border border-stone-300 p-2'>{item.spec}</td>
-                        <td className='border border-stone-300 p-2 text-center'>
-                          {item.unit_price.toLocaleString()}원
-                        </td>
+                        <td className='border border-stone-300 p-2 text-center'>{item.unit}</td>
                         <td className='border border-stone-300 p-2 text-center'>{item.quantity}</td>
                         <td className='border border-stone-300 p-2 text-right'>
                           {item.unit_price.toLocaleString()}

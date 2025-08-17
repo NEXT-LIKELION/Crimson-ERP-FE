@@ -125,7 +125,6 @@ const OrdersPage: React.FC = () => {
       console.log('Setting orders data:', data.data);
       if (data.data.results) {
         // 페이지네이션된 응답
-
         setOrders(Array.isArray(data.data.results) ? data.data.results : []);
       } else {
         // 기존 배열 응답 (호환성)
@@ -195,9 +194,7 @@ const OrdersPage: React.FC = () => {
 
     if (searchFilters.orderId) {
       result = result.filter((order) =>
-        order.product_names?.some((name: string) =>
-          name.toLowerCase().includes(searchFilters.orderId.toLowerCase())
-        )
+        order.product_names && order.product_names.toLowerCase().includes(searchFilters.orderId.toLowerCase())
       );
     }
 
@@ -499,13 +496,15 @@ const OrdersPage: React.FC = () => {
     }
   }, []);
 
-  const formatCurrency = useCallback((amount: number | undefined) => {
-    if (amount === undefined) {
+  const formatCurrency = useCallback((amount: string | number | undefined) => {
+    if (amount === undefined || amount === null) {
       console.warn('Attempted to format undefined amount');
       return '0원';
     }
     try {
-      return `${amount.toLocaleString('ko-KR')}원`;
+      // 숫자로 변환 시도
+      const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+      return `${numAmount.toLocaleString('ko-KR')}원`;
     } catch (error) {
       console.error('Currency formatting error:', error);
       return '0원';
@@ -867,7 +866,7 @@ const OrdersPage: React.FC = () => {
                         isPending ? 'bg-yellow-50' : ''
                       } transition-colors hover:bg-gray-50`}>
                       <td className='px-4 py-4 text-center text-sm font-medium text-gray-900'>
-                        {order.product_names ? order.product_names.join(', ') : '-'}
+                        {order.product_names || '-'}
                       </td>
                       <td className='px-4 py-4 text-center text-sm text-gray-500'>
                         {order.supplier}
@@ -886,9 +885,7 @@ const OrdersPage: React.FC = () => {
                         <button
                           onClick={() => handleOpenOrderDetail(order.id)}
                           className='rounded-md bg-indigo-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-indigo-700'
-                          aria-label={`${
-                            order.product_names ? order.product_names.join(', ') : '-'
-                          } 상세보기`}>
+                          aria-label={`${order.product_names || '-'} 상세보기`}>
                           상세보기
                         </button>
                       </td>
@@ -896,9 +893,7 @@ const OrdersPage: React.FC = () => {
                         <button
                           onClick={() => handleDownloadOrderExcel(order)}
                           className='rounded p-2 text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-800'
-                          aria-label={`${
-                            order.product_names ? order.product_names.join(', ') : '-'
-                          } 다운로드`}>
+                          aria-label={`${order.product_names || '-'} 다운로드`}>
                           <FiDownload className='h-4 w-4' />
                         </button>
                       </td>
@@ -906,9 +901,7 @@ const OrdersPage: React.FC = () => {
                         <button
                           onClick={() => handleDeleteOrder(order)}
                           className='flex items-center justify-center rounded bg-red-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-red-700'
-                          aria-label={`${
-                            order.product_names ? order.product_names.join(', ') : '-'
-                          } 삭제`}>
+                          aria-label={`${order.product_names || '-'} 삭제`}>
                           삭제
                         </button>
                       </td>

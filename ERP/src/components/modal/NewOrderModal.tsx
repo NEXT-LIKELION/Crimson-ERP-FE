@@ -6,7 +6,6 @@ import {
   FiTrash2,
   FiShoppingBag,
   FiCalendar,
-  FiCheckCircle,
   FiAlertTriangle,
 } from 'react-icons/fi';
 import DateInput from '../input/DateInput';
@@ -16,8 +15,8 @@ import AddProductModal from './AddProductModal';
 import AddSupplierModal from './AddSupplierModal';
 import { Order } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
-import { fetchSuppliers } from '../../api/supplier';
-import { fetchInventories, fetchVariantsByProductId } from '../../api/inventory';
+import { fetchSuppliers, createSupplier } from '../../api/supplier';
+import { fetchVariantsByProductId, fetchProductOptions } from '../../api/inventory';
 import { createOrder } from '../../api/orders';
 import { useEmployees } from '../../hooks/queries/useEmployees';
 import { Supplier, ProductOption } from '../../types/product';
@@ -29,13 +28,14 @@ interface NewOrderModalProps {
 }
 
 interface OrderItemPayload {
-  product_id: string | null; // 상품 ID
+  product_id: string | null;
   variant: string | null;
+  variant_code: string;
   quantity: number;
   unit_price: number;
-  unit: string;
-  remark: string;
-  spec: string;
+  unit?: string;
+  remark?: string;
+  spec?: string;
 }
 
 const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSuccess }) => {
@@ -49,6 +49,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     {
       product_id: null,
       variant: null,
+      variant_code: '',
       quantity: 1,
       unit_price: 0,
       unit: 'EA',
@@ -67,12 +68,16 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   const [variantsByProduct, setVariantsByProduct] = useState<{ [productId: string]: Array<{ variant_code: string; option: string }> }>({});
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState<boolean>(false);
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState<boolean>(false);
+  const [selectedManager, setSelectedManager] = useState<string>('');
   const {
     data: employeesData,
     isLoading: isEmployeesLoading,
     error: employeesError,
   } = useEmployees();
   const employees = employeesData?.data || [];
+  const activeEmployees = employees.filter((employee: { is_active?: boolean; status?: string; role?: string }) => 
+    employee.role === 'MANAGER' || (employee.is_active === true && employee.status === 'approved')
+  );
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
@@ -88,13 +93,13 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
           setFormErrors((prev) => [...prev, '공급업체 목록을 불러오는데 실패했습니다.']);
         });
 
-      fetchInventories()
+      fetchProductOptions()
         .then((res) => {
           const productData = Array.isArray(res.data) ? res.data : [];
           setProducts(productData);
         })
         .catch((error) => {
-          console.error('Failed to fetch inventories:', error);
+          console.error('Failed to fetch product options:', error);
           setProducts([]);
           setFormErrors((prev) => [...prev, '상품 목록을 불러오는데 실패했습니다.']);
         });
@@ -113,6 +118,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       {
         product_id: null,
         variant: null,
+        variant_code: '',
         quantity: 1,
         unit_price: 0,
         unit: 'EA',
@@ -127,6 +133,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     setIncludesTax(true);
     setHasPackaging(true);
     setFormErrors([]);
+    setSelectedManager('');
   };
 
   const handleAddItem = () => {
@@ -135,6 +142,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       {
         product_id: null,
         variant: null,
+        variant_code: '',
         quantity: 1,
         unit_price: 0,
         unit: 'EA',
@@ -169,9 +177,10 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     if (!orderDate) {
       errors.push('발주일자를 선택해주세요.');
     }
-    if (!deliveryDate) {
-      errors.push('예상 납품일을 선택해주세요.');
-    }
+    // expected_delivery_date는 선택사항이므로 필수 검증에서 제외
+    // if (!deliveryDate) {
+    //   errors.push('예상 납품일을 선택해주세요.');
+    // }
     items.forEach((item, index) => {
       if (!item.product_id) {
         errors.push(`${index + 1}번 항목의 상품을 선택해주세요.`);
@@ -216,25 +225,27 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       const payload = {
         supplier,
         order_date: orderDate ? orderDate.toISOString().slice(0, 10) : '',
-        expected_delivery_date: deliveryDate ? deliveryDate.toISOString().slice(0, 10) : '',
+        expected_delivery_date: deliveryDate ? deliveryDate.toISOString().slice(0, 10) : undefined,
         status: 'PENDING',
-        instruction_note: workInstructions,
-        note: note,
+        instruction_note: workInstructions || undefined,
+        note: note || undefined,
         vat_included: includesTax,
         packaging_included: hasPackaging,
-        manager_name: user?.first_name || user?.username || '',
+        manager_name: selectedManager || user?.first_name || user?.username || '',
         items: items.map((item) => {
           const product_id = item.product_id;
           const variantObj =
             product_id &&
             variantsByProduct[product_id]?.find((v) => v.option === item.variant);
+          const variant_code = (variantObj && typeof variantObj === 'object' && 'variant_code' in variantObj) ? variantObj.variant_code : item.variant_code;
+          
           return {
-            variant_code: (variantObj && typeof variantObj === 'object' && 'variant_code' in variantObj) ? variantObj.variant_code : '',
+            variant_code,
             quantity: item.quantity,
             unit_price: includesTax ? item.unit_price : Math.round(item.unit_price * 1.1),
-            unit: item.unit,
-            remark: item.remark,
-            spec: item.spec,
+            unit: item.unit || undefined,
+            remark: item.remark || undefined,
+            spec: item.spec || undefined,
           };
         }).filter(item => item.variant_code !== ''),
       };
@@ -264,7 +275,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     if (product_id && !variantsByProduct[product_id]) {
       try {
         const res = await fetchVariantsByProductId(product_id);
-        setVariantsByProduct((prev) => ({ ...prev, [product_id]: res.data.variants || [] }));
+        // API 응답 구조 확인: res.data.variants 또는 res.data가 배열인지 확인
+        const variants = res.data.variants || res.data || [];
+        setVariantsByProduct((prev) => ({ ...prev, [product_id]: variants }));
       } catch (e) {
         console.error('Failed to fetch variants:', e);
         setVariantsByProduct((prev) => ({ ...prev, [product_id]: [] }));
@@ -278,7 +291,6 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
 
   // 5. 행별 품목 선택 핸들러
   const handleVariantChange = (idx: number, option: string) => {
-    console.log('품목(variant) 선택:', option);
     handleItemChange(idx, 'variant', option);
   };
 
@@ -286,7 +298,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   const handleProductAdded = async () => {
     try {
       // 상품 목록 다시 불러오기
-      const res = await fetchInventories();
+      const res = await fetchProductOptions();
       const productData = Array.isArray(res.data) ? res.data : [];
       setProducts(productData);
       setIsAddProductModalOpen(false);
@@ -295,16 +307,30 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     }
   };
 
-  // 새 공급자 추가 성공 핸들러
-  const handleSupplierAdded = async () => {
+  // 새 공급자 생성 핸들러
+  const handleCreateSupplier = async (supplierData: Record<string, unknown>) => {
     try {
-      // 공급자 목록 다시 불러오기
+      // 공급업체 생성 API 호출
+      await createSupplier({
+        name: supplierData.name as string,
+        contact: supplierData.contact as string,
+        manager: supplierData.manager as string,
+        email: supplierData.email as string,
+        address: supplierData.address as string,
+        variant_codes: [], // 선택사항이므로 빈 배열로 설정
+      });
+      
+      // 성공 후 공급자 목록 다시 불러오기
       const res = await fetchSuppliers();
-      const supplierData = Array.isArray(res.data) ? res.data : [];
-      setSuppliers(supplierData);
+      const updatedSupplierData = Array.isArray(res.data) ? res.data : [];
+      setSuppliers(updatedSupplierData);
       setIsAddSupplierModalOpen(false);
+      
+      // 성공 메시지
+      alert('공급업체가 성공적으로 추가되었습니다.');
     } catch (error) {
-      console.error('Failed to refresh suppliers:', error);
+      console.error('Failed to create supplier:', error);
+      setFormErrors((prev) => [...prev, '공급업체 추가에 실패했습니다. 다시 시도해주세요.']);
     }
   };
 
@@ -312,7 +338,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
 
   return (
     <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black'>
-      <div className='relative max-h-[90vh] w-[900px] overflow-auto rounded-lg bg-white shadow-xl'>
+      <div className='relative max-h-[90vh] w-[1100px] overflow-auto rounded-lg bg-white shadow-xl'>
         {/* 전체 로딩 상태 표시 */}
         {isEmployeesLoading && (
           <div className='bg-opacity-90 absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-white'>
@@ -370,8 +396,8 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             </div>
           )}
 
-          {/* 공급업체 정보 + 발주 정보 레이아웃 복구 */}
-          <div className='flex items-start justify-center gap-6'>
+          {/* 공급업체 정보 + 발주 정보 + 부가 정보 */}
+          <div className='flex items-start justify-start gap-6'>
             {/* 왼쪽: 공급업체 정보 */}
             <div className='w-96 space-y-4'>
               <div className='flex items-center'>
@@ -412,16 +438,16 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 ) : (
                   <SelectInput
                     defaultText='담당자 선택'
-                    options={employees.map((e: { first_name?: string; username: string }) => e.first_name || e.username)}
-                    value={user?.first_name || user?.username || ''}
-                    onChange={() => {}}
+                    options={activeEmployees.map((e: { first_name?: string; username: string }) => e.first_name || e.username)}
+                    value={selectedManager}
+                    onChange={(name: string) => setSelectedManager(name)}
                     disabled={isSubmitting}
                   />
                 )}
               </div>
             </div>
-            {/* 오른쪽: 발주 정보 */}
-            <div className='w-96 space-y-4'>
+            {/* 가운데: 발주 정보 */}
+            <div className='w-72 space-y-4'>
               <div className='flex items-center'>
                 <FiCalendar className='mr-2 h-6 w-6 text-gray-900' />
                 <h3 className='text-base font-medium text-gray-900'>발주 정보</h3>
@@ -441,6 +467,48 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                   value={deliveryDate}
                   onChange={setDeliveryDate}
                 />
+              </div>
+            </div>
+            {/* 오른쪽: 부가 정보 */}
+            <div className='w-96 space-y-4'>
+              <h3 className='text-base font-medium text-gray-900'>부가 정보</h3>
+              <div className='flex items-center'>
+                <span className='pr-4 text-sm font-medium text-gray-700'>부가세:</span>
+                <div className='flex space-x-4'>
+                  <RadioButton
+                    label='포함'
+                    value='include'
+                    checked={includesTax}
+                    onChange={() => setIncludesTax(true)}
+                    disabled={isSubmitting}
+                  />
+                  <RadioButton
+                    label='미포함'
+                    value='exclude'
+                    checked={!includesTax}
+                    onChange={() => setIncludesTax(false)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+              <div className='flex items-center'>
+                <span className='pr-4 text-sm font-medium text-gray-700'>포장:</span>
+                <div className='flex space-x-4'>
+                  <RadioButton
+                    label='있음'
+                    value='yes'
+                    checked={hasPackaging}
+                    onChange={() => setHasPackaging(true)}
+                    disabled={isSubmitting}
+                  />
+                  <RadioButton
+                    label='없음'
+                    value='no'
+                    checked={!hasPackaging}
+                    onChange={() => setHasPackaging(false)}
+                    disabled={isSubmitting}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -463,7 +531,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
               </button>
             </div>
             <div className='overflow-hidden rounded-md border border-gray-200'>
-              <div className='min-w-[952px]'>
+              <div className='min-w-[1000px]'>
                 {' '}
                 {/* 기존보다 100px 넓힘 */}
                 {/* Table Header */}
@@ -648,50 +716,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             </div>
           </div>
 
-          {/* Additional Information */}
-          <div className='flex items-start justify-center gap-6'>
-            <div className='w-96 space-y-4'>
-              <h3 className='text-base font-medium text-gray-900'>부가 정보</h3>
-              <div className='flex items-center'>
-                <span className='pr-4 text-sm font-medium text-gray-700'>부가세:</span>
-                <div className='flex space-x-4'>
-                  <RadioButton
-                    label='포함'
-                    value='include'
-                    checked={includesTax}
-                    onChange={() => setIncludesTax(true)}
-                    disabled={isSubmitting}
-                  />
-                  <RadioButton
-                    label='미포함'
-                    value='exclude'
-                    checked={!includesTax}
-                    onChange={() => setIncludesTax(false)}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
-              <div className='flex items-center'>
-                <span className='pr-4 text-sm font-medium text-gray-700'>포장:</span>
-                <div className='flex space-x-4'>
-                  <RadioButton
-                    label='있음'
-                    value='yes'
-                    checked={hasPackaging}
-                    onChange={() => setHasPackaging(true)}
-                    disabled={isSubmitting}
-                  />
-                  <RadioButton
-                    label='없음'
-                    value='no'
-                    checked={!hasPackaging}
-                    onChange={() => setHasPackaging(false)}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className='w-96 space-y-3'>
+          {/* 작업지시사항과 발주 이유 */}
+          <div className='flex items-start justify-start gap-6'>
+            <div className='w-1/2 space-y-3'>
               <h3 className='text-base font-medium text-gray-900'>
                 작업지시사항 <span className='text-red-500'>*</span>
               </h3>
@@ -702,6 +729,8 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 placeholder='작업지시사항을 입력해주세요.'
                 disabled={isSubmitting}
               />
+            </div>
+            <div className='w-1/2 space-y-3'>
               <h3 className='text-base font-medium text-gray-900'>발주 이유 (내부 공유용)</h3>
               <textarea
                 value={note}
@@ -715,10 +744,6 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
 
           {/* Footer */}
           <div className='flex items-center justify-end border-t border-gray-200 pt-4'>
-            <div className='flex flex-1 items-center'>
-              <FiCheckCircle className='mr-2 h-6 w-6 text-green-700' />
-              <span className='text-sm text-green-700'>발주 준비가 완료되었습니다.</span>
-            </div>
             <div className='flex space-x-3'>
               <button
                 onClick={onClose}
@@ -753,7 +778,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         <AddSupplierModal
           isOpen={isAddSupplierModalOpen}
           onClose={() => setIsAddSupplierModalOpen(false)}
-          onSave={handleSupplierAdded}
+          onSave={handleCreateSupplier}
         />
       )}
     </div>
