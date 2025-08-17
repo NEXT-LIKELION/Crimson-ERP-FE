@@ -6,6 +6,15 @@ import axios from '../../api/axios';
 import { fetchSuppliers } from '../../api/supplier';
 import XlsxPopulate from 'xlsx-populate/browser/xlsx-populate';
 import { saveAs } from 'file-saver';
+import { getStatusDisplayName } from '../../utils/orderUtils';
+
+interface ApiError {
+  response?: {
+    data?: {
+      detail?: string;
+    };
+  };
+}
 
 interface OrderDetailModalProps {
   orderId: number;
@@ -151,8 +160,15 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   const handleApprove = async () => {
     if (!orderDetail) return;
 
+    // 승인 후 상태 변경 불가 경고
+    const confirmed = confirm(
+      '발주를 승인하시겠습니까?\n\n승인 후에는 상태를 다시 변경할 수 없습니다.'
+    );
+    
+    if (!confirmed) return;
+
     try {
-      await axios.put(`/api/orders/${orderDetail.id}/approve`);
+      await axios.patch(`/orders/${orderDetail.id}/`, { status: 'APPROVED' });
 
       // 로컬 상태 업데이트
       updateOrder(orderDetail.id, { status: 'APPROVED' });
@@ -532,14 +548,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
       setOrderDetail(order); // 상세정보 갱신
 
       // 상태 변경 메시지 생성
-      const statusText =
-        newStatus === 'APPROVED'
-          ? '승인됨'
-          : newStatus === 'CANCELLED'
-            ? '취소됨'
-            : newStatus === 'COMPLETED'
-              ? '입고 완료'
-              : newStatus;
+      const statusText = getStatusDisplayName(newStatus);
 
       if (stock_changes && stock_changes.length > 0) {
         // 재고 변경이 있는 경우
@@ -786,7 +795,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                 발주 취소
               </button>
             )}
-            {isManager && orderDetail.status !== 'COMPLETED' && (
+            {isManager && orderDetail.status === 'APPROVED' && (
               <button
                 className='rounded bg-green-600 px-4 py-2 text-white transition hover:bg-green-700'
                 onClick={() => handleStatusChange('COMPLETED')}>

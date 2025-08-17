@@ -20,6 +20,12 @@ import { fetchVariantsByProductId, fetchProductOptions, fetchVariantDetail } fro
 import { createOrder, fetchProductsBySupplier } from '../../api/orders';
 import { useEmployees } from '../../hooks/queries/useEmployees';
 import { Supplier, ProductOption } from '../../types/product';
+import { 
+  calculateTotalAmount, 
+  extractVariantCode, 
+  validateOrderForm,
+  calculateVATPrice
+} from '../../utils/orderUtils';
 
 interface NewOrderModalProps {
   isOpen: boolean;
@@ -35,7 +41,7 @@ interface OrderItemPayload {
   unit_price: number;
   unit?: string;
   remark?: string;
-  spec?: string;
+  spec: string;
 }
 
 const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSuccess }) => {
@@ -168,48 +174,17 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   };
 
   const calculateTotal = (): number => {
-    const total = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
-    return includesTax ? total : Math.round(total * 1.1);
+    return calculateTotalAmount(items, includesTax);
   };
 
   const validateForm = (): boolean => {
-    const errors: string[] = [];
-    if (!supplier) {
-      errors.push('공급업체를 선택해주세요.');
-    }
-    if (!orderDate) {
-      errors.push('발주일자를 선택해주세요.');
-    }
-    // expected_delivery_date는 선택사항이므로 필수 검증에서 제외
-    // if (!deliveryDate) {
-    //   errors.push('예상 납품일을 선택해주세요.');
-    // }
-    items.forEach((item, index) => {
-      if (!item.product_id) {
-        errors.push(`${index + 1}번 항목의 상품을 선택해주세요.`);
-      }
-      if (
-        !item.variant ||
-        !(
-          item.product_id &&
-          variantsByProduct[item.product_id]?.find((v) => v.option === item.variant)
-        )
-      ) {
-        errors.push(`${index + 1}번 항목의 품목을 선택해주세요.`);
-      }
-      if (!item.spec) {
-        errors.push(`${index + 1}번 항목의 규격을 입력해주세요.`);
-      }
-      if (item.quantity <= 0) {
-        errors.push(`${index + 1}번 항목의 수량은 0보다 커야 합니다.`);
-      }
-      if (item.unit_price <= 0) {
-        errors.push(`${index + 1}번 항목의 단가는 0보다 커야 합니다.`);
-      }
+    const errors = validateOrderForm({
+      supplier,
+      orderDate,
+      items,
+      workInstructions,
     });
-    if (!workInstructions.trim()) {
-      errors.push('작업지시사항을 입력해주세요.');
-    }
+    
     setFormErrors(errors);
     return errors.length === 0;
   };
@@ -236,16 +211,12 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         packaging_included: hasPackaging,
         manager_name: selectedManager || user?.first_name || user?.username || '',
         items: items.map((item) => {
-          const product_id = item.product_id;
-          const variantObj =
-            product_id &&
-            variantsByProduct[product_id]?.find((v) => v.option === item.variant);
-          const variant_code = (variantObj && typeof variantObj === 'object' && 'variant_code' in variantObj) ? variantObj.variant_code : item.variant_code;
+          const variant_code = extractVariantCode(item, variantsByProduct);
           
           return {
             variant_code,
             quantity: item.quantity,
-            unit_price: includesTax ? item.unit_price : Math.round(item.unit_price * 1.1),
+            unit_price: calculateVATPrice(item.unit_price, includesTax),
             unit: item.unit || undefined,
             remark: item.remark || undefined,
             spec: item.spec || undefined,
@@ -319,16 +290,16 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       try {
         const res = await fetchVariantsByProductId(product_id);
         // API 응답 구조 확인: res.data.variants 또는 res.data가 배열인지 확인
-        const variants = res.data.variants || res.data || [];
+        const variantsData = res.data.variants || res.data || [];
+        const variants = Array.isArray(variantsData) ? variantsData : [];
         
         // 업체가 선택된 경우 해당 업체의 variant_codes만 필터링
         let filteredVariants = variants;
         if (supplier > 0) {
           const selectedSupplier = suppliers.find(s => s.id === supplier);
-          if (selectedSupplier && selectedSupplier.variants) {
-            const supplierVariantCodes = selectedSupplier.variants.map((v: { variant_code: string }) => v.variant_code);
+          if (selectedSupplier && selectedSupplier.variant_codes) {
             filteredVariants = variants.filter((variant: { variant_code: string }) => 
-              supplierVariantCodes.includes(variant.variant_code)
+              selectedSupplier.variant_codes.includes(variant.variant_code)
             );
           }
         }
@@ -379,15 +350,21 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             ...currentItem,
             variant: option,
             variant_code: selectedVariant.variant_code,
-            unit_price: variantDetail.price || 0, // variant의 판매가격을 단가로 설정
-            spec: variantDetail.description || variantDetail.option || '', // 설명이나 옵션을 규격으로 설정
+            unit_price: variantDetail.price || 0,
+            spec: variantDetail.description || variantDetail.option || '',
           } : currentItem
         ));
         
       } catch (error) {
         console.error('Failed to fetch variant detail:', error);
-        // 에러 발생 시 variant_code만 설정
-        handleItemChange(idx, 'variant_code', selectedVariant.variant_code);
+        // 에러 발생 시 기본값만 설정
+        setItems(items.map((currentItem, i) => 
+          i === idx ? {
+            ...currentItem,
+            variant: option,
+            variant_code: selectedVariant.variant_code,
+          } : currentItem
+        ));
       }
     }
   };

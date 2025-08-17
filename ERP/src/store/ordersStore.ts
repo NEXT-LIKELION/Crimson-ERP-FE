@@ -1,7 +1,7 @@
 // src/store/ordersStore.ts
 import { create } from 'zustand';
 
-export type OrderStatus = 'PENDING' | 'APPROVED' | 'CANCELLED' | 'COMPLETED';
+export type OrderStatus = 'PENDING' | 'APPROVED' | 'COMPLETED' | 'CANCELLED';
 
 export interface OrderItem {
   id: number;
