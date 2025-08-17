@@ -17,7 +17,7 @@ import AddSupplierModal from './AddSupplierModal';
 import { Order } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
 import { fetchSuppliers } from '../../api/supplier';
-import { fetchInventories, fetchVariantsByProductId } from '../../api/inventory';
+import { fetchVariantsByProductId, fetchProductOptions } from '../../api/inventory';
 import { createOrder } from '../../api/orders';
 import { useEmployees } from '../../hooks/queries/useEmployees';
 import { Supplier, ProductOption } from '../../types/product';
@@ -29,13 +29,14 @@ interface NewOrderModalProps {
 }
 
 interface OrderItemPayload {
-  product_id: string | null; // 상품 ID
+  product_id: string | null;
   variant: string | null;
+  variant_code: string;
   quantity: number;
   unit_price: number;
-  unit: string;
-  remark: string;
-  spec: string;
+  unit?: string;
+  remark?: string;
+  spec?: string;
 }
 
 const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSuccess }) => {
@@ -49,6 +50,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     {
       product_id: null,
       variant: null,
+      variant_code: '',
       quantity: 1,
       unit_price: 0,
       unit: 'EA',
@@ -73,6 +75,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     error: employeesError,
   } = useEmployees();
   const employees = employeesData?.data || [];
+  const activeEmployees = employees.filter((employee: { is_active?: boolean }) => employee.is_active === true);
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
@@ -88,13 +91,13 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
           setFormErrors((prev) => [...prev, '공급업체 목록을 불러오는데 실패했습니다.']);
         });
 
-      fetchInventories()
+      fetchProductOptions()
         .then((res) => {
           const productData = Array.isArray(res.data) ? res.data : [];
           setProducts(productData);
         })
         .catch((error) => {
-          console.error('Failed to fetch inventories:', error);
+          console.error('Failed to fetch product options:', error);
           setProducts([]);
           setFormErrors((prev) => [...prev, '상품 목록을 불러오는데 실패했습니다.']);
         });
@@ -113,6 +116,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       {
         product_id: null,
         variant: null,
+        variant_code: '',
         quantity: 1,
         unit_price: 0,
         unit: 'EA',
@@ -135,6 +139,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       {
         product_id: null,
         variant: null,
+        variant_code: '',
         quantity: 1,
         unit_price: 0,
         unit: 'EA',
@@ -228,8 +233,10 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
           const variantObj =
             product_id &&
             variantsByProduct[product_id]?.find((v) => v.option === item.variant);
+          const variant_code = (variantObj && typeof variantObj === 'object' && 'variant_code' in variantObj) ? variantObj.variant_code : item.variant_code;
+          
           return {
-            variant_code: (variantObj && typeof variantObj === 'object' && 'variant_code' in variantObj) ? variantObj.variant_code : '',
+            variant_code,
             quantity: item.quantity,
             unit_price: includesTax ? item.unit_price : Math.round(item.unit_price * 1.1),
             unit: item.unit,
@@ -264,7 +271,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     if (product_id && !variantsByProduct[product_id]) {
       try {
         const res = await fetchVariantsByProductId(product_id);
-        setVariantsByProduct((prev) => ({ ...prev, [product_id]: res.data.variants || [] }));
+        // API 응답 구조 확인: res.data.variants 또는 res.data가 배열인지 확인
+        const variants = res.data.variants || res.data || [];
+        setVariantsByProduct((prev) => ({ ...prev, [product_id]: variants }));
       } catch (e) {
         console.error('Failed to fetch variants:', e);
         setVariantsByProduct((prev) => ({ ...prev, [product_id]: [] }));
@@ -278,7 +287,6 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
 
   // 5. 행별 품목 선택 핸들러
   const handleVariantChange = (idx: number, option: string) => {
-    console.log('품목(variant) 선택:', option);
     handleItemChange(idx, 'variant', option);
   };
 
@@ -286,7 +294,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   const handleProductAdded = async () => {
     try {
       // 상품 목록 다시 불러오기
-      const res = await fetchInventories();
+      const res = await fetchProductOptions();
       const productData = Array.isArray(res.data) ? res.data : [];
       setProducts(productData);
       setIsAddProductModalOpen(false);
@@ -412,7 +420,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 ) : (
                   <SelectInput
                     defaultText='담당자 선택'
-                    options={employees.map((e: { first_name?: string; username: string }) => e.first_name || e.username)}
+                    options={activeEmployees.map((e: { first_name?: string; username: string }) => e.first_name || e.username)}
                     value={user?.first_name || user?.username || ''}
                     onChange={() => {}}
                     disabled={isSubmitting}

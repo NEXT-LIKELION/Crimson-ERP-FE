@@ -5,13 +5,13 @@ export type OrderStatus = 'PENDING' | 'APPROVED' | 'CANCELLED' | 'COMPLETED';
 
 export interface OrderItem {
   id: number;
-  name: string;
-  spec: string;
-  unit: string;
+  variant_code: string;
+  item_name: string;
   quantity: number;
-  price: number;
-  amount?: number;
-  note?: string;
+  unit: string;
+  unit_price: number;
+  remark?: string;
+  spec?: string;
 }
 
 export interface Order {
@@ -19,12 +19,17 @@ export interface Order {
   supplier: string;
   manager: string;
   status: OrderStatus;
-  note: string;
+  note?: string;
   order_date: string;
   expected_delivery_date?: string;
-  total_quantity: number;
-  total_price: number;
-  product_names: string[];
+  total_quantity: string;
+  total_price: string;
+  product_names: string;
+  created_at?: string;
+  instruction_note?: string;
+  vat_included?: boolean;
+  packaging_included?: boolean;
+  items?: OrderItem[];
 }
 
 export interface OrdersResponse {
