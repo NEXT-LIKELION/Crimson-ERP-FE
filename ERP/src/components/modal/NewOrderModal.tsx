@@ -6,7 +6,6 @@ import {
   FiTrash2,
   FiShoppingBag,
   FiCalendar,
-  FiCheckCircle,
   FiAlertTriangle,
 } from 'react-icons/fi';
 import DateInput from '../input/DateInput';
