@@ -16,7 +16,7 @@ import AddProductModal from './AddProductModal';
 import AddSupplierModal from './AddSupplierModal';
 import { Order } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
-import { fetchSuppliers } from '../../api/supplier';
+import { fetchSuppliers, createSupplier } from '../../api/supplier';
 import { fetchVariantsByProductId, fetchProductOptions } from '../../api/inventory';
 import { createOrder } from '../../api/orders';
 import { useEmployees } from '../../hooks/queries/useEmployees';
@@ -174,9 +174,10 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     if (!orderDate) {
       errors.push('발주일자를 선택해주세요.');
     }
-    if (!deliveryDate) {
-      errors.push('예상 납품일을 선택해주세요.');
-    }
+    // expected_delivery_date는 선택사항이므로 필수 검증에서 제외
+    // if (!deliveryDate) {
+    //   errors.push('예상 납품일을 선택해주세요.');
+    // }
     items.forEach((item, index) => {
       if (!item.product_id) {
         errors.push(`${index + 1}번 항목의 상품을 선택해주세요.`);
@@ -221,10 +222,10 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       const payload = {
         supplier,
         order_date: orderDate ? orderDate.toISOString().slice(0, 10) : '',
-        expected_delivery_date: deliveryDate ? deliveryDate.toISOString().slice(0, 10) : '',
+        expected_delivery_date: deliveryDate ? deliveryDate.toISOString().slice(0, 10) : undefined,
         status: 'PENDING',
-        instruction_note: workInstructions,
-        note: note,
+        instruction_note: workInstructions || undefined,
+        note: note || undefined,
         vat_included: includesTax,
         packaging_included: hasPackaging,
         manager_name: user?.first_name || user?.username || '',
@@ -239,9 +240,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             variant_code,
             quantity: item.quantity,
             unit_price: includesTax ? item.unit_price : Math.round(item.unit_price * 1.1),
-            unit: item.unit,
-            remark: item.remark,
-            spec: item.spec,
+            unit: item.unit || undefined,
+            remark: item.remark || undefined,
+            spec: item.spec || undefined,
           };
         }).filter(item => item.variant_code !== ''),
       };
@@ -303,16 +304,30 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     }
   };
 
-  // 새 공급자 추가 성공 핸들러
-  const handleSupplierAdded = async () => {
+  // 새 공급자 생성 핸들러
+  const handleCreateSupplier = async (supplierData: Record<string, unknown>) => {
     try {
-      // 공급자 목록 다시 불러오기
+      // 공급업체 생성 API 호출
+      await createSupplier({
+        name: supplierData.name as string,
+        contact: supplierData.contact as string,
+        manager: supplierData.manager as string,
+        email: supplierData.email as string,
+        address: supplierData.address as string,
+        variant_codes: [], // 선택사항이므로 빈 배열로 설정
+      });
+      
+      // 성공 후 공급자 목록 다시 불러오기
       const res = await fetchSuppliers();
-      const supplierData = Array.isArray(res.data) ? res.data : [];
-      setSuppliers(supplierData);
+      const updatedSupplierData = Array.isArray(res.data) ? res.data : [];
+      setSuppliers(updatedSupplierData);
       setIsAddSupplierModalOpen(false);
+      
+      // 성공 메시지
+      alert('공급업체가 성공적으로 추가되었습니다.');
     } catch (error) {
-      console.error('Failed to refresh suppliers:', error);
+      console.error('Failed to create supplier:', error);
+      setFormErrors((prev) => [...prev, '공급업체 추가에 실패했습니다. 다시 시도해주세요.']);
     }
   };
 
@@ -761,7 +776,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         <AddSupplierModal
           isOpen={isAddSupplierModalOpen}
           onClose={() => setIsAddSupplierModalOpen(false)}
-          onSave={handleSupplierAdded}
+          onSave={handleCreateSupplier}
         />
       )}
     </div>

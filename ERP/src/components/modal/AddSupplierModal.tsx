@@ -38,7 +38,11 @@ const AddSupplierModal = ({
     if (!form.name?.trim()) errs.push('업체명을 입력해주세요.');
     if (!form.contact?.trim()) errs.push('연락처를 입력해주세요.');
     if (!form.manager?.trim()) errs.push('담당자를 입력해주세요.');
-    if (!form.email?.trim()) errs.push('이메일을 입력해주세요.');
+    if (!form.email?.trim()) {
+      errs.push('이메일을 입력해주세요.');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      errs.push('올바른 이메일 형식을 입력해주세요.');
+    }
     if (!form.address?.trim()) errs.push('주소를 입력해주세요.');
     if (errs.length > 0) {
       setErrors(errs);

@@ -16,7 +16,7 @@ export const createOrder = (payload: {
   supplier: number;
   manager_name: string;
   order_date: string;
-  expected_delivery_date: string;
+  expected_delivery_date?: string;
   status: string;
   instruction_note?: string;
   note?: string;
