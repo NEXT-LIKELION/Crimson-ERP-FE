@@ -69,13 +69,16 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   const [variantsByProduct, setVariantsByProduct] = useState<{ [productId: string]: Array<{ variant_code: string; option: string }> }>({});
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState<boolean>(false);
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState<boolean>(false);
+  const [selectedManager, setSelectedManager] = useState<string>('');
   const {
     data: employeesData,
     isLoading: isEmployeesLoading,
     error: employeesError,
   } = useEmployees();
   const employees = employeesData?.data || [];
-  const activeEmployees = employees.filter((employee: { is_active?: boolean }) => employee.is_active === true);
+  const activeEmployees = employees.filter((employee: { is_active?: boolean; status?: string; role?: string }) => 
+    employee.role === 'MANAGER' || (employee.is_active === true && employee.status === 'approved')
+  );
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
@@ -131,6 +134,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     setIncludesTax(true);
     setHasPackaging(true);
     setFormErrors([]);
+    setSelectedManager('');
   };
 
   const handleAddItem = () => {
@@ -228,7 +232,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         note: note || undefined,
         vat_included: includesTax,
         packaging_included: hasPackaging,
-        manager_name: user?.first_name || user?.username || '',
+        manager_name: selectedManager || user?.first_name || user?.username || '',
         items: items.map((item) => {
           const product_id = item.product_id;
           const variantObj =
@@ -335,7 +339,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
 
   return (
     <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black'>
-      <div className='relative max-h-[90vh] w-[900px] overflow-auto rounded-lg bg-white shadow-xl'>
+      <div className='relative max-h-[90vh] w-[1100px] overflow-auto rounded-lg bg-white shadow-xl'>
         {/* 전체 로딩 상태 표시 */}
         {isEmployeesLoading && (
           <div className='bg-opacity-90 absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-white'>
@@ -393,8 +397,8 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             </div>
           )}
 
-          {/* 공급업체 정보 + 발주 정보 레이아웃 복구 */}
-          <div className='flex items-start justify-center gap-6'>
+          {/* 공급업체 정보 + 발주 정보 + 부가 정보 */}
+          <div className='flex items-start justify-start gap-6'>
             {/* 왼쪽: 공급업체 정보 */}
             <div className='w-96 space-y-4'>
               <div className='flex items-center'>
@@ -436,15 +440,15 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                   <SelectInput
                     defaultText='담당자 선택'
                     options={activeEmployees.map((e: { first_name?: string; username: string }) => e.first_name || e.username)}
-                    value={user?.first_name || user?.username || ''}
-                    onChange={() => {}}
+                    value={selectedManager}
+                    onChange={(name: string) => setSelectedManager(name)}
                     disabled={isSubmitting}
                   />
                 )}
               </div>
             </div>
-            {/* 오른쪽: 발주 정보 */}
-            <div className='w-96 space-y-4'>
+            {/* 가운데: 발주 정보 */}
+            <div className='w-72 space-y-4'>
               <div className='flex items-center'>
                 <FiCalendar className='mr-2 h-6 w-6 text-gray-900' />
                 <h3 className='text-base font-medium text-gray-900'>발주 정보</h3>
@@ -464,6 +468,48 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                   value={deliveryDate}
                   onChange={setDeliveryDate}
                 />
+              </div>
+            </div>
+            {/* 오른쪽: 부가 정보 */}
+            <div className='w-96 space-y-4'>
+              <h3 className='text-base font-medium text-gray-900'>부가 정보</h3>
+              <div className='flex items-center'>
+                <span className='pr-4 text-sm font-medium text-gray-700'>부가세:</span>
+                <div className='flex space-x-4'>
+                  <RadioButton
+                    label='포함'
+                    value='include'
+                    checked={includesTax}
+                    onChange={() => setIncludesTax(true)}
+                    disabled={isSubmitting}
+                  />
+                  <RadioButton
+                    label='미포함'
+                    value='exclude'
+                    checked={!includesTax}
+                    onChange={() => setIncludesTax(false)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+              <div className='flex items-center'>
+                <span className='pr-4 text-sm font-medium text-gray-700'>포장:</span>
+                <div className='flex space-x-4'>
+                  <RadioButton
+                    label='있음'
+                    value='yes'
+                    checked={hasPackaging}
+                    onChange={() => setHasPackaging(true)}
+                    disabled={isSubmitting}
+                  />
+                  <RadioButton
+                    label='없음'
+                    value='no'
+                    checked={!hasPackaging}
+                    onChange={() => setHasPackaging(false)}
+                    disabled={isSubmitting}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -486,7 +532,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
               </button>
             </div>
             <div className='overflow-hidden rounded-md border border-gray-200'>
-              <div className='min-w-[952px]'>
+              <div className='min-w-[1000px]'>
                 {' '}
                 {/* 기존보다 100px 넓힘 */}
                 {/* Table Header */}
@@ -671,50 +717,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             </div>
           </div>
 
-          {/* Additional Information */}
-          <div className='flex items-start justify-center gap-6'>
-            <div className='w-96 space-y-4'>
-              <h3 className='text-base font-medium text-gray-900'>부가 정보</h3>
-              <div className='flex items-center'>
-                <span className='pr-4 text-sm font-medium text-gray-700'>부가세:</span>
-                <div className='flex space-x-4'>
-                  <RadioButton
-                    label='포함'
-                    value='include'
-                    checked={includesTax}
-                    onChange={() => setIncludesTax(true)}
-                    disabled={isSubmitting}
-                  />
-                  <RadioButton
-                    label='미포함'
-                    value='exclude'
-                    checked={!includesTax}
-                    onChange={() => setIncludesTax(false)}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
-              <div className='flex items-center'>
-                <span className='pr-4 text-sm font-medium text-gray-700'>포장:</span>
-                <div className='flex space-x-4'>
-                  <RadioButton
-                    label='있음'
-                    value='yes'
-                    checked={hasPackaging}
-                    onChange={() => setHasPackaging(true)}
-                    disabled={isSubmitting}
-                  />
-                  <RadioButton
-                    label='없음'
-                    value='no'
-                    checked={!hasPackaging}
-                    onChange={() => setHasPackaging(false)}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className='w-96 space-y-3'>
+          {/* 작업지시사항과 발주 이유 */}
+          <div className='flex items-start justify-start gap-6'>
+            <div className='w-1/2 space-y-3'>
               <h3 className='text-base font-medium text-gray-900'>
                 작업지시사항 <span className='text-red-500'>*</span>
               </h3>
@@ -725,6 +730,8 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 placeholder='작업지시사항을 입력해주세요.'
                 disabled={isSubmitting}
               />
+            </div>
+            <div className='w-1/2 space-y-3'>
               <h3 className='text-base font-medium text-gray-900'>발주 이유 (내부 공유용)</h3>
               <textarea
                 value={note}
@@ -738,10 +745,6 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
 
           {/* Footer */}
           <div className='flex items-center justify-end border-t border-gray-200 pt-4'>
-            <div className='flex flex-1 items-center'>
-              <FiCheckCircle className='mr-2 h-6 w-6 text-green-700' />
-              <span className='text-sm text-green-700'>발주 준비가 완료되었습니다.</span>
-            </div>
             <div className='flex space-x-3'>
               <button
                 onClick={onClose}
