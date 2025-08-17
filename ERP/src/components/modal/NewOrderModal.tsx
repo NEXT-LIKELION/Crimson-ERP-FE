@@ -16,10 +16,16 @@ import AddSupplierModal from './AddSupplierModal';
 import { Order } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
 import { fetchSuppliers, createSupplier } from '../../api/supplier';
-import { fetchVariantsByProductId, fetchProductOptions } from '../../api/inventory';
-import { createOrder } from '../../api/orders';
+import { fetchVariantsByProductId, fetchProductOptions, fetchVariantDetail } from '../../api/inventory';
+import { createOrder, fetchProductsBySupplier } from '../../api/orders';
 import { useEmployees } from '../../hooks/queries/useEmployees';
 import { Supplier, ProductOption } from '../../types/product';
+import { 
+  calculateTotalAmount, 
+  extractVariantCode, 
+  validateOrderForm,
+  calculateVATPrice
+} from '../../utils/orderUtils';
 
 interface NewOrderModalProps {
   isOpen: boolean;
@@ -35,12 +41,14 @@ interface OrderItemPayload {
   unit_price: number;
   unit?: string;
   remark?: string;
-  spec?: string;
+  spec: string;
 }
 
 const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<ProductOption[]>([]);
+  const [isLoadingSupplierProducts, setIsLoadingSupplierProducts] = useState<boolean>(false);
   const [supplier, setSupplier] = useState<number>(0);
   const [supplierName, setSupplierName] = useState<string>('');
   const [orderDate, setOrderDate] = useState<Date | null>(null); // 초기값 null
@@ -112,6 +120,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   const resetForm = () => {
     setSupplier(0);
     setSupplierName('');
+    setFilteredProducts([]);
     setOrderDate(null); // 초기값 null
     setDeliveryDate(null); // 초기값 null
     setItems([
@@ -165,48 +174,17 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   };
 
   const calculateTotal = (): number => {
-    const total = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
-    return includesTax ? total : Math.round(total * 1.1);
+    return calculateTotalAmount(items, includesTax);
   };
 
   const validateForm = (): boolean => {
-    const errors: string[] = [];
-    if (!supplier) {
-      errors.push('공급업체를 선택해주세요.');
-    }
-    if (!orderDate) {
-      errors.push('발주일자를 선택해주세요.');
-    }
-    // expected_delivery_date는 선택사항이므로 필수 검증에서 제외
-    // if (!deliveryDate) {
-    //   errors.push('예상 납품일을 선택해주세요.');
-    // }
-    items.forEach((item, index) => {
-      if (!item.product_id) {
-        errors.push(`${index + 1}번 항목의 상품을 선택해주세요.`);
-      }
-      if (
-        !item.variant ||
-        !(
-          item.product_id &&
-          variantsByProduct[item.product_id]?.find((v) => v.option === item.variant)
-        )
-      ) {
-        errors.push(`${index + 1}번 항목의 품목을 선택해주세요.`);
-      }
-      if (!item.spec) {
-        errors.push(`${index + 1}번 항목의 규격을 입력해주세요.`);
-      }
-      if (item.quantity <= 0) {
-        errors.push(`${index + 1}번 항목의 수량은 0보다 커야 합니다.`);
-      }
-      if (item.unit_price <= 0) {
-        errors.push(`${index + 1}번 항목의 단가는 0보다 커야 합니다.`);
-      }
+    const errors = validateOrderForm({
+      supplier,
+      orderDate,
+      items,
+      workInstructions,
     });
-    if (!workInstructions.trim()) {
-      errors.push('작업지시사항을 입력해주세요.');
-    }
+    
     setFormErrors(errors);
     return errors.length === 0;
   };
@@ -233,16 +211,12 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         packaging_included: hasPackaging,
         manager_name: selectedManager || user?.first_name || user?.username || '',
         items: items.map((item) => {
-          const product_id = item.product_id;
-          const variantObj =
-            product_id &&
-            variantsByProduct[product_id]?.find((v) => v.option === item.variant);
-          const variant_code = (variantObj && typeof variantObj === 'object' && 'variant_code' in variantObj) ? variantObj.variant_code : item.variant_code;
+          const variant_code = extractVariantCode(item, variantsByProduct);
           
           return {
             variant_code,
             quantity: item.quantity,
-            unit_price: includesTax ? item.unit_price : Math.round(item.unit_price * 1.1),
+            unit_price: calculateVATPrice(item.unit_price, includesTax),
             unit: item.unit || undefined,
             remark: item.remark || undefined,
             spec: item.spec || undefined,
@@ -260,11 +234,51 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     }
   };
 
+  // 업체별 상품 필터링 함수 (API 방식)
+  const filterProductsBySupplierAPI = async (supplierId: number) => {
+    if (!supplierId) {
+      setFilteredProducts([]);
+      setIsLoadingSupplierProducts(false);
+      return;
+    }
+
+    setIsLoadingSupplierProducts(true);
+    
+    try {
+      const response = await fetchProductsBySupplier(supplierId);
+      console.log('업체별 상품 조회 결과:', response.data);
+      setFilteredProducts(response.data);
+    } catch (error) {
+      console.error('업체별 상품 조회 실패:', error);
+      setFilteredProducts([]);
+    } finally {
+      setIsLoadingSupplierProducts(false);
+    }
+  };
+
   // 공급업체 선택 핸들러
-  const handleSupplierChange = (name: string) => {
+  const handleSupplierChange = async (name: string) => {
     setSupplierName(name);
     const found = suppliers.find((s) => s.name === name);
-    setSupplier(found ? found.id : 0);
+    const supplierId = found ? found.id : 0;
+    setSupplier(supplierId);
+    
+    // 업체별 상품 필터링 (API 방식)
+    await filterProductsBySupplierAPI(supplierId);
+    
+    // 기존 선택된 상품들 초기화
+    setItems([
+      {
+        product_id: null,
+        variant: null,
+        variant_code: '',
+        quantity: 1,
+        unit_price: 0,
+        unit: 'EA',
+        remark: '',
+        spec: '',
+      },
+    ]);
   };
 
   // 2. 행별 상품 선택 핸들러
@@ -276,22 +290,83 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       try {
         const res = await fetchVariantsByProductId(product_id);
         // API 응답 구조 확인: res.data.variants 또는 res.data가 배열인지 확인
-        const variants = res.data.variants || res.data || [];
-        setVariantsByProduct((prev) => ({ ...prev, [product_id]: variants }));
+        const variantsData = res.data.variants || res.data || [];
+        const variants = Array.isArray(variantsData) ? variantsData : [];
+        
+        // 업체가 선택된 경우 해당 업체의 variant_codes만 필터링
+        let filteredVariants = variants;
+        if (supplier > 0) {
+          const selectedSupplier = suppliers.find(s => s.id === supplier);
+          if (selectedSupplier && selectedSupplier.variant_codes) {
+            filteredVariants = variants.filter((variant: { variant_code: string }) => 
+              selectedSupplier.variant_codes.includes(variant.variant_code)
+            );
+          }
+        }
+        
+        setVariantsByProduct((prev) => ({ ...prev, [product_id]: filteredVariants }));
       } catch (e) {
         console.error('Failed to fetch variants:', e);
         setVariantsByProduct((prev) => ({ ...prev, [product_id]: [] }));
       }
     }
-    // 상품 바뀌면 품목, 규격 초기화
+    // 상품 바뀌면 품목, 단가, 규격 초기화
     setItems(
-      items.map((item, i) => (i === idx ? { ...item, product_id, variant: null, spec: '' } : item))
+      items.map((item, i) => (i === idx ? { 
+        ...item, 
+        product_id, 
+        variant: null, 
+        variant_code: '',
+        unit_price: 0, 
+        spec: '' 
+      } : item))
     );
   };
 
-  // 5. 행별 품목 선택 핸들러
-  const handleVariantChange = (idx: number, option: string) => {
+  // 5. 행별 품목 선택 핸들러 (자동 입력 포함)
+  const handleVariantChange = async (idx: number, option: string) => {
+    // 기본 variant 설정
     handleItemChange(idx, 'variant', option);
+    
+    // variant_code 찾기
+    const item = items[idx];
+    if (!item.product_id) return;
+    
+    const variants = variantsByProduct[item.product_id] || [];
+    const selectedVariant = variants.find((v: { option: string; variant_code: string }) => v.option === option);
+    
+    if (selectedVariant) {
+      // variant_code 설정
+      handleItemChange(idx, 'variant_code', selectedVariant.variant_code);
+      
+      try {
+        // variant 상세 정보 조회하여 자동 입력
+        const variantDetailRes = await fetchVariantDetail(selectedVariant.variant_code);
+        const variantDetail = variantDetailRes.data;
+        
+        // 자동 입력: 가격과 규격
+        setItems(items.map((currentItem, i) => 
+          i === idx ? {
+            ...currentItem,
+            variant: option,
+            variant_code: selectedVariant.variant_code,
+            unit_price: variantDetail.price || 0,
+            spec: variantDetail.description || variantDetail.option || '',
+          } : currentItem
+        ));
+        
+      } catch (error) {
+        console.error('Failed to fetch variant detail:', error);
+        // 에러 발생 시 기본값만 설정
+        setItems(items.map((currentItem, i) => 
+          i === idx ? {
+            ...currentItem,
+            variant: option,
+            variant_code: selectedVariant.variant_code,
+          } : currentItem
+        ));
+      }
+    }
   };
 
   // 신상품 추가 성공 핸들러
@@ -522,13 +597,20 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                   발주 품목 <span className='text-red-500'>*</span>
                 </h3>
               </div>
-              <button
-                onClick={handleAddItem}
-                className='flex items-center rounded-md bg-indigo-600 px-3 py-1 text-sm font-medium text-white'
-                disabled={isSubmitting || !supplier}>
-                <FiPlus className='mr-1 h-3.5 w-3.5' />
-                항목 추가
-              </button>
+              <div className='flex items-center gap-2'>
+                {!supplier && (
+                  <span className='text-sm text-orange-600'>먼저 공급업체를 선택해주세요</span>
+                )}
+                <button
+                  onClick={handleAddItem}
+                  className={`flex items-center rounded-md px-3 py-1 text-sm font-medium text-white ${
+                    supplier ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-400 cursor-not-allowed'
+                  }`}
+                  disabled={isSubmitting || !supplier}>
+                  <FiPlus className='mr-1 h-3.5 w-3.5' />
+                  항목 추가
+                </button>
+              </div>
             </div>
             <div className='overflow-hidden rounded-md border border-gray-200'>
               <div className='min-w-[1000px]'>
@@ -584,9 +666,17 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                       <div className='flex w-32 items-center px-3 py-3.5'>
                         <div className='flex w-full flex-col gap-1'>
                           <SelectInput
-                            defaultText='상품 선택'
+                            defaultText={
+                              !supplier 
+                                ? '업체를 먼저 선택하세요' 
+                                : isLoadingSupplierProducts 
+                                  ? '상품 로딩 중...' 
+                                  : filteredProducts.length === 0 
+                                    ? '해당 업체 상품 없음'
+                                    : '상품 선택'
+                            }
                             options={
-                              products.map((p) => p.name)
+                              supplier && !isLoadingSupplierProducts ? filteredProducts.map((p) => p.name) : []
                             }
                             value={(() => {
                               const found = products.find(
@@ -597,7 +687,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                             onChange={(name: string) => {
                               handleProductChange(idx, name);
                             }}
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || !supplier || isLoadingSupplierProducts}
                           />
                           <button
                             onClick={() => setIsAddProductModalOpen(true)}
@@ -630,7 +720,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           value={item.spec}
                           onChange={(e) => handleItemChange(idx, 'spec', e.target.value)}
                           placeholder='규격'
-                          className='w-full rounded-md border border-gray-300 px-2 pt-1.5 pb-1 text-sm placeholder-gray-400'
+                          className={`w-full rounded-md border border-gray-300 px-2 pt-1.5 pb-1 text-sm placeholder-gray-400 ${
+                            item.spec && item.variant ? 'bg-blue-50 border-blue-300' : ''
+                          }`}
                           disabled={isSubmitting}
                         />
                       </div>
@@ -662,7 +754,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           onChange={(e) =>
                             handleItemChange(idx, 'unit_price', parseInt(e.target.value) || 0)
                           }
-                          className='w-28 rounded-md border border-gray-300 px-2 py-1 text-sm'
+                          className={`w-28 rounded-md border border-gray-300 px-2 py-1 text-sm ${
+                            item.unit_price > 0 && item.variant ? 'bg-blue-50 border-blue-300' : ''
+                          }`}
                           min='0'
                           disabled={isSubmitting}
                         />
