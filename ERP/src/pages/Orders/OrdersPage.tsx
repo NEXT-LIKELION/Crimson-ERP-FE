@@ -27,8 +27,6 @@ interface SearchFilters {
   endDate: string;
 }
 
-
-
 // 숫자를 한글로 변환하는 함수 추가 (OrderDetailModal.tsx에서 복사)
 function numberToKorean(num: number): string {
   const hanA = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구', '십'];
@@ -97,8 +95,6 @@ const OrdersPage: React.FC = () => {
   // const user = useAuthStore((state) => state.user); // 제거
   // const isManager = user?.role === 'MANAGER'; // 제거
 
-
-
   useEffect(() => {
     if (data) {
       setDebugInfo((prev) => ({
@@ -139,18 +135,18 @@ const OrdersPage: React.FC = () => {
         const mapping: Record<number, string> = {};
         const products = Array.isArray(res.data) ? res.data : [];
         products.forEach((product: { variants?: unknown[] }) => {
-          (product.variants as { id?: number; variant_code?: string }[] || []).forEach((variant) => {
-            if (variant.id && variant.variant_code) {
-              mapping[variant.id] = variant.variant_code;
+          ((product.variants as { id?: number; variant_code?: string }[]) || []).forEach(
+            (variant) => {
+              if (variant.id && variant.variant_code) {
+                mapping[variant.id] = variant.variant_code;
+              }
             }
-          });
+          );
         });
-
       })
       .catch((error) => {
         console.error('Failed to fetch inventories:', error);
         alert('상품 데이터를 불러오는데 실패했습니다.');
-
       });
   }, []);
 
@@ -162,12 +158,10 @@ const OrdersPage: React.FC = () => {
         suppliers.forEach((supplier: { name: string; id: number }) => {
           mapping[supplier.name] = supplier.id;
         });
-
       })
       .catch((error) => {
         console.error('Failed to fetch suppliers:', error);
         alert('공급업체 데이터를 불러오는데 실패했습니다.');
-
       });
   }, []);
 
@@ -193,9 +187,21 @@ const OrdersPage: React.FC = () => {
     let result = [...orders];
 
     if (searchFilters.orderId) {
-      result = result.filter((order) =>
-        order.product_names && order.product_names.toLowerCase().includes(searchFilters.orderId.toLowerCase())
-      );
+      result = result.filter((order) => {
+        if (!order.product_names) return false;
+
+        // product_names가 배열인 경우
+        if (Array.isArray(order.product_names)) {
+          return order.product_names.some((name) =>
+            String(name).toLowerCase().includes(searchFilters.orderId.toLowerCase())
+          );
+        }
+
+        // product_names가 문자열인 경우
+        return String(order.product_names)
+          .toLowerCase()
+          .includes(searchFilters.orderId.toLowerCase());
+      });
     }
 
     // 공급업체명으로 부분 검색 (대소문자 무시)
@@ -297,7 +303,6 @@ const OrdersPage: React.FC = () => {
     setIsOrderDetailModalOpen(true);
   }, []);
 
-
   const handleDownloadOrderExcel = async (order: Order) => {
     try {
       console.log('주문 상세 요청 시작');
@@ -310,7 +315,9 @@ const OrdersPage: React.FC = () => {
       console.log('공급업체 목록 응답', suppliersRes.data);
       const suppliers = suppliersRes.data;
       // 3. orderDetail.supplier(이름)과 suppliers의 name을 비교해 매칭
-      const supplierDetail = suppliers.find((s: { name: string }) => s.name === orderDetail.supplier) || {
+      const supplierDetail = suppliers.find(
+        (s: { name: string }) => s.name === orderDetail.supplier
+      ) || {
         name: orderDetail.supplier,
         contact: '',
         manager: '',
@@ -342,7 +349,8 @@ const OrdersPage: React.FC = () => {
         );
       sheet.cell('E17').value('고려대학교 100주년기념관(크림슨스토어)');
       const totalAmount = orderDetail.items.reduce(
-        (sum: number, item: { quantity: number; unit_price: number }) => sum + item.quantity * item.unit_price,
+        (sum: number, item: { quantity: number; unit_price: number }) =>
+          sum + item.quantity * item.unit_price,
         0
       );
       sheet.cell('G18').value(numberToKorean(totalAmount));
@@ -367,16 +375,27 @@ const OrdersPage: React.FC = () => {
           sheet.row(templateRow).copyTo(sheet.row(startRow + i));
         }
       }
-      orderDetail.items.forEach((item: { item_name: string; spec?: string; quantity: number; unit_price: number; remark?: string }, idx: number) => {
-        const row = startRow + idx;
-        sheet.cell(`C${row}`).value(item.item_name);
-        sheet.cell(`H${row}`).value(item.spec);
-        sheet.cell(`K${row}`).value('EA');
-        sheet.cell(`N${row}`).value(item.quantity);
-        sheet.cell(`Q${row}`).value(item.unit_price);
-        sheet.cell(`X${row}`).value(item.quantity * item.unit_price);
-        sheet.cell(`AD${row}`).value(item.remark || '');
-      });
+      orderDetail.items.forEach(
+        (
+          item: {
+            item_name: string;
+            spec?: string;
+            quantity: number;
+            unit_price: number;
+            remark?: string;
+          },
+          idx: number
+        ) => {
+          const row = startRow + idx;
+          sheet.cell(`C${row}`).value(item.item_name);
+          sheet.cell(`H${row}`).value(item.spec);
+          sheet.cell(`K${row}`).value('EA');
+          sheet.cell(`N${row}`).value(item.quantity);
+          sheet.cell(`Q${row}`).value(item.unit_price);
+          sheet.cell(`X${row}`).value(item.quantity * item.unit_price);
+          sheet.cell(`AD${row}`).value(item.remark || '');
+        }
+      );
       const templateRows = 6;
       if (orderDetail.items.length < templateRows) {
         for (let i = orderDetail.items.length; i < templateRows; i++) {
@@ -402,8 +421,6 @@ const OrdersPage: React.FC = () => {
   const handlePageChange = useCallback((pageNumber: number) => {
     setCurrentPage(pageNumber);
   }, []);
-
-
 
   const handleInputChange = (key: keyof SearchFilters, value: string) => {
     setSearchInputs((prev) => ({ ...prev, [key]: value }));
@@ -576,26 +593,41 @@ const OrdersPage: React.FC = () => {
           '상품명',
           '비고',
         ],
-        ...orders.map((order: { id: number; supplier: string; manager: string; order_date: string; expected_delivery_date: string; status: string; total_quantity: number; total_price: number; product_names: string; note?: string }) => [
-          order.id,
-          order.supplier,
-          order.manager,
-          order.status === 'PENDING'
-            ? '승인 대기'
-            : order.status === 'APPROVED'
-              ? '승인됨'
-              : order.status === 'CANCELLED'
-                ? '취소됨'
-                : order.status === 'COMPLETED'
-                  ? '완료'
-                  : order.status,
-          order.order_date,
-          order.expected_delivery_date || '',
-          order.total_quantity,
-          order.total_price,
-          order.product_names && Array.isArray(order.product_names) ? order.product_names.join(', ') : order.product_names || '',
-          order.note || '',
-        ]),
+        ...orders.map(
+          (order: {
+            id: number;
+            supplier: string;
+            manager: string;
+            order_date: string;
+            expected_delivery_date: string;
+            status: string;
+            total_quantity: number;
+            total_price: number;
+            product_names: string;
+            note?: string;
+          }) => [
+            order.id,
+            order.supplier,
+            order.manager,
+            order.status === 'PENDING'
+              ? '승인 대기'
+              : order.status === 'APPROVED'
+                ? '승인됨'
+                : order.status === 'CANCELLED'
+                  ? '취소됨'
+                  : order.status === 'COMPLETED'
+                    ? '완료'
+                    : order.status,
+            order.order_date,
+            order.expected_delivery_date || '',
+            order.total_quantity,
+            order.total_price,
+            order.product_names && Array.isArray(order.product_names)
+              ? order.product_names.join(', ')
+              : order.product_names || '',
+            order.note || '',
+          ]
+        ),
       ];
 
       // 동적 import로 xlsx 라이브러리 로드
@@ -866,7 +898,9 @@ const OrdersPage: React.FC = () => {
                         isPending ? 'bg-yellow-50' : ''
                       } transition-colors hover:bg-gray-50`}>
                       <td className='px-4 py-4 text-center text-sm font-medium text-gray-900'>
-                        {order.product_names || '-'}
+                        {Array.isArray(order.product_names)
+                          ? order.product_names.join(', ')
+                          : order.product_names || '-'}
                       </td>
                       <td className='px-4 py-4 text-center text-sm text-gray-500'>
                         {order.supplier}
@@ -885,7 +919,7 @@ const OrdersPage: React.FC = () => {
                         <button
                           onClick={() => handleOpenOrderDetail(order.id)}
                           className='rounded-md bg-indigo-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-indigo-700'
-                          aria-label={`${order.product_names || '-'} 상세보기`}>
+                          aria-label={`${Array.isArray(order.product_names) ? order.product_names.join(', ') : order.product_names || '-'} 상세보기`}>
                           상세보기
                         </button>
                       </td>
@@ -893,7 +927,7 @@ const OrdersPage: React.FC = () => {
                         <button
                           onClick={() => handleDownloadOrderExcel(order)}
                           className='rounded p-2 text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-800'
-                          aria-label={`${order.product_names || '-'} 다운로드`}>
+                          aria-label={`${Array.isArray(order.product_names) ? order.product_names.join(', ') : order.product_names || '-'} 다운로드`}>
                           <FiDownload className='h-4 w-4' />
                         </button>
                       </td>
@@ -901,7 +935,7 @@ const OrdersPage: React.FC = () => {
                         <button
                           onClick={() => handleDeleteOrder(order)}
                           className='flex items-center justify-center rounded bg-red-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-red-700'
-                          aria-label={`${order.product_names || '-'} 삭제`}>
+                          aria-label={`${Array.isArray(order.product_names) ? order.product_names.join(', ') : order.product_names || '-'} 삭제`}>
                           삭제
                         </button>
                       </td>
