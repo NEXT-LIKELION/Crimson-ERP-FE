@@ -3,7 +3,6 @@ import { FiX, FiCalendar, FiFileText, FiSend } from 'react-icons/fi';
 import { useCreateVacation } from '../../hooks/queries/useVacations';
 import { VacationCreateData, LEAVE_TYPE_OPTIONS, LeaveType, fetchEmployees } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
-import { getCurrentUser } from '../../api/auth';
 
 interface VacationRequestModalProps {
   onClose: () => void;
@@ -72,107 +71,41 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
 
   // 휴가 신청 제출
   const handleSubmit = async () => {
-    console.log('휴가 신청 시작 - 현재 사용자 정보:', currentUser);
-    console.log('현재 사용자의 모든 속성:', Object.keys(currentUser || {}));
-    console.log('localStorage auth-storage:', localStorage.getItem('auth-storage'));
-
     if (!validateForm()) {
       return;
     }
 
     if (!currentUser) {
-      console.error('currentUser가 null입니다');
       alert('로그인 정보가 없습니다. 다시 로그인해주세요.');
       return;
     }
 
-    // 사용자 ID 확인 (여러 필드 시도)
-    let employeeId: number | undefined = currentUser.id;
-
-    if (!employeeId) {
-      // 다른 필드명들도 시도해보기
-      // 다른 필드들을 확인 (타입 안정성을 위해 in 연산자 사용)
-      const userWithId = currentUser as unknown as Record<string, unknown>;
-      if ('employee_id' in currentUser) {
-        const value = userWithId.employee_id;
-        employeeId = typeof value === 'number' ? value : typeof value === 'string' ? parseInt(value, 10) : undefined;
-      } else if ('user_id' in currentUser) {
-        const value = userWithId.user_id;
-        employeeId = typeof value === 'number' ? value : typeof value === 'string' ? parseInt(value, 10) : undefined;
-      } else if ('pk' in currentUser) {
-        const value = userWithId.pk;
-        employeeId = typeof value === 'number' ? value : typeof value === 'string' ? parseInt(value, 10) : undefined;
-      }
-
-      console.log('대체 ID 필드 시도 결과:', employeeId);
-    }
-
-    // 만약 여전히 employeeId가 없다면 API에서 현재 사용자 정보를 다시 가져와서 시도
-    if (!employeeId) {
-      try {
-        console.log('API에서 현재 사용자 정보 다시 가져오는 중...');
-        const response = await getCurrentUser();
-        const freshUserData = response.data;
-        console.log('API에서 가져온 사용자 정보:', freshUserData);
-
-        employeeId =
-          freshUserData.id ||
-          freshUserData.employee_id ||
-          freshUserData.user_id ||
-          freshUserData.pk ||
-          freshUserData.username;
-
-        console.log('API에서 추출한 employeeId:', employeeId);
-      } catch (error) {
-        console.error('현재 사용자 정보 조회 실패:', error);
-      }
-    }
-
-    if (!employeeId) {
-      console.error('모든 ID 필드 시도 실패. currentUser 전체:', currentUser);
-      alert('사용자 ID 정보를 찾을 수 없습니다. 관리자에게 문의하세요.');
-      return;
-    }
-
     try {
-      // employeeId를 숫자로 변환 시도
       let numericEmployeeId: number;
 
-      if (typeof employeeId === 'number') {
-        numericEmployeeId = employeeId;
-      } else if (typeof employeeId === 'string') {
-        // 문자열인 경우 숫자로 변환 시도
-        const parsed = parseInt(employeeId, 10);
-        if (isNaN(parsed)) {
-          // 숫자로 변환할 수 없는 경우 (username 등), 직원 목록에서 해당 사용자의 ID를 찾기
-          try {
-            console.log('직원 목록에서 사용자 ID 찾는 중...', employeeId);
-            const employeesResponse = await fetchEmployees();
-            const employees = employeesResponse.data;
-            console.log('직원 목록:', employees);
-
-            const currentEmployee = employees.find(
-              (emp: { username: string }) => emp.username === employeeId || emp.username === currentUser.username
-            );
-
-            if (currentEmployee) {
-              numericEmployeeId = currentEmployee.id;
-              console.log('찾은 직원 ID:', numericEmployeeId);
-            } else {
-              alert('직원 목록에서 현재 사용자를 찾을 수 없습니다. 관리자에게 문의하세요.');
-              return;
-            }
-          } catch (error) {
-            console.error('직원 목록 조회 실패:', error);
-            alert('직원 정보를 조회할 수 없습니다. 관리자에게 문의하세요.');
-            return;
-          }
-        } else {
-          numericEmployeeId = parsed;
-        }
+      // 1단계: currentUser.id 확인
+      if (currentUser.id && typeof currentUser.id === 'number') {
+        numericEmployeeId = currentUser.id;
       } else {
-        alert('잘못된 사용자 ID 형식입니다. 관리자에게 문의하세요.');
-        return;
+        // 2단계: 직원 목록에서 username으로 ID 찾기
+        try {
+          const employeesResponse = await fetchEmployees();
+          const employees = employeesResponse.data;
+          
+          const currentEmployee = employees.find(
+            (emp: { username: string; id: number }) => emp.username === currentUser.username
+          );
+
+          if (currentEmployee && currentEmployee.id) {
+            numericEmployeeId = currentEmployee.id;
+          } else {
+            throw new Error('직원 목록에서 사용자를 찾을 수 없습니다.');
+          }
+        } catch (error) {
+          console.error('직원 목록 조회 실패:', error);
+          alert('사용자 정보를 확인할 수 없습니다. 관리자에게 문의하세요.');
+          return;
+        }
       }
 
       const requestData: VacationCreateData = {
@@ -180,24 +113,17 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
         ...formData,
       };
 
-      console.log('휴가 신청 요청 데이터:', requestData);
-      console.log('employee ID 타입:', typeof requestData.employee);
       await createVacationMutation.mutateAsync(requestData);
-
       alert('휴가 신청이 완료되었습니다.');
       onSuccess?.();
       onClose();
     } catch (error: unknown) {
       console.error('휴가 신청 실패:', error);
       const apiError = error as ApiError;
-      if ('response' in (error as object)) {
-        console.error('오류 응답 데이터:', apiError.response?.data);
-      }
-
+      
       let errorMessage = '휴가 신청에 실패했습니다.';
 
       if ('response' in (error as object) && apiError.response?.data) {
-        // 다양한 오류 메시지 형식 처리
         const responseData = apiError.response.data;
         if (typeof responseData === 'string') {
           errorMessage = responseData;
@@ -213,9 +139,8 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
             ? nonFieldErrors.join(', ')
             : nonFieldErrors;
         } else {
-          // 필드별 오류 메시지 처리
           const fieldErrors = Object.entries(responseData)
-            .filter(([value]) => Array.isArray(value))
+            .filter(([, value]) => Array.isArray(value))
             .map(([key, value]) => `${key}: ${(value as string[]).join(', ')}`)
             .join('\n');
 

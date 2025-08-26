@@ -25,6 +25,11 @@ export const updateSupplier = (id: number, data: {
   address?: string;
 }) => api.patch(`/supplier/${id}/`, data);
 
+// 공급업체별 variant 매핑 정보 조회 (API가 없으므로 비활성화)
+// export const fetchSupplierVariants = (supplierId: number) => 
+//   api.get(`/supplier/${supplierId}/variants/`);
+
+// 공급업체별 variant 정보 수정
 export const updateSupplierVariant = (id: number, code: string, data: {
   cost_price?: number;
   is_primary?: boolean;

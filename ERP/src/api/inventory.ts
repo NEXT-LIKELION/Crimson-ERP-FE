@@ -4,10 +4,10 @@ import { Product, ProductVariant, ProductVariantCreate, ProductOption } from '..
 interface InventoryFilterParams {
   name?: string;
   category?: string;
-  min_stock?: number;
-  max_stock?: number;
-  min_sales?: number;
-  max_sales?: number;
+  stock_gt?: number;
+  stock_lt?: number;
+  sales_min?: number;
+  sales_max?: number;
 }
 
 interface FetchInventoriesParams extends InventoryFilterParams {
@@ -129,10 +129,10 @@ interface InventoryExportFilters {
   name?: string;
   category?: string;
   status?: string;
-  min_stock?: number;
-  max_stock?: number;
-  min_sales?: number;
-  max_sales?: number;
+  stock_gt?: number;
+  stock_lt?: number;
+  sales_min?: number;
+  sales_max?: number;
   page?: number;
 }
 
@@ -186,21 +186,21 @@ export const fetchFilteredInventoriesForExport = async (appliedFilters: Inventor
       }
 
       // 재고수량 필터
-      if (appliedFilters?.min_stock !== undefined && appliedFilters?.min_stock > 0) {
-        if (item.stock < appliedFilters.min_stock) return false;
+      if (appliedFilters?.stock_gt !== undefined) {
+        if (item.stock <= appliedFilters.stock_gt) return false;
       }
-      if (appliedFilters?.max_stock !== undefined && appliedFilters?.max_stock < 1000) {
-        if (item.stock > appliedFilters.max_stock) return false;
+      if (appliedFilters?.stock_lt !== undefined) {
+        if (item.stock >= appliedFilters.stock_lt) return false;
       }
 
       // 판매합계 필터
-      if (appliedFilters?.min_sales !== undefined && appliedFilters?.min_sales > 0) {
+      if (appliedFilters?.sales_min !== undefined && appliedFilters?.sales_min > 0) {
         const sales = typeof item.sales === 'string' ? Number(item.sales) || 0 : item.sales || 0;
-        if (sales < appliedFilters.min_sales) return false;
+        if (sales < appliedFilters.sales_min) return false;
       }
-      if (appliedFilters?.max_sales !== undefined && appliedFilters?.max_sales < 5000000) {
+      if (appliedFilters?.sales_max !== undefined && appliedFilters?.sales_max < 5000000) {
         const sales = typeof item.sales === 'string' ? Number(item.sales) || 0 : item.sales || 0;
-        if (sales > appliedFilters.max_sales) return false;
+        if (sales > appliedFilters.sales_max) return false;
       }
 
       return true;

@@ -32,6 +32,7 @@ interface InputFieldProps {
   onReset: () => void;
 }
 
+
 const InputField: React.FC<InputFieldProps> = ({
   productName,
   onProductNameChange,
@@ -61,23 +62,16 @@ const InputField: React.FC<InputFieldProps> = ({
     SLIDER_CONFIG.STOCK.max,
   ]);
 
-  // props의 minSales, maxSales가 변경될 때 슬라이더 값 동기화
+  // 컴포넌트 마운트 시에만 초기화
   useEffect(() => {
-    const min = minSales ? parseInt(minSales) : SLIDER_CONFIG.SALES.min;
-    const max = maxSales ? parseInt(maxSales) : SLIDER_CONFIG.SALES.max;
-    setSalesSliderValues([min, max]);
-  }, [minSales, maxSales]);
-
-  // props의 minStock, maxStock이 변경될 때 슬라이더 값 동기화 (외부에서 리셋할 때만)
-  useEffect(() => {
-    const min = minStock ? parseInt(minStock) : SLIDER_CONFIG.STOCK.min;
-    const max = maxStock ? parseInt(maxStock) : SLIDER_CONFIG.STOCK.max;
-
-    // 현재 슬라이더 값과 다를 때만 업데이트 (무한 루프 방지)
-    if (stockSliderValues[0] !== min || stockSliderValues[1] !== max) {
-      setStockSliderValues([min, max]);
-    }
-  }, [minStock, maxStock, stockSliderValues]);
+    const minSalesVal = parseInt(minSales) || SLIDER_CONFIG.SALES.min;
+    const maxSalesVal = parseInt(maxSales) || SLIDER_CONFIG.SALES.max;
+    const minStockVal = parseInt(minStock) || SLIDER_CONFIG.STOCK.min;
+    const maxStockVal = parseInt(maxStock) || SLIDER_CONFIG.STOCK.max;
+    
+    setSalesSliderValues([minSalesVal, maxSalesVal]);
+    setStockSliderValues([minStockVal, maxStockVal]);
+  }, [minSales, maxSales, minStock, maxStock]); // props가 변경될 때마다 초기화
 
   // 엔터키 입력 시 검색 실행
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -86,23 +80,27 @@ const InputField: React.FC<InputFieldProps> = ({
     }
   };
 
-  // 판매합계 슬라이더 값 변경 핸들러 (드래그 중 미리보기만 업데이트)
+  // 판매합계 슬라이더 값 변경 핸들러 (드래그 중에는 UI만 업데이트)
   const handleSalesSliderChange = (value: number[]) => {
     const [min, max] = value;
     setSalesSliderValues([min, max]);
+    // 드래그 중에는 부모에게 전달하지 않음 (UI만 업데이트)
   };
   const handleSalesSliderAfterChange = (value: number[]) => {
+    // 드래그 완료 후에만 부모에게 변경사항 전달
     const [min, max] = value;
     onMinSalesChange(min.toString());
     onMaxSalesChange(max.toString());
   };
 
-  // 재고수량 슬라이더 값 변경 핸들러 (드래그 중 미리보기만 업데이트)
+  // 재고수량 슬라이더 값 변경 핸들러 (드래그 중에는 UI만 업데이트)
   const handleStockSliderChange = (value: number[]) => {
     const [min, max] = value;
     setStockSliderValues([min, max]);
+    // 드래그 중에는 부모에게 전달하지 않음 (UI만 업데이트)
   };
   const handleStockSliderAfterChange = (value: number[]) => {
+    // 드래그 완료 후에만 부모에게 변경사항 전달
     const [min, max] = value;
     onMinStockChange(min.toString());
     onMaxStockChange(max.toString());
@@ -152,10 +150,15 @@ const InputField: React.FC<InputFieldProps> = ({
             step={10}
             value={stockSliderValues}
             onChange={handleStockSliderChange as (value: number | number[]) => void}
-            onAfterChange={handleStockSliderAfterChange as (value: number | number[]) => void}
+            onChangeComplete={handleStockSliderAfterChange as (value: number | number[]) => void}
             allowCross={false}
             pushable={0}
-            trackStyle={[{ backgroundColor: '#10b981' }]} // 초록색
+            trackStyle={[{ 
+              backgroundColor: '#10b981',
+              left: `${(stockSliderValues[0] / SLIDER_CONFIG.STOCK.max) * 100}%`,
+              width: `${((stockSliderValues[1] - stockSliderValues[0]) / SLIDER_CONFIG.STOCK.max) * 100}%`
+            }]}
+            railStyle={{ backgroundColor: '#e5e7eb' }}
             handleStyle={[
               { borderColor: '#10b981', backgroundColor: '#10b981' },
               { borderColor: '#10b981', backgroundColor: '#10b981' },
@@ -175,8 +178,13 @@ const InputField: React.FC<InputFieldProps> = ({
             step={10000}
             value={salesSliderValues}
             onChange={handleSalesSliderChange as (value: number | number[]) => void}
-            onAfterChange={handleSalesSliderAfterChange as (value: number | number[]) => void}
-            trackStyle={[{ backgroundColor: '#2563eb' }]} // 파란색
+            onChangeComplete={handleSalesSliderAfterChange as (value: number | number[]) => void}
+            trackStyle={[{ 
+              backgroundColor: '#2563eb',
+              left: `${(salesSliderValues[0] / SLIDER_CONFIG.SALES.max) * 100}%`,
+              width: `${((salesSliderValues[1] - salesSliderValues[0]) / SLIDER_CONFIG.SALES.max) * 100}%`
+            }]}
+            railStyle={{ backgroundColor: '#e5e7eb' }}
             handleStyle={[
               { borderColor: '#2563eb', backgroundColor: '#2563eb' },
               { borderColor: '#2563eb', backgroundColor: '#2563eb' },
@@ -190,7 +198,13 @@ const InputField: React.FC<InputFieldProps> = ({
       </div>
       <div className='flex justify-end space-x-2'>
         <button
-          onClick={onReset}
+          onClick={() => {
+            // 슬라이더 먼저 리셋
+            setSalesSliderValues([SLIDER_CONFIG.SALES.min, SLIDER_CONFIG.SALES.max]);
+            setStockSliderValues([SLIDER_CONFIG.STOCK.min, SLIDER_CONFIG.STOCK.max]);
+            // 그 다음 부모 컴포넌트 리셋
+            onReset();
+          }}
           className='inline-flex h-10 cursor-pointer items-center justify-center rounded-md bg-gray-200 px-4 py-2 text-sm leading-tight font-medium text-gray-700 transition-colors duration-200 ease-in-out hover:bg-gray-300 active:bg-gray-400'>
           <MdRefresh size={16} className='mr-2' />
           초기화

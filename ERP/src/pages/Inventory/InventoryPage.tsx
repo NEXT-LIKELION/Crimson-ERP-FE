@@ -188,18 +188,12 @@ const InventoryPage = () => {
       newFilters.status = status;
     }
 
-    // 재고 필터 적용
+    // 재고 필터 적용 (항상 적용, 기본값이어도 필터링)
     const minStockValue = parseInt(minStock) || 0;
     const maxStockValue = parseInt(maxStock) || 1000;
-    const isDefaultStock = minStockValue === 0 && maxStockValue === 1000;
 
-    if (!isDefaultStock) {
-      newFilters.min_stock = minStockValue;
-      newFilters.max_stock = maxStockValue;
-    } else {
-      delete newFilters.min_stock;
-      delete newFilters.max_stock;
-    }
+    newFilters.min_stock = minStockValue;
+    newFilters.max_stock = maxStockValue;
 
     // 판매 필터 적용
     const minSalesValue = parseInt(minSales) || 0;
@@ -478,7 +472,26 @@ const InventoryPage = () => {
 
       } else {
         // 필터가 있는 경우 → api에서 처리
-        exportData = await fetchFilteredInventoriesForExport(appliedFilters);
+        // API 파라미터명 변환
+        const exportFilters: Record<string, unknown> = { ...appliedFilters };
+        if (appliedFilters.min_stock !== undefined) {
+          exportFilters.stock_gt = appliedFilters.min_stock - 1;
+          delete exportFilters.min_stock;
+        }
+        if (appliedFilters.max_stock !== undefined) {
+          exportFilters.stock_lt = appliedFilters.max_stock + 1;
+          delete exportFilters.max_stock;
+        }
+        if (appliedFilters.min_sales !== undefined) {
+          exportFilters.sales_min = appliedFilters.min_sales;
+          delete exportFilters.min_sales;
+        }
+        if (appliedFilters.max_sales !== undefined) {
+          exportFilters.sales_max = appliedFilters.max_sales;
+          delete exportFilters.max_sales;
+        }
+        
+        exportData = await fetchFilteredInventoriesForExport(exportFilters);
       }
 
       if (!exportData || exportData.length === 0) {

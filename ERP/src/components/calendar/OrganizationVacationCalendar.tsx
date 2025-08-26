@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { FiChevronLeft, FiChevronRight, FiX, FiUsers, FiFilter } from 'react-icons/fi';
-import { useVacations } from '../../hooks/queries/useVacations';
+import { useVacations, useReviewVacation } from '../../hooks/queries/useVacations';
 import { useEmployees } from '../../hooks/queries/useEmployees';
 import {
   Vacation,
@@ -9,6 +9,9 @@ import {
   VacationStatus,
   EmployeeList,
 } from '../../api/hr';
+import { useAuthStore } from '../../store/authStore';
+import { usePermissions } from '../../hooks/usePermissions';
+import StatusBadge from '../common/StatusBadge';
 
 interface OrganizationVacationCalendarProps {
   onClose: () => void;
@@ -22,9 +25,15 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<number[]>([]);
   const [selectedLeaveType, setSelectedLeaveType] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<VacationStatus | ''>('');
+  const [showManagementPanel, setShowManagementPanel] = useState(false);
+
+  const currentUser = useAuthStore((state) => state.user);
+  const permissions = usePermissions();
+  const isAdmin = permissions.hasPermission('HR');
 
   const { data: vacationsData, isLoading: vacationsLoading } = useVacations();
   const { data: employeesData, isLoading: employeesLoading } = useEmployees();
+  const reviewVacationMutation = useReviewVacation();
 
   // 직원별 고유 색상 생성
   const employeeColors = useMemo(() => {
@@ -55,12 +64,12 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
     return colorMap;
   }, [employeesData?.data]);
 
-  // 필터링된 휴가 데이터 (취소/거절된 건 제외)
+  // 필터링된 휴가 데이터
   const filteredVacations = useMemo(() => {
     const vacations: Vacation[] = vacationsData?.data || [];
     return vacations.filter((vacation) => {
-      // 취소/거절된 휴가는 표시하지 않음
-      if (vacation.status === 'CANCELLED' || vacation.status === 'REJECTED') {
+      // 관리 패널이 아닌 경우에만 취소/거절된 휴가 제외
+      if (!showManagementPanel && (vacation.status === 'CANCELLED' || vacation.status === 'REJECTED')) {
         return false;
       }
 
@@ -69,9 +78,14 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
       const leaveTypeMatch = selectedLeaveType === '' || vacation.leave_type === selectedLeaveType;
       const statusMatch = selectedStatus === '' || vacation.status === selectedStatus;
 
+      // 직원인 경우 본인 휴가만 보기
+      if (!isAdmin) {
+        return employeeMatch && leaveTypeMatch && statusMatch && vacation.employee === currentUser?.id;
+      }
+
       return employeeMatch && leaveTypeMatch && statusMatch;
     });
-  }, [vacationsData?.data, selectedEmployeeIds, selectedLeaveType, selectedStatus]);
+  }, [vacationsData?.data, selectedEmployeeIds, selectedLeaveType, selectedStatus, showManagementPanel, isAdmin, currentUser?.id]);
 
   // 날짜별 휴가 그룹화
   const vacationsByDate = useMemo(() => {
@@ -138,6 +152,41 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
     setSelectedEmployeeIds((prev) =>
       prev.includes(employeeId) ? prev.filter((id) => id !== employeeId) : [...prev, employeeId]
     );
+  };
+
+  // 휴가 상태 변경
+  const handleStatusChange = async (vacationId: number, newStatus: VacationStatus) => {
+    if (!isAdmin && newStatus !== 'CANCELLED') {
+      alert('권한이 없습니다.');
+      return;
+    }
+
+    try {
+      await reviewVacationMutation.mutateAsync({ vacationId, status: newStatus });
+      const statusText = VACATION_STATUS_OPTIONS.find((opt) => opt.value === newStatus)?.label;
+      alert(`휴가 상태가 "${statusText}"로 변경되었습니다.`);
+    } catch (error: unknown) {
+      console.error('휴가 상태 변경 실패:', error);
+      alert('상태 변경에 실패했습니다.');
+    }
+  };
+
+  // 상태 뱃지 색상 가져오기
+  const getStatusBadgeTheme = (
+    status: VacationStatus
+  ): 'pending' | 'active' | 'rejected' | 'neutral' => {
+    switch (status) {
+      case 'PENDING':
+        return 'pending';
+      case 'APPROVED':
+        return 'active';
+      case 'REJECTED':
+        return 'rejected';
+      case 'CANCELLED':
+        return 'neutral';
+      default:
+        return 'neutral';
+    }
   };
 
   // 월간 캘린더 렌더링
@@ -259,6 +308,109 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
     return <div className='grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4'>{months}</div>;
   };
 
+  // 관리 패널 렌더링
+  const renderManagementPanel = () => {
+    const formatDate = (dateString: string): string => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    };
+
+    return (
+      <div className='space-y-4'>
+        {filteredVacations.length === 0 ? (
+          <div className='py-12 text-center'>
+            <div className='mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100'>
+              <FiUsers className='h-8 w-8 text-gray-400' />
+            </div>
+            <h3 className='mb-2 text-lg font-semibold text-gray-900'>
+              휴가 신청 내역이 없습니다
+            </h3>
+            <p className='text-gray-600'>조건에 맞는 휴가 신청이 없습니다.</p>
+          </div>
+        ) : (
+          <div className='grid grid-cols-1 gap-4 lg:grid-cols-2'>
+            {filteredVacations.map((vacation) => {
+              const isOwner = currentUser?.id === vacation.employee;
+              const canCancel = isOwner && vacation.status === 'PENDING';
+              const canApprove = isAdmin && vacation.status === 'PENDING';
+
+              return (
+                <div key={vacation.id} className='rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-md'>
+                  <div className='mb-3 flex items-start justify-between'>
+                    <div className='flex items-center'>
+                      <div className={`mr-3 flex h-10 w-10 items-center justify-center rounded-lg ${employeeColors[vacation.employee]} text-white text-sm font-semibold`}>
+                        {getEmployeeName(vacation.employee).charAt(0)}
+                      </div>
+                      <div>
+                        <h3 className='font-semibold text-gray-900'>{getEmployeeName(vacation.employee)}</h3>
+                        <p className='text-sm text-gray-600'>{getLeaveTypeLabel(vacation.leave_type)}</p>
+                      </div>
+                    </div>
+                    <StatusBadge
+                      text={vacation.status_display}
+                      theme={getStatusBadgeTheme(vacation.status)}
+                    />
+                  </div>
+
+                  <div className='mb-4 space-y-2'>
+                    <div className='text-sm text-gray-600'>
+                      <strong>기간:</strong> {formatDate(vacation.start_date)}
+                      {vacation.start_date !== vacation.end_date && <> ~ {formatDate(vacation.end_date)}</>}
+                    </div>
+                    <div className='text-sm text-gray-600'>
+                      <strong>사유:</strong> {vacation.reason}
+                    </div>
+                    <div className='text-sm text-gray-600'>
+                      <strong>신청일:</strong> {formatDate(vacation.created_at)}
+                    </div>
+                    {vacation.reviewed_at && (
+                      <div className='text-sm text-gray-600'>
+                        <strong>처리일:</strong> {formatDate(vacation.reviewed_at)}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 액션 버튼 */}
+                  <div className='flex gap-2'>
+                    {canApprove && (
+                      <>
+                        <button
+                          onClick={() => handleStatusChange(vacation.id, 'APPROVED')}
+                          disabled={reviewVacationMutation.isPending}
+                          className='flex flex-1 items-center justify-center rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-700 transition-all duration-200 hover:border-green-300 hover:bg-green-100 disabled:opacity-50'>
+                          승인
+                        </button>
+                        <button
+                          onClick={() => handleStatusChange(vacation.id, 'REJECTED')}
+                          disabled={reviewVacationMutation.isPending}
+                          className='flex flex-1 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition-all duration-200 hover:border-red-300 hover:bg-red-100 disabled:opacity-50'>
+                          거절
+                        </button>
+                      </>
+                    )}
+
+                    {canCancel && (
+                      <button
+                        onClick={() => handleStatusChange(vacation.id, 'CANCELLED')}
+                        disabled={reviewVacationMutation.isPending}
+                        className='flex flex-1 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-100 disabled:opacity-50'>
+                        취소
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // 배경 클릭 시 모달 닫기
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
@@ -299,8 +451,15 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
               <FiUsers className='h-5 w-5 text-blue-600' />
             </div>
             <div>
-              <h2 className='text-lg font-semibold text-gray-900'>조직 휴가 캘린더</h2>
-              <p className='text-sm text-gray-500'>전체 직원의 휴가 현황을 확인하세요</p>
+              <h2 className='text-lg font-semibold text-gray-900'>
+                {showManagementPanel ? (isAdmin ? '휴가 관리' : '내 휴가 현황') : '조직 휴가 캘린더'}
+              </h2>
+              <p className='text-sm text-gray-500'>
+                {showManagementPanel 
+                  ? `총 ${filteredVacations.length}건의 휴가가 있습니다`
+                  : '전체 직원의 휴가 현황을 확인하세요'
+                }
+              </p>
             </div>
           </div>
           <button onClick={onClose} className='text-gray-400 transition-colors hover:text-gray-600'>
@@ -311,46 +470,73 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
         {/* 컨트롤 바 */}
         <div className='border-b border-gray-200 bg-gray-50 px-6 py-4'>
           <div className='mb-4 flex items-center justify-between'>
-            {/* 뷰 모드 토글 */}
-            <div className='flex rounded-lg border border-gray-200 bg-white p-1'>
-              <button
-                onClick={() => setViewMode('monthly')}
-                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                  viewMode === 'monthly'
-                    ? 'bg-blue-500 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}>
-                월간
-              </button>
-              <button
-                onClick={() => setViewMode('yearly')}
-                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                  viewMode === 'yearly'
-                    ? 'bg-blue-500 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}>
-                연간
-              </button>
+            {/* 탭 네비게이션 */}
+            <div className='flex items-center space-x-1'>
+              {/* 캘린더 섹션 */}
+              <div className='flex rounded-lg border border-gray-200 bg-white shadow-sm'>
+                <button
+                  onClick={() => {
+                    setShowManagementPanel(false);
+                    setViewMode('monthly');
+                  }}
+                  className={`px-4 py-2 text-sm font-medium transition-all duration-200 rounded-l-lg border-r border-gray-200 ${
+                    !showManagementPanel && viewMode === 'monthly'
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                  }`}>
+                  📅 월간 캘린더
+                </button>
+                <button
+                  onClick={() => {
+                    setShowManagementPanel(false);
+                    setViewMode('yearly');
+                  }}
+                  className={`px-4 py-2 text-sm font-medium transition-all duration-200 rounded-r-lg ${
+                    !showManagementPanel && viewMode === 'yearly'
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                  }`}>
+                  📊 연간 캘린더
+                </button>
+              </div>
+              
+              {/* 구분선 */}
+              <div className='h-8 w-px bg-gray-300'></div>
+              
+              {/* 관리 섹션 */}
+              <div className='flex rounded-lg border border-gray-200 bg-white shadow-sm'>
+                <button
+                  onClick={() => setShowManagementPanel(true)}
+                  className={`px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg ${
+                    showManagementPanel
+                      ? 'bg-indigo-500 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-indigo-600 hover:bg-indigo-50'
+                  }`}>
+                  ⚙️ {isAdmin ? '휴가 관리' : '내 휴가'}
+                </button>
+              </div>
             </div>
 
-            {/* 날짜 네비게이션 */}
-            <div className='flex items-center space-x-4'>
-              <button
-                onClick={() => navigateMonth('prev')}
-                className='rounded-lg p-2 transition-colors hover:bg-white'>
-                <FiChevronLeft className='h-5 w-5' />
-              </button>
-              <h3 className='min-w-[120px] text-center text-lg font-semibold text-gray-900'>
-                {viewMode === 'monthly'
-                  ? formatDate(currentDate)
-                  : `${currentDate.getFullYear()}년`}
-              </h3>
-              <button
-                onClick={() => navigateMonth('next')}
-                className='rounded-lg p-2 transition-colors hover:bg-white'>
-                <FiChevronRight className='h-5 w-5' />
-              </button>
-            </div>
+            {/* 날짜 네비게이션 (관리 패널이 아닐 때만 표시) */}
+            {!showManagementPanel && (
+              <div className='flex items-center space-x-4'>
+                <button
+                  onClick={() => navigateMonth('prev')}
+                  className='rounded-lg p-2 transition-colors hover:bg-white'>
+                  <FiChevronLeft className='h-5 w-5' />
+                </button>
+                <h3 className='min-w-[120px] text-center text-lg font-semibold text-gray-900'>
+                  {viewMode === 'monthly'
+                    ? formatDate(currentDate)
+                    : `${currentDate.getFullYear()}년`}
+                </h3>
+                <button
+                  onClick={() => navigateMonth('next')}
+                  className='rounded-lg p-2 transition-colors hover:bg-white'>
+                  <FiChevronRight className='h-5 w-5' />
+                </button>
+              </div>
+            )}
 
             <div className='flex items-center space-x-2'>
               <FiFilter className='h-4 w-4 text-gray-500' />
@@ -407,7 +593,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                 className='w-full rounded-lg border border-gray-200 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none'>
                 <option value=''>전체 상태</option>
                 {VACATION_STATUS_OPTIONS.filter(
-                  (option) => option.value !== 'CANCELLED' && option.value !== 'REJECTED'
+                  (option) => showManagementPanel || (option.value !== 'CANCELLED' && option.value !== 'REJECTED')
                 ).map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -420,7 +606,10 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
 
         {/* 캘린더 콘텐츠 */}
         <div className='flex-1 overflow-y-auto p-6'>
-          {viewMode === 'monthly' ? renderMonthlyCalendar() : renderYearlyView()}
+          {showManagementPanel 
+            ? renderManagementPanel() 
+            : (viewMode === 'monthly' ? renderMonthlyCalendar() : renderYearlyView())
+          }
         </div>
 
         {/* 푸터 */}

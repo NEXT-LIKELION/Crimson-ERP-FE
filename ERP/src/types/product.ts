@@ -124,7 +124,22 @@ export interface Supplier {
   email: string;
   address: string;
   variant_codes: string[];
-  variants: string; // readOnly
+  variants: string; // readOnly - API 문서에 따르면 string 타입
+}
+
+// 공급업체 상세 조회용 확장 타입 (UI에서 사용)
+export interface SupplierDetail extends Supplier {
+  enrichedVariants?: EnrichedSupplierVariant[];
+}
+
+// 공급업체 variant 정보 (inventory 데이터와 조합된)
+export interface EnrichedSupplierVariant {
+  variant_code: string;
+  product_name: string;
+  option: string;
+  stock: number;
+  cost_price: number;
+  is_primary: boolean;
 }
 
 // Supplier 생성용 (POST /supplier/ 요청)
