@@ -37,19 +37,6 @@ api.interceptors.request.use((config) => {
     delete config.headers['Content-Type'];
   }
 
-  // 휴가 관련 요청 로깅
-  if (config.url?.includes('/hr/vacation')) {
-    console.log('휴가 API 요청:', {
-      method: config.method,
-      url: config.url,
-      fullUrl: `${config.baseURL}${config.url}`,
-      data: config.data,
-      headers: {
-        Authorization: config.headers.Authorization ? 'Bearer ***' : 'None',
-        'Content-Type': config.headers['Content-Type'],
-      },
-    });
-  }
 
   return config;
 });

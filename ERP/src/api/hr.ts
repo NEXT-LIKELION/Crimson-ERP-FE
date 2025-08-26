@@ -44,7 +44,7 @@ export const checkUsernameAvailability = async (username: string): Promise<{ ava
       available: isAvailable,
       message: isAvailable ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.'
     };
-  } catch (error) {
+  } catch {
     throw new Error('중복 확인 중 오류가 발생했습니다.');
   }
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Pagination from '../pagination/pagination';
 import { MdOutlineEdit, MdOutlineDelete } from 'react-icons/md';
-import { MdFilterList, MdOutlineDownload } from 'react-icons/md';
+import { MdOutlineDownload } from 'react-icons/md';
 import { RxCaretSort } from 'react-icons/rx';
 import { useNavigate } from 'react-router-dom';
 import { Product } from '../../types/product';
@@ -73,7 +73,6 @@ const InventoryTable = ({
 
   useEffect(() => {
     if (!Array.isArray(inventories)) return;
-    console.log('InventoryTable - inventories changed:', inventories.length);
 
     // 백엔드에서 이미 필터링된 데이터를 직접 받아서 상태만 계산
     const rows = inventories.map((item) => {
@@ -103,7 +102,6 @@ const InventoryTable = ({
       return row;
     });
 
-    console.log('InventoryTable - mapped data:', rows);
     setData(rows);
   }, [inventories]);
 
@@ -144,11 +142,6 @@ const InventoryTable = ({
         <h2 className='flex items-center text-lg font-semibold'>상품별 재고 현황</h2>
         <div className='flex items-center space-x-3 text-gray-500'>
           <span className='text-sm'>총 {pagination?.count ?? data.length}개 상품</span>
-          <MdFilterList
-            className='cursor-pointer hover:text-gray-700'
-            size={20}
-            onClick={() => alert('필터 클릭')}
-          />
           <MdOutlineDownload
             className='cursor-pointer hover:text-gray-700'
             size={20}

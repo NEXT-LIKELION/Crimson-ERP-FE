@@ -26,8 +26,15 @@ const AddSupplierModal = ({
 
   useEffect(() => {
     if (isOpen) {
-      setForm((initialData as Record<string, string>) ?? defaultForm);
-      setRawContact('');
+      const data = (initialData as Record<string, string>) ?? defaultForm;
+      setForm(data);
+      // 수정 모드인 경우 초기 연락처 설정
+      if (initialData?.contact) {
+        const contactNumbers = String(initialData.contact).replace(/[^0-9]/g, '');
+        setRawContact(contactNumbers);
+      } else {
+        setRawContact('');
+      }
       setErrors([]);
     }
   }, [isOpen, initialData]);
@@ -57,10 +64,17 @@ const AddSupplierModal = ({
       setErrors(errs);
       return;
     }
-    onSave({
-      ...form,
-      contact: formatPhoneNumber(rawContact)
-    });
+    
+    // 올바른 형태로 데이터 구성
+    const submitData = {
+      name: form.name?.trim(),
+      contact: rawContact || form.contact?.replace(/[^0-9]/g, ''), // 숫자만 전송
+      manager: form.manager?.trim(),
+      email: form.email?.trim(),
+      address: form.address?.trim(),
+    };
+    
+    onSave(submitData);
     onClose();
   };
 

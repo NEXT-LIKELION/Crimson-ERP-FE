@@ -26,6 +26,26 @@ export const useInventories = (filters?: {
   const frontendStatus = backendFilters.status;
   const hasStatusFilter = frontendStatus && frontendStatus !== '모든 상태';
 
+  // API 파라미터명 변환
+  const apiFilters: Record<string, unknown> = { ...backendFilters };
+  
+  if (backendFilters.min_stock !== undefined) {
+    apiFilters.stock_gt = backendFilters.min_stock - 1; // min_stock 5 -> stock_gt 4 (4초과)
+    delete apiFilters.min_stock;
+  }
+  if (backendFilters.max_stock !== undefined) {
+    apiFilters.stock_lt = backendFilters.max_stock + 1; // max_stock 100 -> stock_lt 101 (101미만)
+    delete apiFilters.max_stock;
+  }
+  if (backendFilters.min_sales !== undefined) {
+    apiFilters.sales_min = backendFilters.min_sales;
+    delete apiFilters.min_sales;
+  }
+  if (backendFilters.max_sales !== undefined) {
+    apiFilters.sales_max = backendFilters.max_sales;
+    delete apiFilters.max_sales;
+  }
+
   // 필터가 하나라도 있으면 모든 데이터를 가져와야 함 (프론트엔드에서 정확한 필터링/페이지네이션)
   const hasAnyFilter = Boolean(
     filters?.name ||
@@ -39,18 +59,18 @@ export const useInventories = (filters?: {
 
 
 
-  delete backendFilters.status; // 백엔드에는 status 필터 제외
+  delete apiFilters.status; // 백엔드에는 status 필터 제외
 
   // 필터가 있으면 모든 데이터를 가져와야 함 (페이지네이션 제거)
   if (hasAnyFilter) {
-    delete backendFilters.page;
+    delete apiFilters.page;
   }
 
 
 
   // 필터가 있을 때는 모든 페이지 데이터를 가져오는 커스텀 훅 사용
   const query = useQuery({
-    queryKey: ['inventories', backendFilters, frontendStatus], // 캐시 키에는 모든 필터 포함
+    queryKey: ['inventories', apiFilters, frontendStatus], // 캐시 키에는 모든 필터 포함
     queryFn: async () => {
       if (hasAnyFilter) {
         // 모든 페이지를 순차적으로 가져와서 합치기
@@ -59,7 +79,7 @@ export const useInventories = (filters?: {
         let hasMoreData = true;
 
         while (hasMoreData) {
-          const response = await fetchInventories({ ...backendFilters, page });
+          const response = await fetchInventories({ ...apiFilters, page });
           const pageData = response.data.results || [];
           allData = [...allData, ...pageData];
 
@@ -79,7 +99,7 @@ export const useInventories = (filters?: {
         };
       } else {
         // 필터가 없으면 기본 API 호출
-        return fetchInventories(backendFilters);
+        return fetchInventories(apiFilters);
       }
     },
     staleTime: 0, // 캐시 비활성화로 항상 최신 데이터 가져오기

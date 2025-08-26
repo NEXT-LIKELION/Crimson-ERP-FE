@@ -349,16 +349,6 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
           )}
         </div>
 
-        {/* 푸터 */}
-        <div className='border-t border-gray-200 bg-gray-50 px-6 py-4'>
-          <div className='flex justify-end'>
-            <button
-              onClick={onClose}
-              className='rounded-lg bg-gray-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700'>
-              닫기
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -7,14 +7,12 @@ import {
   FiTrash2,
   FiEye,
   FiPlusCircle,
-  FiClipboard,
 } from 'react-icons/fi';
 import StatusBadge from '../../components/common/StatusBadge';
 import EmployeeDetailsModal from '../../components/modal/EmployeeDetailsModal';
 import EmployeeContractModal from '../../components/modal/EmployeeContractModal';
 import EmployeeRegistrationModal from '../../components/modal/EmployeeRegistrationModal';
 import VacationRequestModal from '../../components/modal/VacationRequestModal';
-import VacationManagementModal from '../../components/modal/VacationManagementModal';
 import OrganizationVacationCalendar from '../../components/calendar/OrganizationVacationCalendar';
 import { useEmployees, useTerminateEmployee, usePatchEmployee, useApproveEmployee } from '../../hooks/queries/useEmployees';
 import { useQueryClient } from '@tanstack/react-query';
@@ -173,7 +171,6 @@ const HRPage: React.FC = () => {
   const [showContractModal, setShowContractModal] = useState(false);
   const [showEmployeeRegistrationModal, setShowEmployeeRegistrationModal] = useState(false);
   const [showVacationRequestModal, setShowVacationRequestModal] = useState(false);
-  const [showVacationManagementModal, setShowVacationManagementModal] = useState(false);
   const [showOrganizationVacationCalendar, setShowOrganizationVacationCalendar] = useState(false);
 
   // API 데이터 로드 useEffect 제거 - useMemo로 대체
@@ -554,23 +551,13 @@ const HRPage: React.FC = () => {
                   휴가신청
                 </button>
 
-                {/* 휴가 관리 버튼 */}
+                {/* 휴가 관리/조직 캘린더 통합 버튼 */}
                 <button
-                  onClick={() => setShowVacationManagementModal(true)}
+                  onClick={() => setShowOrganizationVacationCalendar(true)}
                   className='flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700'>
-                  <FiClipboard className='mr-2 h-4 w-4' />
-                  {isAdmin ? '휴가관리' : '내 휴가'}
+                  <FiCalendar className='mr-2 h-4 w-4' />
+                  {isAdmin ? '휴가 관리/캘린더' : '내 휴가'}
                 </button>
-
-                {/* 조직 휴가 캘린더 버튼 - 관리자만 표시 */}
-                {isAdmin && (
-                  <button
-                    onClick={() => setShowOrganizationVacationCalendar(true)}
-                    className='flex items-center rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-purple-700'>
-                    <FiCalendar className='mr-2 h-4 w-4' />
-                    조직 캘린더
-                  </button>
-                )}
               </div>
 
               {/* 구분선 */}
@@ -638,16 +625,12 @@ const HRPage: React.FC = () => {
           onClose={() => setShowVacationRequestModal(false)}
           onSuccess={() => {
             setShowVacationRequestModal(false);
-            // 휴가 신청 성공 시 휴가 관리 모달 열기
-            setShowVacationManagementModal(true);
+            // 휴가 신청 성공 시 휴가 캘린더 열기
+            setShowOrganizationVacationCalendar(true);
           }}
         />
       )}
 
-      {/* 휴가 관리 모달 */}
-      {showVacationManagementModal && (
-        <VacationManagementModal onClose={() => setShowVacationManagementModal(false)} />
-      )}
 
       {/* 조직 휴가 캘린더 모달 */}
       {showOrganizationVacationCalendar && (
