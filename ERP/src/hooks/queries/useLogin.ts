@@ -28,9 +28,10 @@ export const useLogin = (onSuccessCallback?: (userData: User) => void) =>
 
       setTokens(access, refresh);
 
-      const createUserWithTabs = (allowed_tabs: string[] = []): User => ({
+      const createUserWithTabs = (allowed_tabs: string[] = [], employeeId?: number): User => ({
         ...basicUser,
-        allowed_tabs
+        allowed_tabs,
+        id: employeeId
       });
 
       const handleUserSuccess = (user: User) => {
@@ -46,7 +47,7 @@ export const useLogin = (onSuccessCallback?: (userData: User) => void) =>
         
         if (currentEmployee) {
           const detailRes = await fetchEmployee(currentEmployee.id);
-          const completeUser = createUserWithTabs(detailRes.data.allowed_tabs || []);
+          const completeUser = createUserWithTabs(detailRes.data.allowed_tabs || [], currentEmployee.id);
           handleUserSuccess(completeUser);
         } else {
           handleUserSuccess(createUserWithTabs());

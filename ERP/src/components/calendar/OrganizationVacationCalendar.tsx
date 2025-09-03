@@ -67,10 +67,19 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
   // 필터링된 휴가 데이터
   const filteredVacations = useMemo(() => {
     const vacations: Vacation[] = vacationsData?.data || [];
-    return vacations.filter((vacation) => {
-      // 관리 패널이 아닌 경우에만 취소/거절된 휴가 제외
-      if (!showManagementPanel && (vacation.status === 'CANCELLED' || vacation.status === 'REJECTED')) {
-        return false;
+    
+    const filtered = vacations.filter((vacation) => {
+      // 관리 패널이 아닌 경우 (캘린더 보기)에는 승인된 휴가만 표시
+      if (!showManagementPanel) {
+        // 캘린더에서는 승인된 휴가만 표시
+        if (vacation.status !== 'APPROVED') {
+          return false;
+        }
+      } else {
+        // 관리 패널에서는 취소/거절된 휴가만 제외
+        if (vacation.status === 'CANCELLED' || vacation.status === 'REJECTED') {
+          return false;
+        }
       }
 
       const employeeMatch =
@@ -78,13 +87,18 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
       const leaveTypeMatch = selectedLeaveType === '' || vacation.leave_type === selectedLeaveType;
       const statusMatch = selectedStatus === '' || vacation.status === selectedStatus;
 
-      // 직원인 경우 본인 휴가만 보기
-      if (!isAdmin) {
-        return employeeMatch && leaveTypeMatch && statusMatch && vacation.employee === currentUser?.id;
+      // 직원인 경우: 관리 패널에서만 본인 휴가만 보기, 캘린더 뷰에서는 전체 조직 휴가 보기
+      if (!isAdmin && showManagementPanel) {
+        const currentUserId = Number(currentUser?.id);
+        const vacationEmployeeId = Number(vacation.employee);
+        const isMyVacation = !isNaN(currentUserId) && !isNaN(vacationEmployeeId) && vacationEmployeeId === currentUserId;
+        return employeeMatch && leaveTypeMatch && statusMatch && isMyVacation;
       }
 
       return employeeMatch && leaveTypeMatch && statusMatch;
     });
+    
+    return filtered;
   }, [vacationsData?.data, selectedEmployeeIds, selectedLeaveType, selectedStatus, showManagementPanel, isAdmin, currentUser?.id]);
 
   // 날짜별 휴가 그룹화
@@ -452,12 +466,12 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
             </div>
             <div>
               <h2 className='text-lg font-semibold text-gray-900'>
-                {showManagementPanel ? (isAdmin ? '휴가 관리' : '내 휴가 현황') : '조직 휴가 캘린더'}
+                {showManagementPanel ? (isAdmin ? '휴가 관리' : '내 휴가 관리') : '조직 휴가 캘린더'}
               </h2>
               <p className='text-sm text-gray-500'>
                 {showManagementPanel 
                   ? `총 ${filteredVacations.length}건의 휴가가 있습니다`
-                  : '전체 직원의 휴가 현황을 확인하세요'
+                  : '전체 조직의 승인된 휴가를 확인하세요'
                 }
               </p>
             </div>
@@ -512,7 +526,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                       ? 'bg-indigo-500 text-white shadow-sm'
                       : 'text-gray-600 hover:text-indigo-600 hover:bg-indigo-50'
                   }`}>
-                  ⚙️ {isAdmin ? '휴가 관리' : '내 휴가'}
+                  📋 {isAdmin ? '휴가 관리' : '내 휴가 관리'}
                 </button>
               </div>
             </div>
@@ -549,8 +563,8 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
             {/* 직원 필터 */}
             <div>
               <label className='mb-1 block text-sm font-medium text-gray-700'>직원 선택</label>
-              <div className='max-h-24 overflow-y-auto rounded-lg border border-gray-200 bg-white p-2'>
-                {(employeesData?.data || []).slice(0, 10).map((employee: EmployeeList) => (
+              <div className='max-h-32 overflow-y-auto rounded-lg border border-gray-200 bg-white p-2'>
+                {(employeesData?.data || []).map((employee: EmployeeList) => (
                   <label key={employee.id} className='flex items-center space-x-2 py-1'>
                     <input
                       type='checkbox'
@@ -562,9 +576,6 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                     <span className='text-sm text-gray-700'>{employee.first_name}</span>
                   </label>
                 ))}
-                {(employeesData?.data || []).length > 10 && (
-                  <div className='py-1 text-xs text-gray-500'>+{(employeesData?.data || []).length - 10}명 더...</div>
-                )}
               </div>
             </div>
 
@@ -593,7 +604,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                 className='w-full rounded-lg border border-gray-200 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none'>
                 <option value=''>전체 상태</option>
                 {VACATION_STATUS_OPTIONS.filter(
-                  (option) => showManagementPanel || (option.value !== 'CANCELLED' && option.value !== 'REJECTED')
+                  (option) => showManagementPanel || option.value === 'APPROVED'
                 ).map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
