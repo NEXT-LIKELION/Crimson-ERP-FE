@@ -33,9 +33,12 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
     const statusMatch = selectedStatus === '' || vacation.status === selectedStatus;
     const leaveTypeMatch = selectedLeaveType === '' || vacation.leave_type === selectedLeaveType;
 
-    // 직원인 경우 본인 휴가만 보기
+    // 직원인 경우 본인 휴가만 보기 - 타입을 명시적으로 숫자로 비교
     if (!isAdmin) {
-      return statusMatch && leaveTypeMatch && vacation.employee === currentUser?.id;
+      const currentUserId = Number(currentUser?.id);
+      const vacationEmployeeId = Number(vacation.employee);
+      const isMyVacation = !isNaN(currentUserId) && !isNaN(vacationEmployeeId) && vacationEmployeeId === currentUserId;
+      return statusMatch && leaveTypeMatch && isMyVacation;
     }
 
     return statusMatch && leaveTypeMatch;
