@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { FiX, FiLoader, FiAlertTriangle } from 'react-icons/fi';
-import { useSupplierById } from '../../hooks/queries/useSuppliers';
-import { updateSupplierVariant } from '../../api/supplier';
+import { useSupplierById, useUpdateSupplierVariant } from '../../hooks/queries/useSuppliers';
 import { EnrichedSupplierVariant } from '../../types/product';
 
 interface SupplierDetailModalProps {
@@ -25,6 +24,9 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
 
   // 공급업체 정보 조회
   const { data: supplierData, isLoading: supplierLoading, error: supplierError } = useSupplierById(supplierId ?? 0);
+  
+  // 공급업체 variant 업데이트 mutation (낙관적 업데이트 포함)
+  const updateVariantMutation = useUpdateSupplierVariant();
 
   const supplier = supplierData?.data;
 
@@ -66,7 +68,7 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
     });
   };
 
-  // 저장 핸들러
+  // 저장 핸들러 (낙관적 업데이트 포함)
   const handleSave = async (variant: EnrichedSupplierVariant) => {
     if (!supplierId) return;
 
@@ -79,17 +81,22 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
     setSavingId(code);
     
     try {
-      await updateSupplierVariant(supplierId, code, {
-        cost_price: edit.cost_price,
-        is_primary: edit.is_primary,
+      await updateVariantMutation.mutateAsync({
+        supplierId,
+        variantCode: code,
+        data: {
+          cost_price: edit.cost_price,
+          is_primary: edit.is_primary,
+        }
       });
-      alert('저장되었습니다.');
-      // 편집 상태 초기화
+      
+      // 성공 시 편집 상태 초기화
       setVariantEdits((prev) => {
         const newState = { ...prev };
         delete newState[code];
         return newState;
       });
+      
     } catch (error) {
       console.error('저장 실패:', error);
       alert('저장에 실패했습니다.');

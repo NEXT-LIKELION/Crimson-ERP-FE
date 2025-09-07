@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import Pagination from '../pagination/pagination';
 import { MdOutlineEdit, MdOutlineDelete } from 'react-icons/md';
 import { MdOutlineDownload } from 'react-icons/md';
 import { RxCaretSort } from 'react-icons/rx';
+import { HiArrowUp } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 import { Product } from '../../types/product';
 
@@ -19,14 +19,18 @@ interface TableProduct extends Omit<Product, 'variant_id'> {
 interface InventoryTableProps {
   inventories: Product[];
   onDelete: (productId: string) => Promise<void>;
-  pagination?: {
-    count: number;
-    next: string | null;
-    previous: string | null;
-  };
-  currentPage: number;
-  onPageChange: (page: number) => void;
   onExportToExcel: () => void;
+  // 무한 스크롤 관련 props
+  fetchNextPage: () => void;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  infiniteScroll: {
+    totalLoaded: number;
+    totalFiltered: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    isLoadingMore: boolean;
+  };
 }
 
 // 정렬 가능한 헤더 컴포넌트
@@ -54,13 +58,15 @@ const SortableHeader = ({
 const InventoryTable = ({
   inventories,
   onDelete,
-  pagination,
-  currentPage = 1,
-  onPageChange,
   onExportToExcel,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
+  infiniteScroll,
 }: InventoryTableProps) => {
   const navigate = useNavigate();
   const [data, setData] = useState<TableProduct[]>([]);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [sortConfig, setSortConfig] = useState<{
     key: keyof TableProduct;
     order: 'asc' | 'desc' | null;
@@ -68,8 +74,6 @@ const InventoryTable = ({
     key: 'product_id',
     order: null,
   });
-
-  const itemsPerPage = 10;
 
   useEffect(() => {
     if (!Array.isArray(inventories)) return;
@@ -104,6 +108,62 @@ const InventoryTable = ({
 
     setData(rows);
   }, [inventories]);
+
+  // Intersection Observer를 사용한 자동 무한 스크롤
+  useEffect(() => {
+    const observerTarget = document.getElementById('infinite-scroll-trigger');
+    if (!observerTarget) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // 트리거가 화면에 보이고, 더 불러올 데이터가 있고, 현재 로딩 중이 아닐 때
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      {
+        // 요소가 10% 보일 때 트리거
+        threshold: 0.1,
+        // 루트 여백 설정 (200px 전에 미리 로딩)
+        rootMargin: '200px'
+      }
+    );
+
+    observer.observe(observerTarget);
+
+    // 컴포넌트 언마운트 시 Observer 정리
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // 스크롤 위로 가기 버튼 표시 여부 관리
+  useEffect(() => {
+    const mainContainer = document.querySelector('section.overflow-y-auto');
+    if (!mainContainer) return;
+    
+    const handleScroll = () => {
+      setShowScrollTop(mainContainer.scrollTop > 300);
+    };
+
+    handleScroll();
+    mainContainer.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      mainContainer.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // 스크롤 위로 가기 함수
+  const scrollToTop = () => {
+    const mainContainer = document.querySelector('section.overflow-y-auto');
+    if (mainContainer) {
+      mainContainer.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   // 정렬 함수
   const handleSort = (key: keyof TableProduct) => {
@@ -141,7 +201,10 @@ const InventoryTable = ({
       <div className='mb-4 flex items-center justify-between'>
         <h2 className='flex items-center text-lg font-semibold'>상품별 재고 현황</h2>
         <div className='flex items-center space-x-3 text-gray-500'>
-          <span className='text-sm'>총 {pagination?.count ?? data.length}개 상품</span>
+          <span className='text-sm'>
+            총 {infiniteScroll.totalCount}개 상품 
+            ({infiniteScroll.totalLoaded}개 로딩됨)
+          </span>
           <MdOutlineDownload
             className='cursor-pointer hover:text-gray-700'
             size={20}
@@ -266,14 +329,44 @@ const InventoryTable = ({
           </tbody>
         </table>
       </div>
-      {pagination && onPageChange && (
-        <Pagination
-          currentPage={currentPage}
-          totalItems={pagination.count}
-          itemsPerPage={itemsPerPage}
-          onPageChange={onPageChange}
+      {/* 무한 스크롤 컨트롤 */}
+      <div className='mt-4 flex flex-col items-center gap-3'>
+        {isFetchingNextPage && (
+          <div className='flex items-center gap-2 text-sm text-gray-600'>
+            <div className='h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent'></div>
+            <span>더 많은 상품을 불러오는 중...</span>
+          </div>
+        )}
+        
+        {hasNextPage && !isFetchingNextPage && (
+          <button
+            onClick={fetchNextPage}
+            className='rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+          >
+            더 보기 ({infiniteScroll.totalCount - infiniteScroll.totalLoaded}개 남음)
+          </button>
+        )}
+        
+        {!hasNextPage && infiniteScroll.totalCount > 0 && (
+          <p className='text-sm text-gray-500'>모든 상품을 불러왔습니다.</p>
+        )}
+        
+        {/* Intersection Observer를 위한 감지 영역 */}
+        <div 
+          id="infinite-scroll-trigger" 
+          className='h-4 w-full'
+          style={{ marginTop: '-16px' }}
         />
-      )}
+      </div>
+
+      {/* 스크롤 위로 가기 버튼 - 디버깅용으로 항상 표시 */}
+      <button
+        onClick={scrollToTop}
+        className='fixed bottom-8 right-8 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all duration-300 hover:bg-blue-700 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+        title='맨 위로 가기'
+      >
+        <HiArrowUp className='h-5 w-5' />
+      </button>
     </div>
   );
 };

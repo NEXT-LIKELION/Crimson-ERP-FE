@@ -1,5 +1,4 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import GreenButton from '../../components/button/GreenButton';
 import PrimaryButton from '../../components/button/PrimaryButton';
 import SecondaryButton from '../../components/button/SecondaryButton';
@@ -51,11 +50,10 @@ const InventoryPage = () => {
   const [maxStock, setMaxStock] = useState('1000');
   const [minSales, setMinSales] = useState('0');
   const [maxSales, setMaxSales] = useState('5000000');
-  const [currentPage, setCurrentPage] = useState(1);
   const [appliedFilters, setAppliedFilters] = useState<{
-    page?: number;
     name?: string;
     category?: string;
+    status?: string;
     min_stock?: number;
     max_stock?: number;
     min_sales?: number;
@@ -68,7 +66,6 @@ const InventoryPage = () => {
   useEffect(() => {
     if (isInitialized) return; // 이미 초기화되었으면 실행하지 않음
 
-    const urlPage = parseInt(searchParams.get('page') || '1');
     const urlName = searchParams.get('name') || '';
     const urlCategory = searchParams.get('category') || '';
     const urlStatus = searchParams.get('status') || '';
@@ -77,7 +74,6 @@ const InventoryPage = () => {
     const urlMinSales = searchParams.get('min_sales') || '0';
     const urlMaxSales = searchParams.get('max_sales') || '5000000';
 
-    setCurrentPage(urlPage);
     setProductName(urlName);
     setCategory(urlCategory === '모든 카테고리' ? '' : urlCategory);
     setStatus(urlStatus === '모든 상태' ? '' : urlStatus);
@@ -86,7 +82,7 @@ const InventoryPage = () => {
     setMinSales(urlMinSales);
     setMaxSales(urlMaxSales);
 
-    const filters: Record<string, string | number> = { page: urlPage };
+    const filters: Record<string, string | number> = {};
     if (urlName) filters.name = urlName;
     if (urlCategory && urlCategory !== '모든 카테고리') filters.category = urlCategory;
     if (urlStatus && urlStatus !== '모든 상태') filters.status = urlStatus;
@@ -103,116 +99,16 @@ const InventoryPage = () => {
     setIsInitialized(true);
   }, [searchParams, isInitialized]);
 
-  const { data, isLoading, error, refetch, pagination } = useInventories(appliedFilters);
-
-  // debounced values for text filters
-  const debouncedProductName = useDebouncedValue(productName, 300);
-
-  // 자동 적용: 상품명 텍스트는 디바운스 후 바로 필터 반영
-  useEffect(() => {
-    if (!isInitialized) return;
-    const newFilters: Record<string, string | number> = { ...appliedFilters, page: 1 };
-    if (debouncedProductName.trim()) {
-      newFilters.name = debouncedProductName.trim();
-    } else {
-      delete newFilters.name;
-    }
-    setCurrentPage(1);
-    setAppliedFilters(newFilters);
-    updateURL(newFilters, 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedProductName]);
-
-  // 자동 적용: 카테고리 드롭다운 변경 시 즉시 필터 반영
-  useEffect(() => {
-    if (!isInitialized) return;
-    const newFilters: Record<string, string | number> = { ...appliedFilters, page: 1 };
-
-    // 기존 필터에서 이름 유지
-    if (debouncedProductName.trim()) {
-      newFilters.name = debouncedProductName.trim();
-    }
-
-    // 카테고리 필터 적용
-    if (category && category !== '모든 카테고리') {
-      newFilters.category = category;
-    } else {
-      delete newFilters.category;
-    }
-
-    setCurrentPage(1);
-    setAppliedFilters(newFilters);
-    updateURL(newFilters, 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category]);
-
-  // 자동 적용: 상태 드롭다운 변경 시 즉시 필터 반영
-  useEffect(() => {
-    if (!isInitialized) return;
-    const newFilters: Record<string, string | number> = { ...appliedFilters, page: 1 };
-
-    // 기존 필터 유지
-    if (debouncedProductName.trim()) {
-      newFilters.name = debouncedProductName.trim();
-    }
-    if (category && category !== '모든 카테고리') {
-      newFilters.category = category;
-    }
-
-    // 상태 필터 적용
-    if (status && status !== '모든 상태') {
-      newFilters.status = status;
-    } else {
-      delete newFilters.status;
-    }
-
-    setCurrentPage(1);
-    setAppliedFilters(newFilters);
-    updateURL(newFilters, 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
-
-  // 자동 적용: 슬라이더 값 변경 시 즉시 필터 반영
-  useEffect(() => {
-    if (!isInitialized) return;
-    const newFilters: Record<string, string | number> = { ...appliedFilters, page: 1 };
-
-    // 기존 필터 유지
-    if (debouncedProductName.trim()) {
-      newFilters.name = debouncedProductName.trim();
-    }
-    if (category && category !== '모든 카테고리') {
-      newFilters.category = category;
-    }
-    if (status && status !== '모든 상태') {
-      newFilters.status = status;
-    }
-
-    // 재고 필터 적용 (항상 적용, 기본값이어도 필터링)
-    const minStockValue = parseInt(minStock) || 0;
-    const maxStockValue = parseInt(maxStock) || 1000;
-
-    newFilters.min_stock = minStockValue;
-    newFilters.max_stock = maxStockValue;
-
-    // 판매 필터 적용
-    const minSalesValue = parseInt(minSales) || 0;
-    const maxSalesValue = parseInt(maxSales) || 5000000;
-    const isDefaultSales = minSalesValue === 0 && maxSalesValue === 5000000;
-
-    if (!isDefaultSales) {
-      newFilters.min_sales = minSalesValue;
-      newFilters.max_sales = maxSalesValue;
-    } else {
-      delete newFilters.min_sales;
-      delete newFilters.max_sales;
-    }
-
-    setCurrentPage(1);
-    setAppliedFilters(newFilters);
-    updateURL(newFilters, 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [minStock, maxStock, minSales, maxSales]);
+  const { 
+    data, 
+    isLoading, 
+    error, 
+    refetch, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage,
+    infiniteScroll 
+  } = useInventories(appliedFilters);
 
   const adjustStockMutation = useAdjustStock();
 
@@ -243,12 +139,11 @@ const InventoryPage = () => {
     loadAllData();
   }, []); // 컴포넌트 마운트 시 한 번만 실행
 
-  // URL 업데이트 함수
+  // URL 업데이트 함수 (페이지 파라미터 제거)
   const updateURL = useCallback(
-    (newFilters: Record<string, string | number>, page: number) => {
+    (newFilters: Record<string, string | number>) => {
       const params = new URLSearchParams();
 
-      if (page > 1) params.set('page', page.toString());
       if (newFilters.name) params.set('name', String(newFilters.name));
       if (newFilters.category) params.set('category', String(newFilters.category));
       if (newFilters.status) params.set('status', String(newFilters.status));
@@ -430,9 +325,8 @@ const InventoryPage = () => {
     setMaxStock('1000');
     setMinSales('0');
     setMaxSales('5000000');
-    setCurrentPage(1);
     setAppliedFilters({});
-    updateURL({}, 1);
+    updateURL({});
     // 필터 초기화로 자동 refetch됨
   };
 
@@ -463,11 +357,8 @@ const InventoryPage = () => {
       // 현재 필터링된 전체 데이터 가져오기 (페이지네이션 무시)
       let exportData: unknown[] = [];
 
-      if (
-        Object.keys(appliedFilters).length === 0 ||
-        (Object.keys(appliedFilters).length === 1 && appliedFilters.page)
-      ) {
-        // 필터가 없거나 페이지만 있는 경우 → 전체 데이터 가져오기
+      if (Object.keys(appliedFilters).length === 0) {
+        // 필터가 없는 경우 → 전체 데이터 가져오기
         exportData = allMergeData; // 이미 로드된 전체 데이터 사용
 
       } else {
@@ -661,7 +552,7 @@ const InventoryPage = () => {
           maxSales={maxSales}
           onMaxSalesChange={setMaxSales}
           onSearch={() => {
-            // 유효성 검사만 수행하고, 실제 필터링은 useEffect가 자동으로 처리
+            // 유효성 검사
             const minSalesValue = parseInt(minSales) || 0;
             const maxSalesValue = parseInt(maxSales) || 5000000;
             const minStockValue = parseInt(minStock) || 0;
@@ -677,9 +568,37 @@ const InventoryPage = () => {
               return;
             }
 
-            // 유효성 검사 통과 시 자동 필터링 로직이 이미 적용되어 있으므로
-            // 별도 처리 불필요
-
+            // 검색 실행
+            const newFilters: Record<string, string | number> = {};
+            
+            // 상품명 필터
+            if (productName.trim()) {
+              newFilters.name = productName.trim();
+            }
+            
+            // 카테고리 필터
+            if (category && category !== '모든 카테고리') {
+              newFilters.category = category;
+            }
+            
+            // 상태 필터
+            if (status && status !== '모든 상태') {
+              newFilters.status = status;
+            }
+            
+            // 재고 필터 (항상 적용)
+            newFilters.min_stock = minStockValue;
+            newFilters.max_stock = maxStockValue;
+            
+            // 판매 필터 (기본값이 아닌 경우만)
+            const isDefaultSales = minSalesValue === 0 && maxSalesValue === 5000000;
+            if (!isDefaultSales) {
+              newFilters.min_sales = minSalesValue;
+              newFilters.max_sales = maxSalesValue;
+            }
+            
+            setAppliedFilters(newFilters);
+            updateURL(newFilters);
           }}
           onReset={handleReset}
         />
@@ -688,15 +607,12 @@ const InventoryPage = () => {
       <InventoryTable
         inventories={data ?? []}
         onDelete={handleVariantDelete}
-        pagination={pagination}
-        currentPage={currentPage}
-        onPageChange={(page) => {
-          setCurrentPage(page);
-          const newFilters = { ...appliedFilters, page };
-          setAppliedFilters(newFilters);
-          updateURL(newFilters, page);
-        }}
         onExportToExcel={handleExportToExcel}
+        // 무한 스크롤 관련 props
+        fetchNextPage={fetchNextPage}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        infiniteScroll={infiniteScroll}
       />
       {selectedProduct && (
         <EditProductModal
