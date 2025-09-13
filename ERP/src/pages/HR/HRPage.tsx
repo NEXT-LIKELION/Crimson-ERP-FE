@@ -13,7 +13,7 @@ import EmployeeDetailsModal from '../../components/modal/EmployeeDetailsModal';
 import EmployeeRegistrationModal from '../../components/modal/EmployeeRegistrationModal';
 import VacationRequestModal from '../../components/modal/VacationRequestModal';
 import OrganizationVacationCalendar from '../../components/calendar/OrganizationVacationCalendar';
-import { useEmployees, useTerminateEmployee, usePatchEmployee, useApproveEmployee } from '../../hooks/queries/useEmployees';
+import { useEmployees, useTerminateEmployee, usePatchEmployee, useApproveEmployee, useDeleteEmployee } from '../../hooks/queries/useEmployees';
 import { useQueryClient } from '@tanstack/react-query';
 import { EmployeeList } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
@@ -134,6 +134,7 @@ const HRPage: React.FC = () => {
   // API 훅 사용 - React Query로 데이터 관리
   const { data: employeesData, isLoading, error } = useEmployees();
   const terminateEmployee = useTerminateEmployee();
+  const deleteEmployeeMutation = useDeleteEmployee();
   const patchEmployeeMutation = usePatchEmployee();
   const approveEmployeeMutation = useApproveEmployee();
   const queryClient = useQueryClient();
@@ -299,14 +300,6 @@ const HRPage: React.FC = () => {
       if (window.confirm(`${employee.name} 직원을 퇴사 처리하시겠습니까?`)) {
         try {
           await terminateEmployee.mutateAsync(employee.id);
-
-          // React Query가 자동으로 캐시를 업데이트하므로 로컬 상태 업데이트 제거
-          // setEmployees((prev) =>
-          //   prev.map((emp) =>
-          //     emp.id === employee.id ? { ...emp, status: 'terminated' as const } : emp
-          //   )
-          // );
-
           alert('퇴사 처리가 완료되었습니다.');
         } catch (error: unknown) {
           console.error('퇴사 처리 실패:', error);
@@ -316,6 +309,31 @@ const HRPage: React.FC = () => {
           }
 
           const errorMessage = getErrorMessage(error, '퇴사 처리에 실패했습니다.');
+          alert(errorMessage);
+        }
+      }
+    };
+
+    // 직원 삭제 처리
+    const handleDeleteEmployee = async () => {
+      // 관리자 권한 확인
+      if (!isAdmin) {
+        alert('직원을 삭제할 권한이 없습니다.');
+        return;
+      }
+
+      if (window.confirm(`${employee.name} 직원을 완전히 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+        try {
+          await deleteEmployeeMutation.mutateAsync(employee.id);
+          alert('직원이 삭제되었습니다.');
+        } catch (error: unknown) {
+          console.error('직원 삭제 실패:', error);
+          if (isApiError(error)) {
+            console.error('직원 삭제 응답 데이터:', error.response?.data);
+            console.error('직원 삭제 상태 코드:', error.response?.status);
+          }
+
+          const errorMessage = getErrorMessage(error, '직원 삭제에 실패했습니다.');
           alert(errorMessage);
         }
       }
@@ -387,6 +405,16 @@ const HRPage: React.FC = () => {
                 onClick={handleTerminateEmployee}>
                 <FiTrash2 className='mr-1 h-4 w-4' />
                 퇴사
+              </button>
+            )}
+
+            {/* 삭제 버튼: 관리자만 보이고, 퇴사한 직원에게만 표시 */}
+            {isAdmin && employee.status === 'terminated' && (
+              <button
+                className='flex items-center rounded-lg border border-red-300 bg-red-100 px-3 py-1.5 text-sm font-medium text-red-800 shadow-sm transition-all duration-200 hover:border-red-400 hover:bg-red-200'
+                onClick={handleDeleteEmployee}>
+                <FiTrash2 className='mr-1 h-4 w-4' />
+                삭제
               </button>
             )}
             {/* 승인대기중 직원에게만 승인/거절 버튼 표시 */}

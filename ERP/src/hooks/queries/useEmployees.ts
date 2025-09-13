@@ -4,6 +4,7 @@ import {
   fetchEmployee,
   patchEmployee,
   terminateEmployee,
+  deleteEmployee,
   approveEmployee,
   type EmployeePatchData,
   type EmployeeList,
@@ -90,6 +91,19 @@ export const useTerminateEmployee = () => {
 
   return useMutation({
     mutationFn: terminateEmployee,
+    onSuccess: () => {
+      // 전체 데이터 강제 새로고침
+      queryClient.refetchQueries({ queryKey: ['employees'] });
+    },
+  });
+};
+
+// 직원 삭제 처리 뮤테이션 훅
+export const useDeleteEmployee = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteEmployee,
     onSuccess: () => {
       // 전체 데이터 강제 새로고침
       queryClient.refetchQueries({ queryKey: ['employees'] });

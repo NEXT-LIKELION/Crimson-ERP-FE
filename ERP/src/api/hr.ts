@@ -15,6 +15,10 @@ export const patchEmployee = (employeeId: number, data: EmployeePatchData) =>
 export const terminateEmployee = (employeeId: number) =>
   api.patch(`/hr/employees/${employeeId}/`, { is_active: false });
 
+// 직원 삭제 처리 (is_deleted를 true로 설정, 소프트 삭제)
+export const deleteEmployee = (employeeId: number) =>
+  api.patch(`/hr/employees/${employeeId}/`, { is_deleted: true });
+
 // 대시보드 데이터 조회
 export const fetchDashboardData = () => api.get('/');
 
@@ -96,6 +100,7 @@ export interface EmployeeDetail {
   remaining_leave_days: string;        // readOnly
   vacation_days: string;               // readOnly
   vacation_pending_days: string;       // readOnly
+  gender?: 'MALE' | 'FEMALE';          // 성별, nullable (Swagger 스펙 기준)
 }
 
 // 백엔드 API 응답에 맞는 Employee 타입 (하위 호환성을 위해 EmployeeDetail과 동일하게 유지)
@@ -113,6 +118,8 @@ export interface EmployeeUpdateData {
   allowed_tabs?: string[];              // 접근 허용 탭 목록
   hire_date?: string;                   // 입사일 (date format)
   role?: 'MANAGER' | 'STAFF' | 'INTERN'; // 직무 구분
+  is_deleted?: boolean;                 // 삭제 여부 (소프트 삭제)
+  gender?: 'MALE' | 'FEMALE';           // 성별
 }
 
 // EmployeePatchData는 EmployeeUpdateData와 동일 (하위 호환성을 위해 유지)
