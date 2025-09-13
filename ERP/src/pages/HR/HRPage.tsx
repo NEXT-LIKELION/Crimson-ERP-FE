@@ -82,6 +82,18 @@ const mapRoleToKorean = (role: string): string => {
   }
 };
 
+// Gender 매핑 함수
+const mapGenderToKorean = (gender?: string): string => {
+  switch (gender) {
+    case 'MALE':
+      return '남성';
+    case 'FEMALE':
+      return '여성';
+    default:
+      return '';
+  }
+};
+
 // 프론트엔드에서 사용할 통합 Employee 타입 (API 스펙 기반)
 export interface MappedEmployee {
   id: number;
@@ -99,6 +111,7 @@ export interface MappedEmployee {
   remaining_leave_days: number;
   vacation_days: unknown[];                  // 휴가 데이터 (파싱 필요)
   vacation_pending_days: unknown[];          // 대기 중인 휴가
+  gender?: 'MALE' | 'FEMALE';               // 성별 (Swagger 문서 기준)
   // UI용 필드들 (선택적)
   created_at?: string;
   updated_at?: string;
@@ -140,6 +153,7 @@ const mapEmployeeData = (emp: EmployeeList): MappedEmployee => ({
   remaining_leave_days: parseInt(emp.remaining_leave_days) || 0,
   vacation_days: [], // 목록 조회에서는 제공되지 않음
   vacation_pending_days: [], // 목록 조회에서는 제공되지 않음
+  gender: (emp as any).gender, // API 스펙에 따라 gender 필드 추가
   created_at: '',
   updated_at: '',
 });
@@ -263,6 +277,7 @@ const HRPage: React.FC = () => {
       allowed_tabs: updatedEmployee.allowed_tabs,
       hire_date: updatedEmployee.hire_date,
       role: updatedEmployee.role,
+      gender: updatedEmployee.gender, // 성별 필드 추가
     };
 
     try {
@@ -378,6 +393,12 @@ const HRPage: React.FC = () => {
                   <span>{employee.position}</span>
                   <span className='mx-2'>•</span>
                   <span>{employee.department}</span>
+                  {employee.gender && (
+                    <>
+                      <span className='mx-2'>•</span>
+                      <span>{mapGenderToKorean(employee.gender)}</span>
+                    </>
+                  )}
                 </div>
                 <div className={`flex items-center text-sm ${subTextOpacity}`}>
                   <FiCalendar className='mr-2 h-4 w-4 text-gray-400' />

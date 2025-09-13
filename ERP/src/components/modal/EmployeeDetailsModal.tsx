@@ -62,6 +62,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
         remaining_leave_days: parseInt(apiData.remaining_leave_days) || 0,
         vacation_days: typeof apiData.vacation_days === 'string' ? [] as VacationDay[] : apiData.vacation_days as VacationDay[],
         vacation_pending_days: typeof apiData.vacation_pending_days === 'string' ? [] as VacationDay[] : apiData.vacation_pending_days as VacationDay[],
+        gender: (apiData as any).gender, // API 스펙에 따라 gender 필드 추가
       };
       
       return mappedEmployee;
@@ -224,6 +225,27 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                     </span>
                   )}
                 </div>
+              )}
+            </div>
+
+            {/* 성별 */}
+            <div>
+              <label className='mb-1 block text-sm font-medium text-gray-700'>성별</label>
+              {isEditing && isAdmin ? (
+                <select
+                  name='gender'
+                  value={editedEmployee.gender || ''}
+                  onChange={handleChange}
+                  className='w-full rounded-md border border-gray-300 px-3 py-2 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'>
+                  <option value=''>선택 안함</option>
+                  <option value='MALE'>남성</option>
+                  <option value='FEMALE'>여성</option>
+                </select>
+              ) : (
+                <span className='text-gray-900'>
+                  {currentEmployee.gender === 'MALE' ? '남성' : 
+                   currentEmployee.gender === 'FEMALE' ? '여성' : '미입력'}
+                </span>
               )}
             </div>
 

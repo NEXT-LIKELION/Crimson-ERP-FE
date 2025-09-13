@@ -127,6 +127,7 @@ interface Employee {
   remaining_leave_days: string;
   vacation_days?: string;
   vacation_pending_days?: string;
+  gender?: 'MALE' | 'FEMALE';
 }
 
 interface EmployeeList {
@@ -140,6 +141,7 @@ interface EmployeeList {
   is_active: boolean;
   hire_date: string;
   remaining_leave_days: string;
+  gender?: 'MALE' | 'FEMALE';
 }
 
 type EmployeeDetail = Employee;
@@ -153,6 +155,7 @@ interface EmployeeUpdateRequest {
   allowed_tabs?: string[];
   hire_date?: string;
   role?: 'MANAGER' | 'STAFF' | 'ADMIN';
+  gender?: 'MALE' | 'FEMALE';
 }
 
 interface VacationRequest {

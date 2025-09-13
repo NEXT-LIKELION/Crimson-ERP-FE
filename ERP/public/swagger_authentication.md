@@ -3,10 +3,10 @@ authentication
 
 POST
 /authentication/approve/
-STAFF 계정 상태 전환
+직원 계정 상태 전환 (STAFF/INTERN)
 authentication_approve_create
 
-MANAGER가 STAFF 계정을 승인하거나 비활성화할 수 있습니다.
+MANAGER가 STAFF 또는 INTERN 계정을 승인(APPROVED)하거나 거절(DENIED)할 수 있습니다.
 
 Parameters
 Try it out
@@ -22,7 +22,7 @@ example: staff1
 STAFF 사용자 아이디
 
 status*	string
-example: denied
+example: APPROVED
 변경할 상태
 
 Enum:
@@ -44,7 +44,7 @@ Code	Description
 권한 없음
 
 404	
-STAFF 없음
+사용자 없음
 
 
 POST
