@@ -16,6 +16,7 @@ interface Step1Data {
   first_name: string;  // 이름 추가
   email: string;       // 이메일 추가
   contact: string;     // 연락처 추가
+  gender?: 'MALE' | 'FEMALE';  // 성별 추가
 }
 
 interface Step2Data {
@@ -47,6 +48,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
     first_name: '',  // 이름 추가
     email: '',       // 이메일 추가
     contact: '',     // 연락처 추가
+    gender: undefined,  // 성별 추가 (선택 사항)
   });
 
   // 2단계 데이터 (HR 정보)
@@ -94,7 +96,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
   };
 
   // 1단계 폼 처리
-  const handleStep1Change = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleStep1Change = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setStep1Data((prev) => ({
       ...prev,
@@ -368,6 +370,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
         hire_date: step2Data.hire_date,
         annual_leave_days: step2Data.annual_leave_days,
         allowed_tabs: step2Data.position === 'MANAGER' ? [] : step2Data.allowed_tabs,
+        gender: step1Data.gender, // 성별 정보 추가
       };
       
       try {
@@ -409,6 +412,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
         remaining_leave_days: step2Data.annual_leave_days, // 초기에는 전체 연차가 남은 연차
         vacation_days: [],
         vacation_pending_days: [],
+        gender: step1Data.gender, // 성별 정보 추가
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -627,6 +631,23 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                   className='w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'
                   placeholder='전화번호를 입력하세요 (010-0000-0000)'
                 />
+              </div>
+
+              {/* 성별 필드 추가 */}
+              <div>
+                <label htmlFor='gender' className='mb-2 block text-sm font-medium text-gray-700'>
+                  성별
+                </label>
+                <select
+                  id='gender'
+                  name='gender'
+                  value={step1Data.gender || ''}
+                  onChange={handleStep1Change}
+                  className='w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'>
+                  <option value=''>선택 안함</option>
+                  <option value='MALE'>남성</option>
+                  <option value='FEMALE'>여성</option>
+                </select>
               </div>
             </div>
           ) : (
