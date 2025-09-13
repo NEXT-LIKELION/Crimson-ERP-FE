@@ -22,37 +22,6 @@ import { isApiError, getErrorMessage } from '../../utils/errorHandling';
 // 직원 상태 타입
 type EmployeeStatus = 'active' | 'terminated' | 'denied';
 
-// 랜덤 이모지 생성 함수
-const getRandomEmoji = (employeeId: number): string => {
-  const emojis = [
-    '👨‍💼',
-    '👩‍💼',
-    '🧑‍💼',
-    '👨‍💻',
-    '👩‍💻',
-    '🧑‍💻',
-    '👨‍🔧',
-    '👩‍🔧',
-    '🧑‍🔧',
-    '👨‍🎨',
-    '👩‍🎨',
-    '🧑‍🎨',
-    '👨‍🍳',
-    '👩‍🍳',
-    '🧑‍🍳',
-    '👨‍⚕️',
-    '👩‍⚕️',
-    '🧑‍⚕️',
-    '👨‍🏫',
-    '👩‍🏫',
-    '🧑‍🏫',
-    '👨‍🎓',
-    '👩‍🎓',
-    '🧑‍🎓',
-  ];
-  // employeeId를 시드로 사용하여 일관된 이모지 반환
-  return emojis[employeeId % emojis.length];
-};
 
 // 날짜 형식 변환 함수 (ISO 8601 형식 지원)
 const formatDateToKorean = (dateString: string): string => {
@@ -361,15 +330,7 @@ const HRPage: React.FC = () => {
         }`}>
         {/* 카드 상단 영역 */}
         <div className='p-6'>
-          <div className='flex items-start space-x-4'>
-            {/* 프로필 이모지 */}
-            <div
-              className={`pointer-events-none flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl text-5xl ${
-                isTerminated ? 'grayscale' : ''
-              }`}>
-              {getRandomEmoji(employee.id)}
-            </div>
-
+          <div className='flex items-start'>
             {/* 정보 영역 */}
             <div className='min-w-0 flex-1'>
               <div className='mb-2 flex items-start justify-between'>
