@@ -10,7 +10,6 @@ import {
 } from 'react-icons/fi';
 import StatusBadge from '../../components/common/StatusBadge';
 import EmployeeDetailsModal from '../../components/modal/EmployeeDetailsModal';
-import EmployeeContractModal from '../../components/modal/EmployeeContractModal';
 import EmployeeRegistrationModal from '../../components/modal/EmployeeRegistrationModal';
 import VacationRequestModal from '../../components/modal/VacationRequestModal';
 import OrganizationVacationCalendar from '../../components/calendar/OrganizationVacationCalendar';
@@ -153,7 +152,7 @@ const mapEmployeeData = (emp: EmployeeList): MappedEmployee => ({
   remaining_leave_days: parseInt(emp.remaining_leave_days) || 0,
   vacation_days: [], // 목록 조회에서는 제공되지 않음
   vacation_pending_days: [], // 목록 조회에서는 제공되지 않음
-  gender: (emp as any).gender, // API 스펙에 따라 gender 필드 추가
+  gender: (emp as EmployeeList & { gender?: 'MALE' | 'FEMALE' }).gender, // API 스펙에 따라 gender 필드 추가
   created_at: '',
   updated_at: '',
 });
@@ -182,7 +181,6 @@ const HRPage: React.FC = () => {
   // 모달 상태 관리
   const [selectedEmployee, setSelectedEmployee] = useState<MappedEmployee | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showContractModal, setShowContractModal] = useState(false);
   const [showEmployeeRegistrationModal, setShowEmployeeRegistrationModal] = useState(false);
   const [showVacationRequestModal, setShowVacationRequestModal] = useState(false);
   const [showOrganizationVacationCalendar, setShowOrganizationVacationCalendar] = useState(false);
@@ -486,18 +484,7 @@ const HRPage: React.FC = () => {
   // 모달 제어 함수
   const handleCloseModals = () => {
     setShowDetailsModal(false);
-    setShowContractModal(false);
     setSelectedEmployee(null);
-  };
-
-  const handleViewContractTab = () => {
-    setShowDetailsModal(false);
-    setShowContractModal(true);
-  };
-
-  const handleViewInfoTab = () => {
-    setShowContractModal(false);
-    setShowDetailsModal(true);
   };
 
   // 직원 등록 완료 핸들러
@@ -617,18 +604,8 @@ const HRPage: React.FC = () => {
         <EmployeeDetailsModal
           employee={selectedEmployee}
           onClose={handleCloseModals}
-          onViewContract={handleViewContractTab}
           onUpdateEmployee={handleUpdateEmployee}
           isAdmin={isAdmin}
-        />
-      )}
-
-      {/* 근로계약서 모달 - 관리자만 접근 가능 */}
-      {showContractModal && selectedEmployee && isAdmin && (
-        <EmployeeContractModal
-          employee={selectedEmployee}
-          onClose={handleCloseModals}
-          onViewInfo={handleViewInfoTab}
         />
       )}
 

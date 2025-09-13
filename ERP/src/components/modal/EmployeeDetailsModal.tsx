@@ -1,6 +1,6 @@
 // src/components/modals/EmployeeDetailsModal.tsx
 import React, { useState } from 'react';
-import { FiX, FiEdit, FiCheck, FiXCircle, FiFileText, FiCalendar } from 'react-icons/fi';
+import { FiX, FiEdit, FiCheck, FiXCircle, FiCalendar } from 'react-icons/fi';
 import { MappedEmployee } from '../../pages/HR/HRPage';
 import { ALLOWED_TABS_OPTIONS, parseVacationDays, VacationDay } from '../../api/hr';
 import { useEmployee } from '../../hooks/queries/useEmployees';
@@ -9,7 +9,6 @@ import VacationCalendar from '../calendar/VacationCalendar';
 interface EmployeeDetailsModalProps {
   employee: MappedEmployee;
   onClose: () => void;
-  onViewContract: () => void;
   onUpdateEmployee: (updatedEmployee: MappedEmployee) => Promise<void>;
   isAdmin: boolean;
 }
@@ -30,7 +29,6 @@ const formatDateToKorean = (dateString: string): string => {
 const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
   employee,
   onClose,
-  onViewContract,
   onUpdateEmployee,
   isAdmin,
 }) => {
@@ -62,7 +60,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
         remaining_leave_days: parseInt(apiData.remaining_leave_days) || 0,
         vacation_days: typeof apiData.vacation_days === 'string' ? [] as VacationDay[] : apiData.vacation_days as VacationDay[],
         vacation_pending_days: typeof apiData.vacation_pending_days === 'string' ? [] as VacationDay[] : apiData.vacation_pending_days as VacationDay[],
-        gender: (apiData as any).gender, // API 스펙에 따라 gender 필드 추가
+        gender: (apiData as Employee & { gender?: 'MALE' | 'FEMALE' }).gender, // API 스펙에 따라 gender 필드 추가
       };
       
       return mappedEmployee;
@@ -400,15 +398,6 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
               {employeeDetailLoading ? '로딩 중...' : '휴가 캘린더 보기'}
             </button>
 
-            {/* 근로계약서 버튼 */}
-            {isAdmin && (
-              <button
-                onClick={onViewContract}
-                className='flex w-full items-center justify-center rounded-md bg-gray-100 px-4 py-2 text-sm text-gray-700 hover:bg-gray-200'>
-                <FiFileText className='mr-2 h-4 w-4' />
-                근로계약서 보기
-              </button>
-            )}
 
             {/* 수정 관련 버튼들 */}
             {isAdmin &&
