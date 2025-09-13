@@ -138,14 +138,17 @@ const HRPage: React.FC = () => {
   const approveEmployeeMutation = useApproveEmployee();
   const queryClient = useQueryClient();
 
-  // 로컬 상태 제거 - React Query만 사용
-  // const [employees, setEmployees] = useState<MappedEmployee[]>([]); // 제거
-
   // 매핑된 직원 데이터 계산된 값으로 사용
   const employees = React.useMemo(() => {
     if (!employeesData?.data) return [];
     return employeesData.data.map((emp: EmployeeList) => mapEmployeeData(emp));
   }, [employeesData?.data]);
+
+  // 현재 사용자 정보 (일반 직원용)
+  const currentEmployeeData = React.useMemo(() => {
+    if (!currentUser || isAdmin) return null;
+    return employees.find(emp => emp.username === currentUser.username) || null;
+  }, [employees, currentUser, isAdmin]);
 
   // 모달 상태 관리
   const [selectedEmployee, setSelectedEmployee] = useState<MappedEmployee | null>(null);
@@ -454,7 +457,140 @@ const HRPage: React.FC = () => {
     
     // React Query 캐시 무효화로 최신 데이터 가져오기
     queryClient.invalidateQueries({ queryKey: ['employees'] });
-    // setEmployees((prev) => [...prev, newEmployee]); // 제거
+  };
+
+  // 개인 직원용 마이페이지 컴포넌트
+  const PersonalInfoPage = ({ employee }: { employee: MappedEmployee }) => {
+    const handleViewDetails = () => {
+      setSelectedEmployee(employee);
+      setShowDetailsModal(true);
+    };
+
+    return (
+      <div className='min-h-screen bg-gray-50'>
+        <div className='mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8'>
+          {/* 페이지 헤더 */}
+          <div className='mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm'>
+            <div className='flex flex-col justify-between gap-4 sm:flex-row sm:items-center'>
+              <div className='flex items-center'>
+                <div className='mr-4 flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-blue-600'>
+                  <FiUser className='h-6 w-6 text-white' />
+                </div>
+                <div>
+                  <h1 className='text-2xl font-bold text-gray-900'>마이페이지</h1>
+                  <p className='mt-1 text-gray-600'>
+                    안녕하세요, <span className='font-semibold text-blue-600'>{employee.name}</span>님
+                  </p>
+                </div>
+              </div>
+              <div className='flex items-center gap-3'>
+                {/* 휴가 신청 버튼 */}
+                <button
+                  onClick={() => setShowVacationRequestModal(true)}
+                  className='flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700'>
+                  <FiPlusCircle className='mr-2 h-4 w-4' />
+                  휴가신청
+                </button>
+
+                {/* 내 휴가 보기 버튼 */}
+                <button
+                  onClick={() => setShowOrganizationVacationCalendar(true)}
+                  className='flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700'>
+                  <FiCalendar className='mr-2 h-4 w-4' />
+                  내 휴가
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 개인 정보 카드 */}
+          <div className='mb-8'>
+            <div className='rounded-xl border border-gray-200 bg-white p-6 shadow-sm'>
+              <div className='mb-4 flex items-center justify-between'>
+                <h2 className='text-lg font-semibold text-gray-900'>개인 정보</h2>
+                <button
+                  onClick={handleViewDetails}
+                  className='flex items-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:border-gray-300 hover:bg-gray-50'>
+                  <FiEye className='mr-2 h-4 w-4' />
+                  상세보기/수정
+                </button>
+              </div>
+
+              <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>이름</label>
+                  <p className='text-gray-900'>{employee.name}</p>
+                </div>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>직책</label>
+                  <p className='text-gray-900'>{employee.position} • {employee.department}</p>
+                </div>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>이메일</label>
+                  <p className='text-gray-900'>{employee.email}</p>
+                </div>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>연락처</label>
+                  <p className='text-gray-900'>{employee.phone}</p>
+                </div>
+                {employee.gender && (
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>성별</label>
+                    <p className='text-gray-900'>{mapGenderToKorean(employee.gender)}</p>
+                  </div>
+                )}
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>입사일</label>
+                  <p className='text-gray-900'>{formatDateToKorean(employee.hire_date)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 휴가 정보 카드 */}
+          <div className='mb-8'>
+            <div className='rounded-xl border border-gray-200 bg-white p-6 shadow-sm'>
+              <h2 className='mb-4 text-lg font-semibold text-gray-900'>휴가 정보</h2>
+              <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
+                <div className='rounded-lg bg-blue-50 p-4'>
+                  <div className='flex items-center'>
+                    <div className='flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100'>
+                      <FiCalendar className='h-4 w-4 text-blue-600' />
+                    </div>
+                    <div className='ml-3'>
+                      <p className='text-sm font-medium text-blue-900'>연차 총 일수</p>
+                      <p className='text-lg font-semibold text-blue-700'>{employee.annual_leave_days}일</p>
+                    </div>
+                  </div>
+                </div>
+                <div className='rounded-lg bg-green-50 p-4'>
+                  <div className='flex items-center'>
+                    <div className='flex h-8 w-8 items-center justify-center rounded-lg bg-green-100'>
+                      <FiCalendar className='h-4 w-4 text-green-600' />
+                    </div>
+                    <div className='ml-3'>
+                      <p className='text-sm font-medium text-green-900'>남은 연차</p>
+                      <p className='text-lg font-semibold text-green-700'>{employee.remaining_leave_days}일</p>
+                    </div>
+                  </div>
+                </div>
+                <div className='rounded-lg bg-orange-50 p-4'>
+                  <div className='flex items-center'>
+                    <div className='flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100'>
+                      <FiCalendar className='h-4 w-4 text-orange-600' />
+                    </div>
+                    <div className='ml-3'>
+                      <p className='text-sm font-medium text-orange-900'>사용한 연차</p>
+                      <p className='text-lg font-semibold text-orange-700'>{employee.annual_leave_days - employee.remaining_leave_days}일</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (isLoading)
@@ -491,6 +627,57 @@ const HRPage: React.FC = () => {
       </div>
     );
 
+  // 일반 직원은 개인 마이페이지 표시
+  if (!isAdmin && currentEmployeeData) {
+    return (
+      <>
+        <PersonalInfoPage employee={currentEmployeeData} />
+        
+        {/* 직원 상세 정보 모달 (본인 정보만) */}
+        {showDetailsModal && selectedEmployee && (
+          <EmployeeDetailsModal
+            employee={selectedEmployee}
+            onClose={handleCloseModals}
+            onUpdateEmployee={handleUpdateEmployee}
+            isAdmin={false}
+          />
+        )}
+
+        {/* 휴가 신청 모달 */}
+        {showVacationRequestModal && (
+          <VacationRequestModal
+            onClose={() => setShowVacationRequestModal(false)}
+            onSuccess={() => {
+              setShowVacationRequestModal(false);
+              setShowOrganizationVacationCalendar(true);
+            }}
+          />
+        )}
+
+        {/* 개인 휴가 캘린더 모달 */}
+        {showOrganizationVacationCalendar && (
+          <OrganizationVacationCalendar onClose={() => setShowOrganizationVacationCalendar(false)} />
+        )}
+      </>
+    );
+  }
+
+  // 일반 직원이지만 데이터를 찾을 수 없는 경우
+  if (!isAdmin && !currentEmployeeData) {
+    return (
+      <div className='flex h-96 items-center justify-center'>
+        <div className='rounded-lg border border-yellow-200 bg-yellow-50 p-8 text-center'>
+          <div className='mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100'>
+            <FiUser className='h-6 w-6 text-yellow-600' />
+          </div>
+          <h3 className='mb-2 text-lg font-semibold text-yellow-800'>정보를 찾을 수 없습니다</h3>
+          <p className='text-yellow-600'>개인 정보를 불러올 수 없습니다. 관리자에게 문의해주세요.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 대표는 기존 HR 관리 화면 표시
   return (
     <div className='min-h-screen bg-gray-50'>
       <div className='mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8'>

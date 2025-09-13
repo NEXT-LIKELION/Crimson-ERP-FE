@@ -87,7 +87,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
       const leaveTypeMatch = selectedLeaveType === '' || vacation.leave_type === selectedLeaveType;
       const statusMatch = selectedStatus === '' || vacation.status === selectedStatus;
 
-      // 직원인 경우: 관리 패널에서만 본인 휴가만 보기, 캘린더 뷰에서는 전체 조직 휴가 보기
+      // 일반 직원인 경우: 관리 패널에서만 본인 휴가만 보기, 캘린더 뷰에서는 전체 조직 휴가 보기
       if (!isAdmin && showManagementPanel) {
         const currentUserId = Number(currentUser?.id);
         const vacationEmployeeId = Number(vacation.employee);
@@ -559,25 +559,33 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
           </div>
 
           {/* 필터 영역 */}
-          <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
-            {/* 직원 필터 */}
-            <div>
-              <label className='mb-1 block text-sm font-medium text-gray-700'>직원 선택</label>
-              <div className='max-h-32 overflow-y-auto rounded-lg border border-gray-200 bg-white p-2'>
-                {(employeesData?.data || []).map((employee: EmployeeList) => (
-                  <label key={employee.id} className='flex items-center space-x-2 py-1'>
-                    <input
-                      type='checkbox'
-                      checked={selectedEmployeeIds.includes(employee.id)}
-                      onChange={() => toggleEmployeeSelection(employee.id)}
-                      className='rounded border-gray-300'
-                    />
-                    <div className={`h-3 w-3 rounded ${employeeColors[employee.id]}`}></div>
-                    <span className='text-sm text-gray-700'>{employee.first_name}</span>
-                  </label>
-                ))}
+          <div className={`grid grid-cols-1 gap-4 ${(isAdmin || !showManagementPanel) ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+            {/* 직원 필터 - 관리자는 항상 표시, 일반직원은 캘린더 뷰에서만 표시 */}
+            {(isAdmin || !showManagementPanel) && (
+              <div>
+                <label className='mb-1 block text-sm font-medium text-gray-700'>
+                  직원 선택
+                  {!isAdmin && (
+                    <span className='ml-1 text-xs text-gray-500'>(캘린더 뷰 전용)</span>
+                  )}
+                </label>
+                <div className='max-h-32 overflow-y-auto rounded-lg border border-gray-200 bg-white p-2'>
+                  {(employeesData?.data || []).map((employee: EmployeeList) => (
+                    <label key={employee.id} className='flex items-center space-x-2 py-1'>
+                      <input
+                        type='checkbox'
+                        checked={selectedEmployeeIds.includes(employee.id)}
+                        onChange={() => toggleEmployeeSelection(employee.id)}
+                        className='rounded border-gray-300'
+                        disabled={!isAdmin && showManagementPanel}
+                      />
+                      <div className={`h-3 w-3 rounded ${employeeColors[employee.id]}`}></div>
+                      <span className='text-sm text-gray-700'>{employee.first_name}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* 휴가 유형 필터 */}
             <div>
