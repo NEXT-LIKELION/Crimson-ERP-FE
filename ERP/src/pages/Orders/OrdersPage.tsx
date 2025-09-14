@@ -130,10 +130,10 @@ const OrdersPage: React.FC = () => {
   }, [data]);
 
   useEffect(() => {
-    fetchInventories()
+    fetchInventories({ page_size: 1000 }) // OrdersPage에서는 매핑용으로 많은 데이터 필요
       .then((res) => {
         const mapping: Record<number, string> = {};
-        const products = Array.isArray(res.data) ? res.data : [];
+        const products = Array.isArray(res.data.results) ? res.data.results : [];
         products.forEach((product: { variants?: unknown[] }) => {
           ((product.variants as { id?: number; variant_code?: string }[]) || []).forEach(
             (variant) => {

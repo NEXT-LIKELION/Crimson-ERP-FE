@@ -1,14 +1,7 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchInventories } from '../../api/inventory';
 import { Product } from '../../types/product';
 import { useEffect, useMemo } from 'react';
-
-// type PaginatedResponse = {
-//     count: number;
-//     next: string | null;
-//     previous: string | null;
-//     results: Product[];
-// };
 
 export const useInventories = (filters?: {
   name?: string;
@@ -19,6 +12,8 @@ export const useInventories = (filters?: {
   min_sales?: number;
   max_sales?: number;
 }) => {
+  const queryClient = useQueryClient();
+  
   // API 파라미터명 변환
   const apiFilters: Record<string, unknown> = filters ? { ...filters } : {};
   
@@ -43,27 +38,31 @@ export const useInventories = (filters?: {
   const frontendStatus = filters?.status;
   delete apiFilters.status;
 
-  // useInfiniteQuery로 효율적인 페이지네이션 구현
+  // useInfiniteQuery - 자동 프리페치 완전 비활성화
   const query = useInfiniteQuery({
     queryKey: ['inventories', apiFilters, frontendStatus],
     queryFn: async ({ pageParam = 1 }) => {
-      const response = await fetchInventories({ 
+      const finalParams = { 
         ...apiFilters, 
         page: pageParam,
-        page_size: 20 // 페이지당 20개로 증가 (성능과 UX 균형)
-      });
+        page_size: 20 // 항상 page_size 포함
+      };
+      console.log('🔍 API Request Parameters:', finalParams);
+      const response = await fetchInventories(finalParams);
       return response.data;
     },
-    getNextPageParam: (lastPage) => {
-      // 다음 페이지가 있으면 현재 페이지 + 1, 없으면 undefined
-      return lastPage.next ? 
-        new URL(lastPage.next).searchParams.get('page') ? 
-          parseInt(new URL(lastPage.next).searchParams.get('page')!) : undefined
-        : undefined;
+    getNextPageParam: () => {
+      // 항상 undefined 반환해서 자동 프리페치 완전 차단
+      return undefined;
     },
     initialPageParam: 1,
-    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지로 성능 개선
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
+    enabled: true,
+    // 자동 프리페치 관련 옵션들 모두 비활성화
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   useEffect(() => {
@@ -72,7 +71,7 @@ export const useInventories = (filters?: {
     }
   }, [query.isSuccess, query.isError, query.data, query.error]);
 
-  // useInfiniteQuery 데이터 처리 - 모든 페이지의 데이터를 하나로 합침
+  // useInfiniteQuery 데이터 처리
   const allData = useMemo(() => {
     if (!query.data?.pages) return [];
     return query.data.pages.flatMap(page => page.results || []);
@@ -101,21 +100,60 @@ export const useInventories = (filters?: {
     });
   }, [allData, frontendStatus]);
 
-  // 전체 개수 계산 (첫 페이지에서 가져온 count 사용)
+  // 전체 개수 계산
   const totalCount = query.data?.pages?.[0]?.count ?? 0;
+  
+  // hasNextPage 수동 계산
+  const currentLoadedCount = allData.length;
+  const hasNextPage = currentLoadedCount < totalCount;
+
+  // 수동 fetchNextPage - React Query의 queryClient를 사용해서 직접 새 페이지 데이터 추가
+  const fetchNextPage = async () => {
+    if (!hasNextPage || query.isFetching) {
+      console.log('⏸️ fetchNextPage blocked:', { hasNextPage, isFetching: query.isFetching });
+      return;
+    }
+    
+    const nextPageParam = query.data?.pages?.length ? query.data.pages.length + 1 : 2;
+    console.log('🔘 Manual fetchNextPage called for page:', nextPageParam);
+    
+    try {
+      const finalParams = { 
+        ...apiFilters, 
+        page: nextPageParam,
+        page_size: 20
+      };
+      console.log('🔍 API Request Parameters (수동 페치):', finalParams);
+      const response = await fetchInventories(finalParams);
+      
+      // QueryClient를 통해 기존 데이터에 새 페이지 추가
+      queryClient.setQueryData(['inventories', apiFilters, frontendStatus], (oldData: any) => {
+        if (!oldData) return { pages: [response.data], pageParams: [1, nextPageParam] };
+        
+        return {
+          ...oldData,
+          pages: [...oldData.pages, response.data],
+          pageParams: [...(oldData.pageParams || []), nextPageParam]
+        };
+      });
+      
+    } catch (error) {
+      console.error('❌ 다음 페이지 불러오기 실패:', error);
+    }
+  };
 
   return {
     // 기본 쿼리 정보
     ...query,
     // 무한 스크롤용 데이터와 함수들
     data: filteredData,
-    fetchNextPage: query.fetchNextPage,
-    hasNextPage: query.hasNextPage,
-    isFetchingNextPage: query.isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage: query.isFetching,
     // 호환성을 위한 기존 구조 유지
     pagination: {
       count: totalCount,
-      next: query.hasNextPage ? 'has-more' : null,
+      next: hasNextPage ? 'has-more' : null,
       previous: null,
     },
     // 새로운 무한 스크롤 관련 정보
@@ -123,8 +161,8 @@ export const useInventories = (filters?: {
       totalLoaded: allData.length,
       totalFiltered: filteredData.length,
       totalCount: totalCount,
-      hasNextPage: query.hasNextPage,
-      isLoadingMore: query.isFetchingNextPage,
+      hasNextPage: hasNextPage,
+      isLoadingMore: query.isFetching,
     },
     // 편의 함수
     refetch: () => query.refetch(),

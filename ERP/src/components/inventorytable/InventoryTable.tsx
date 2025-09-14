@@ -66,7 +66,7 @@ const InventoryTable = ({
 }: InventoryTableProps) => {
   const navigate = useNavigate();
   const [data, setData] = useState<TableProduct[]>([]);
-  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [hasScrolled, setHasScrolled] = useState(false);
   const [sortConfig, setSortConfig] = useState<{
     key: keyof TableProduct;
     order: 'asc' | 'desc' | null;
@@ -109,22 +109,25 @@ const InventoryTable = ({
     setData(rows);
   }, [inventories]);
 
-  // Intersection Observer를 사용한 자동 무한 스크롤
+  // 스크롤 기반 무한 스크롤 - 사용자가 실제 스크롤할 때만 작동
   useEffect(() => {
     const observerTarget = document.getElementById('infinite-scroll-trigger');
     if (!observerTarget) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        // 트리거가 화면에 보이고, 더 불러올 데이터가 있고, 현재 로딩 중이 아닐 때
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+        // 사용자가 실제로 스크롤한 후에만 트리거되도록 함
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage && hasScrolled) {
+          console.log('🔄 Intersection triggered - Loading next page');
           fetchNextPage();
+        } else if (entries[0].isIntersecting && !hasScrolled) {
+          console.log('⏸️ Intersection detected but user has not scrolled yet');
         }
       },
       {
-        // 요소가 10% 보일 때 트리거
+        // 요소가 살짝 보이기 시작할 때 트리거 (더 부드러운 로딩)
         threshold: 0.1,
-        // 루트 여백 설정 (200px 전에 미리 로딩)
+        // 화면 아래 200px 전에 미리 로드 시작
         rootMargin: '200px'
       }
     );
@@ -135,15 +138,19 @@ const InventoryTable = ({
     return () => {
       observer.disconnect();
     };
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, hasScrolled]);
 
-  // 스크롤 위로 가기 버튼 표시 여부 관리
+  // 스크롤 위로 가기 버튼 표시 여부 관리 + 스크롤 감지
   useEffect(() => {
     const mainContainer = document.querySelector('section.overflow-y-auto');
     if (!mainContainer) return;
     
     const handleScroll = () => {
-      setShowScrollTop(mainContainer.scrollTop > 300);
+      // 스크롤이 시작되면 hasScrolled를 true로 설정
+      if (mainContainer.scrollTop > 0 && !hasScrolled) {
+        console.log('📜 User started scrolling - Enabling infinite scroll');
+        setHasScrolled(true);
+      }
     };
 
     handleScroll();
@@ -152,7 +159,7 @@ const InventoryTable = ({
     return () => {
       mainContainer.removeEventListener('scroll', handleScroll);
     };
-  }, []);
+  }, [hasScrolled]);
 
   // 스크롤 위로 가기 함수
   const scrollToTop = () => {
@@ -338,25 +345,21 @@ const InventoryTable = ({
           </div>
         )}
         
-        {hasNextPage && !isFetchingNextPage && (
-          <button
-            onClick={fetchNextPage}
-            className='rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
-          >
-            더 보기 ({infiniteScroll.totalCount - infiniteScroll.totalLoaded}개 남음)
-          </button>
-        )}
+        {/* 스크롤 기반 무한 로딩 - 더 보기 버튼 제거 */}
         
         {!hasNextPage && infiniteScroll.totalCount > 0 && (
           <p className='text-sm text-gray-500'>모든 상품을 불러왔습니다.</p>
         )}
         
-        {/* Intersection Observer를 위한 감지 영역 */}
-        <div 
-          id="infinite-scroll-trigger" 
-          className='h-4 w-full'
-          style={{ marginTop: '-16px' }}
-        />
+        {/* Intersection Observer를 위한 감지 영역 - 테이블 하단에 위치 */}
+        {hasNextPage && (
+          <div 
+            id="infinite-scroll-trigger" 
+            className='h-20 w-full flex items-center justify-center text-gray-400 text-sm'
+          >
+            스크롤하여 더 많은 상품 보기...
+          </div>
+        )}
       </div>
 
       {/* 스크롤 위로 가기 버튼 - 디버깅용으로 항상 표시 */}

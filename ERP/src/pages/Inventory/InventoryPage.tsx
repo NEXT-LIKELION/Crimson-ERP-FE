@@ -51,7 +51,7 @@ const InventoryPage = () => {
   const [minSales, setMinSales] = useState('0');
   const [maxSales, setMaxSales] = useState('5000000');
   const [appliedFilters, setAppliedFilters] = useState<{
-    name?: string;
+    product_name?: string;
     category?: string;
     status?: string;
     min_stock?: number;
@@ -66,7 +66,7 @@ const InventoryPage = () => {
   useEffect(() => {
     if (isInitialized) return; // 이미 초기화되었으면 실행하지 않음
 
-    const urlName = searchParams.get('name') || '';
+    const urlName = searchParams.get('product_name') || '';
     const urlCategory = searchParams.get('category') || '';
     const urlStatus = searchParams.get('status') || '';
     const urlMinStock = searchParams.get('min_stock') || '0';
@@ -83,7 +83,7 @@ const InventoryPage = () => {
     setMaxSales(urlMaxSales);
 
     const filters: Record<string, string | number> = {};
-    if (urlName) filters.name = urlName;
+    if (urlName) filters.product_name = urlName;
     if (urlCategory && urlCategory !== '모든 카테고리') filters.category = urlCategory;
     if (urlStatus && urlStatus !== '모든 상태') filters.status = urlStatus;
     if (urlMinStock !== '0' || urlMaxStock !== '1000') {
@@ -107,7 +107,7 @@ const InventoryPage = () => {
     fetchNextPage, 
     hasNextPage, 
     isFetchingNextPage,
-    infiniteScroll 
+    infiniteScroll
   } = useInventories(appliedFilters);
 
   const adjustStockMutation = useAdjustStock();
@@ -126,25 +126,25 @@ const InventoryPage = () => {
     return ['모든 카테고리', ...uniqueCategories.sort()];
   }, [allMergeData]);
 
-  useEffect(() => {
-    const loadAllData = async () => {
+  // 병합 모달이 열릴 때만 데이터 로드 (lazy loading)
+  const loadMergeData = async () => {
+    if (allMergeData.length === 0) {
       try {
+        console.log('🔄 Loading merge data...');
         const allData = await fetchAllInventoriesForMerge();
         setAllMergeData(allData);
       } catch (error) {
         console.error('전체 데이터 로드 실패:', error);
       }
-    };
-
-    loadAllData();
-  }, []); // 컴포넌트 마운트 시 한 번만 실행
+    }
+  };
 
   // URL 업데이트 함수 (페이지 파라미터 제거)
   const updateURL = useCallback(
     (newFilters: Record<string, string | number>) => {
       const params = new URLSearchParams();
 
-      if (newFilters.name) params.set('name', String(newFilters.name));
+      if (newFilters.product_name) params.set('product_name', String(newFilters.product_name));
       if (newFilters.category) params.set('category', String(newFilters.category));
       if (newFilters.status) params.set('status', String(newFilters.status));
       if (newFilters.min_stock !== undefined)
@@ -509,7 +509,10 @@ const InventoryPage = () => {
               <SecondaryButton
                 text='상품 병합'
                 icon={<FaCodeBranch size={16} />}
-                onClick={() => setMergeModalOpen(true)}
+                onClick={async () => {
+                  await loadMergeData(); // 병합 데이터 로드
+                  setMergeModalOpen(true);
+                }}
               />
               <SecondaryButton
                 text='재고 변경 이력'
@@ -573,7 +576,7 @@ const InventoryPage = () => {
             
             // 상품명 필터
             if (productName.trim()) {
-              newFilters.name = productName.trim();
+              newFilters.product_name = productName.trim();
             }
             
             // 카테고리 필터
@@ -586,9 +589,12 @@ const InventoryPage = () => {
               newFilters.status = status;
             }
             
-            // 재고 필터 (항상 적용)
-            newFilters.min_stock = minStockValue;
-            newFilters.max_stock = maxStockValue;
+            // 재고 필터 (기본값이 아닌 경우만)
+            const isDefaultStock = minStockValue === 0 && maxStockValue === 1000;
+            if (!isDefaultStock) {
+              newFilters.min_stock = minStockValue;
+              newFilters.max_stock = maxStockValue;
+            }
             
             // 판매 필터 (기본값이 아닌 경우만)
             const isDefaultSales = minSalesValue === 0 && maxSalesValue === 5000000;
@@ -597,6 +603,7 @@ const InventoryPage = () => {
               newFilters.max_sales = maxSalesValue;
             }
             
+            console.log('🔍 Setting applied filters:', newFilters);
             setAppliedFilters(newFilters);
             updateURL(newFilters);
           }}

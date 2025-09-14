@@ -100,23 +100,27 @@ export const checkProductNameExists = async (
   }
 };
 
-// 병합용 전체 데이터 조회 (모든 페이지)
+// 병합용 전체 데이터 조회 (큰 page_size로 최소한의 요청)
 export const fetchAllInventoriesForMerge = async (): Promise<ProductVariant[]> => {
   try {
+    console.log('🚀 병합용 전체 데이터 로드 시작...');
     let allData: ProductVariant[] = [];
     let page = 1;
     let hasMoreData = true;
 
     while (hasMoreData) {
-      const response = await fetchInventories({ page });
+      const response = await fetchInventories({ page, page_size: 100 });
       const pageData = response.data.results || [];
       allData = [...allData, ...pageData];
+      
+      console.log(`📄 Page ${page} 로드됨: ${pageData.length}개 (총 ${allData.length}개)`);
 
       // 다음 페이지가 있는지 확인
       hasMoreData = response.data.next !== null;
       page++;
     }
 
+    console.log(`✅ 병합용 데이터 로드 완료: ${allData.length}개`);
     return allData;
   } catch (error) {
     console.error('전체 데이터 로드 실패:', error);
@@ -138,20 +142,28 @@ interface InventoryExportFilters {
 
 export const fetchFilteredInventoriesForExport = async (appliedFilters: InventoryExportFilters): Promise<ProductVariant[]> => {
   try {
-    let allData: ProductVariant[] = [];
-    let page = 1;
-    let hasMoreData = true;
-
-    // 백엔드 필터 (상태 필터 제외)
+    console.log('🚀 엑셀 익스포트용 데이터 한 번에 로드 시작...');
+    
+    // 백엔드 필터 (상태 필터와 페이지 관련 제외)
     const backendFilters = { ...appliedFilters };
     delete backendFilters.status;
     delete backendFilters.page;
 
-    // 모든 페이지에서 데이터 수집
+    // 필터링된 모든 데이터를 페이지별로 수집
+    let allData: ProductVariant[] = [];
+    let page = 1;
+    let hasMoreData = true;
+
     while (hasMoreData) {
-      const response = await fetchInventories({ ...backendFilters, page });
+      const params = Object.keys(backendFilters).length > 0 ? 
+        { ...backendFilters, page, page_size: 100 } : 
+        { page, page_size: 100 };
+      
+      const response = await fetchInventories(params);
       const pageData = response.data.results || [];
       allData = [...allData, ...pageData];
+      
+      console.log(`📄 Export Page ${page} 로드됨: ${pageData.length}개 (총 ${allData.length}개)`);
 
       hasMoreData = response.data.next !== null;
       page++;
@@ -206,6 +218,7 @@ export const fetchFilteredInventoriesForExport = async (appliedFilters: Inventor
       return true;
     });
 
+    console.log(`✅ 엑셀 익스포트용 데이터 로드 완료: ${filteredData.length}개`);
     return filteredData;
   } catch (error) {
     console.error('필터링된 데이터 로드 실패:', error);
