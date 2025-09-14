@@ -58,28 +58,78 @@ export const fetchProductsBySupplier = async (supplierId: number) => {
     // 업체 정보 조회
     const supplierRes = await api.get(`/supplier/${supplierId}/`);
     const supplier = supplierRes.data;
-    
+
     if (!supplier.variants || supplier.variants.length === 0) {
       return { data: [] };
     }
-    
+
     // 업체의 variants에서 유니크한 상품명 추출
     const uniqueProductNames = [...new Set(
       supplier.variants.map((v: { name: string }) => v.name)
     )];
-    
+
     // 전체 상품 목록 조회
     const productsRes = await api.get('/inventory/');
     const allProducts = productsRes.data || [];
-    
+
     // 업체가 공급하는 상품만 필터링
-    const supplierProducts = allProducts.filter((product: { name: string }) => 
+    const supplierProducts = allProducts.filter((product: { name: string }) =>
       uniqueProductNames.includes(product.name)
     );
-    
+
     return { data: supplierProducts };
   } catch (error) {
     console.error('Failed to fetch products by supplier:', error);
+    throw error;
+  }
+};
+
+// 🔹 8. 상품 검색 (발주용) - 모든 상품에서 검색 (페이지네이션 지원)
+export const searchProducts = async (query: string) => {
+  try {
+    let allVariants: any[] = [];
+    let page = 1;
+    let hasMoreData = true;
+
+    const baseParams: any = {
+      page_size: 100
+    };
+
+    // 검색어가 있을 때만 필터링 파라미터 추가
+    if (query.trim()) {
+      baseParams.product_name = query;
+    }
+
+    // 모든 페이지를 순회하여 전체 데이터 수집
+    while (hasMoreData) {
+      const params = { ...baseParams, page };
+      const response = await api.get('/inventory/variants/', { params });
+      const pageData = response.data?.results || [];
+
+      allVariants = [...allVariants, ...pageData];
+
+      // 다음 페이지가 있는지 확인
+      hasMoreData = response.data?.next !== null;
+      page++;
+    }
+
+    // 중복 제거: 각 variant_code별로 하나씩만 사용
+    const uniqueVariants = new Map();
+    allVariants.forEach((variant: { product_id: string; name: string; variant_code: string }) => {
+      if (!uniqueVariants.has(variant.variant_code)) {
+        uniqueVariants.set(variant.variant_code, {
+          product_id: variant.product_id,
+          name: variant.name,
+          variant_code: variant.variant_code
+        });
+      }
+    });
+
+    const productOptions = Array.from(uniqueVariants.values());
+    console.log(`✅ 상품 검색 완료: ${productOptions.length}개 (총 variants: ${allVariants.length}개)`);
+    return { data: productOptions };
+  } catch (error) {
+    console.error('Failed to search products:', error);
     throw error;
   }
 };

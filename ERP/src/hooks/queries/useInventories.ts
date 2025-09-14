@@ -16,7 +16,13 @@ export const useInventories = (filters?: {
   
   // API 파라미터명 변환
   const apiFilters: Record<string, unknown> = filters ? { ...filters } : {};
-  
+
+  // name을 product_name으로 변환
+  if (filters?.name !== undefined) {
+    apiFilters.product_name = filters.name;
+    delete apiFilters.name;
+  }
+
   if (filters?.min_stock !== undefined) {
     apiFilters.stock_gt = filters.min_stock - 1; // min_stock 5 -> stock_gt 4 (4초과)
     delete apiFilters.min_stock;

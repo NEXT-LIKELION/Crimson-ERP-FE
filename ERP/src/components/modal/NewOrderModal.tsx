@@ -1,30 +1,28 @@
 // src/components/modal/NewOrderModal.tsx
 import React, { useState, useEffect } from 'react';
-import {
-  FiX,
-  FiPlus,
-  FiTrash2,
-  FiShoppingBag,
-  FiCalendar,
-  FiAlertTriangle,
-} from 'react-icons/fi';
+import { FiX, FiPlus, FiTrash2, FiShoppingBag, FiCalendar, FiAlertTriangle } from 'react-icons/fi';
 import DateInput from '../input/DateInput';
 import SelectInput from '../input/SelectInput';
 import RadioButton from '../common/RadioButton';
 import AddProductModal from './AddProductModal';
 import AddSupplierModal from './AddSupplierModal';
+import ProductSearchInput from '../input/ProductSearchInput';
 import { Order } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
 import { fetchSuppliers, createSupplier } from '../../api/supplier';
-import { fetchVariantsByProductId, fetchProductOptions, fetchVariantDetail } from '../../api/inventory';
-import { createOrder, fetchProductsBySupplier } from '../../api/orders';
+import {
+  fetchProductOptions,
+  fetchVariantDetail,
+  fetchVariantsByProductId,
+} from '../../api/inventory';
+import { createOrder } from '../../api/orders';
 import { useEmployees } from '../../hooks/queries/useEmployees';
 import { Supplier, ProductOption } from '../../types/product';
-import { 
-  calculateTotalAmount, 
-  extractVariantCode, 
+import {
+  calculateTotalAmount,
+  extractVariantCode,
   validateOrderForm,
-  calculateVATPrice
+  calculateVATPrice,
 } from '../../utils/orderUtils';
 
 interface NewOrderModalProps {
@@ -47,8 +45,6 @@ interface OrderItemPayload {
 const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<ProductOption[]>([]);
-  const [isLoadingSupplierProducts, setIsLoadingSupplierProducts] = useState<boolean>(false);
   const [supplier, setSupplier] = useState<number>(0);
   const [supplierName, setSupplierName] = useState<string>('');
   const [orderDate, setOrderDate] = useState<Date | null>(null); // 초기값 null
@@ -73,7 +69,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   const [hasPackaging, setHasPackaging] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
-  const [variantsByProduct, setVariantsByProduct] = useState<{ [productId: string]: Array<{ variant_code: string; option: string }> }>({});
+  const [variantsByProduct, setVariantsByProduct] = useState<{
+    [productId: string]: Array<{ variant_code: string; option: string }>;
+  }>({});
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState<boolean>(false);
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState<boolean>(false);
   const [selectedManager, setSelectedManager] = useState<string>('');
@@ -83,8 +81,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     error: employeesError,
   } = useEmployees();
   const employees = employeesData?.data || [];
-  const activeEmployees = employees.filter((employee: { is_active?: boolean; status?: string; role?: string }) => 
-    employee.role === 'MANAGER' || (employee.is_active === true && employee.status === 'approved')
+  const activeEmployees = employees.filter(
+    (employee: { is_active?: boolean; status?: string; role?: string }) =>
+      employee.role === 'MANAGER' || (employee.is_active === true && employee.status === 'approved')
   );
   const user = useAuthStore((state) => state.user);
 
@@ -120,7 +119,6 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   const resetForm = () => {
     setSupplier(0);
     setSupplierName('');
-    setFilteredProducts([]);
     setOrderDate(null); // 초기값 null
     setDeliveryDate(null); // 초기값 null
     setItems([
@@ -184,7 +182,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       items,
       workInstructions,
     });
-    
+
     setFormErrors(errors);
     return errors.length === 0;
   };
@@ -210,18 +208,20 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         vat_included: includesTax,
         packaging_included: hasPackaging,
         manager_name: selectedManager || user?.first_name || user?.username || '',
-        items: items.map((item) => {
-          const variant_code = extractVariantCode(item, variantsByProduct);
-          
-          return {
-            variant_code,
-            quantity: item.quantity,
-            unit_price: calculateVATPrice(item.unit_price, includesTax),
-            unit: item.unit || undefined,
-            remark: item.remark || undefined,
-            spec: item.spec || undefined,
-          };
-        }).filter(item => item.variant_code !== ''),
+        items: items
+          .map((item) => {
+            const variant_code = extractVariantCode(item, variantsByProduct);
+
+            return {
+              variant_code,
+              quantity: item.quantity,
+              unit_price: calculateVATPrice(item.unit_price, includesTax),
+              unit: item.unit || undefined,
+              remark: item.remark || undefined,
+              spec: item.spec || undefined,
+            };
+          })
+          .filter((item) => item.variant_code !== ''),
       };
       const res = await createOrder(payload);
       alert('발주가 성공적으로 신청되었습니다.');
@@ -234,38 +234,13 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     }
   };
 
-  // 업체별 상품 필터링 함수 (API 방식)
-  const filterProductsBySupplierAPI = async (supplierId: number) => {
-    if (!supplierId) {
-      setFilteredProducts([]);
-      setIsLoadingSupplierProducts(false);
-      return;
-    }
-
-    setIsLoadingSupplierProducts(true);
-    
-    try {
-      const response = await fetchProductsBySupplier(supplierId);
-      console.log('업체별 상품 조회 결과:', response.data);
-      setFilteredProducts(response.data);
-    } catch (error) {
-      console.error('업체별 상품 조회 실패:', error);
-      setFilteredProducts([]);
-    } finally {
-      setIsLoadingSupplierProducts(false);
-    }
-  };
-
   // 공급업체 선택 핸들러
   const handleSupplierChange = async (name: string) => {
     setSupplierName(name);
     const found = suppliers.find((s) => s.name === name);
     const supplierId = found ? found.id : 0;
     setSupplier(supplierId);
-    
-    // 업체별 상품 필터링 (API 방식)
-    await filterProductsBySupplierAPI(supplierId);
-    
+
     // 기존 선택된 상품들 초기화
     setItems([
       {
@@ -281,10 +256,13 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     ]);
   };
 
-  // 2. 행별 상품 선택 핸들러
-  const handleProductChange = async (idx: number, name: string) => {
-    const found = products.find((p) => p.name === name);
-    const product_id = found ? found.product_id : null;
+  // 검색을 통한 상품 선택 핸들러 (기존 방식으로 복원)
+  const handleProductSearchSelect = async (idx: number, product: ProductOption) => {
+    await handleProductChangeByProductId(idx, product.product_id);
+  };
+
+  // 상품 변경 공통 로직 (복원)
+  const handleProductChangeByProductId = async (idx: number, product_id: string | null) => {
     // 품목 캐시 없으면 fetch
     if (product_id && !variantsByProduct[product_id]) {
       try {
@@ -292,34 +270,38 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         // API 응답 구조 확인: res.data.variants 또는 res.data가 배열인지 확인
         const variantsData = res.data.variants || res.data || [];
         const variants = Array.isArray(variantsData) ? variantsData : [];
-        
+
         // 업체가 선택된 경우 해당 업체의 variant_codes만 필터링
         let filteredVariants = variants;
         if (supplier > 0) {
-          const selectedSupplier = suppliers.find(s => s.id === supplier);
+          const selectedSupplier = suppliers.find((s) => s.id === supplier);
           if (selectedSupplier && selectedSupplier.variant_codes) {
-            filteredVariants = variants.filter((variant: { variant_code: string }) => 
+            filteredVariants = variants.filter((variant: { variant_code: string }) =>
               selectedSupplier.variant_codes.includes(variant.variant_code)
             );
           }
         }
-        
+
         setVariantsByProduct((prev) => ({ ...prev, [product_id]: filteredVariants }));
       } catch (e) {
         console.error('Failed to fetch variants:', e);
         setVariantsByProduct((prev) => ({ ...prev, [product_id]: [] }));
       }
     }
-    // 상품 바뀌면 품목, 단가, 규격 초기화
+    // 상품 바뀌면 품목, 단가, 규격 초기화 (규격은 빈 문자열로)
     setItems(
-      items.map((item, i) => (i === idx ? { 
-        ...item, 
-        product_id, 
-        variant: null, 
-        variant_code: '',
-        unit_price: 0, 
-        spec: '' 
-      } : item))
+      items.map((item, i) =>
+        i === idx
+          ? {
+              ...item,
+              product_id,
+              variant: null,
+              variant_code: '',
+              unit_price: 0,
+              spec: '', // 규격은 빈 문자열로 초기화
+            }
+          : item
+      )
     );
   };
 
@@ -327,44 +309,53 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   const handleVariantChange = async (idx: number, option: string) => {
     // 기본 variant 설정
     handleItemChange(idx, 'variant', option);
-    
+
     // variant_code 찾기
     const item = items[idx];
     if (!item.product_id) return;
-    
+
     const variants = variantsByProduct[item.product_id] || [];
-    const selectedVariant = variants.find((v: { option: string; variant_code: string }) => v.option === option);
-    
+    const selectedVariant = variants.find(
+      (v: { option: string; variant_code: string }) => v.option === option
+    );
+
     if (selectedVariant) {
       // variant_code 설정
       handleItemChange(idx, 'variant_code', selectedVariant.variant_code);
-      
+
       try {
         // variant 상세 정보 조회하여 자동 입력
         const variantDetailRes = await fetchVariantDetail(selectedVariant.variant_code);
         const variantDetail = variantDetailRes.data;
-        
+
         // 자동 입력: 가격과 규격
-        setItems(items.map((currentItem, i) => 
-          i === idx ? {
-            ...currentItem,
-            variant: option,
-            variant_code: selectedVariant.variant_code,
-            unit_price: variantDetail.price || 0,
-            spec: variantDetail.description || variantDetail.option || '',
-          } : currentItem
-        ));
-        
+        setItems(
+          items.map((currentItem, i) =>
+            i === idx
+              ? {
+                  ...currentItem,
+                  variant: option,
+                  variant_code: selectedVariant.variant_code,
+                  unit_price: variantDetail.price || 0,
+                  // spec은 사용자가 직접 입력하도록 자동 입력 제거
+                }
+              : currentItem
+          )
+        );
       } catch (error) {
         console.error('Failed to fetch variant detail:', error);
         // 에러 발생 시 기본값만 설정
-        setItems(items.map((currentItem, i) => 
-          i === idx ? {
-            ...currentItem,
-            variant: option,
-            variant_code: selectedVariant.variant_code,
-          } : currentItem
-        ));
+        setItems(
+          items.map((currentItem, i) =>
+            i === idx
+              ? {
+                  ...currentItem,
+                  variant: option,
+                  variant_code: selectedVariant.variant_code,
+                }
+              : currentItem
+          )
+        );
       }
     }
   };
@@ -394,13 +385,13 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         address: supplierData.address as string,
         variant_codes: [], // 선택사항이므로 빈 배열로 설정
       });
-      
+
       // 성공 후 공급자 목록 다시 불러오기
       const res = await fetchSuppliers();
       const updatedSupplierData = Array.isArray(res.data) ? res.data : [];
       setSuppliers(updatedSupplierData);
       setIsAddSupplierModalOpen(false);
-      
+
       // 성공 메시지
       alert('공급업체가 성공적으로 추가되었습니다.');
     } catch (error) {
@@ -513,7 +504,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 ) : (
                   <SelectInput
                     defaultText='담당자 선택'
-                    options={activeEmployees.map((e: { first_name?: string; username: string }) => e.first_name || e.username)}
+                    options={activeEmployees.map(
+                      (e: { first_name?: string; username: string }) => e.first_name || e.username
+                    )}
                     value={selectedManager}
                     onChange={(name: string) => setSelectedManager(name)}
                     disabled={isSubmitting}
@@ -598,21 +591,16 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 </h3>
               </div>
               <div className='flex items-center gap-2'>
-                {!supplier && (
-                  <span className='text-sm text-orange-600'>먼저 공급업체를 선택해주세요</span>
-                )}
                 <button
                   onClick={handleAddItem}
-                  className={`flex items-center rounded-md px-3 py-1 text-sm font-medium text-white ${
-                    supplier ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-400 cursor-not-allowed'
-                  }`}
-                  disabled={isSubmitting || !supplier}>
+                  className='flex items-center rounded-md bg-indigo-600 px-3 py-1 text-sm font-medium text-white hover:bg-indigo-700'
+                  disabled={isSubmitting}>
                   <FiPlus className='mr-1 h-3.5 w-3.5' />
                   항목 추가
                 </button>
               </div>
             </div>
-            <div className='overflow-hidden rounded-md border border-gray-200'>
+            <div className='overflow-visible rounded-md border border-gray-200'>
               <div className='min-w-[1000px]'>
                 {' '}
                 {/* 기존보다 100px 넓힘 */}
@@ -661,34 +649,21 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 {/* Table Body */}
                 <div className='bg-white'>
                   {items.map((item, idx) => (
-                    <div key={idx} className='flex h-20 border-t border-gray-200'>
-                      {/* 상품 드롭다운 */}
-                      <div className='flex w-32 items-center px-3 py-3.5'>
+                    <div key={idx} className='flex h-24 border-t border-gray-200'>
+                      {/* 상품 검색 및 드롭다운 */}
+                      <div className='flex w-32 items-start px-3 py-2'>
                         <div className='flex w-full flex-col gap-1'>
-                          <SelectInput
-                            defaultText={
-                              !supplier 
-                                ? '업체를 먼저 선택하세요' 
-                                : isLoadingSupplierProducts 
-                                  ? '상품 로딩 중...' 
-                                  : filteredProducts.length === 0 
-                                    ? '해당 업체 상품 없음'
-                                    : '상품 선택'
-                            }
-                            options={
-                              supplier && !isLoadingSupplierProducts ? filteredProducts.map((p) => p.name) : []
-                            }
+                          {/* 상품 검색 */}
+                          <ProductSearchInput
+                            placeholder='기존 상품 검색...'
                             value={(() => {
-                              const found = products.find(
-                                (p) => p.product_id === item.product_id
-                              );
+                              const found = products.find((p) => p.product_id === item.product_id);
                               return found ? found.name : '';
                             })()}
-                            onChange={(name: string) => {
-                              handleProductChange(idx, name);
-                            }}
-                            disabled={isSubmitting || !supplier || isLoadingSupplierProducts}
+                            onSelect={(product) => handleProductSearchSelect(idx, product)}
+                            disabled={isSubmitting}
                           />
+
                           <button
                             onClick={() => setIsAddProductModalOpen(true)}
                             className='flex items-center justify-center rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600'
@@ -699,7 +674,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                         </div>
                       </div>
                       {/* 품목 드롭다운 */}
-                      <div className='flex w-32 items-center px-3 py-3.5'>
+                      <div className='flex w-32 items-center px-3 py-2'>
                         <SelectInput
                           defaultText='품목 선택'
                           options={
@@ -714,19 +689,19 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting || !item.product_id}
                         />
                       </div>
-                      <div className='flex w-32 items-center px-3 py-3.5'>
+                      <div className='flex w-32 items-center px-3 py-2'>
                         <input
                           type='text'
                           value={item.spec}
                           onChange={(e) => handleItemChange(idx, 'spec', e.target.value)}
                           placeholder='규격'
-                          className={`w-full rounded-md border border-gray-300 px-2 pt-1.5 pb-1 text-sm placeholder-gray-400 ${
-                            item.spec && item.variant ? 'bg-blue-50 border-blue-300' : ''
+                          className={`w-full rounded-md border border-gray-300 px-2 py-1 text-sm placeholder-gray-400 ${
+                            item.spec && item.variant ? 'border-blue-300 bg-blue-50' : ''
                           }`}
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-20 items-center px-3 py-3.5'>
+                      <div className='flex w-20 items-center px-3 py-2'>
                         <input
                           type='text'
                           value={item.unit}
@@ -735,7 +710,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-24 items-center px-3 py-3.5'>
+                      <div className='flex w-24 items-center px-3 py-2'>
                         <input
                           type='number'
                           value={item.quantity}
@@ -747,7 +722,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-32 items-center px-3 py-3.5'>
+                      <div className='flex w-32 items-center px-3 py-2'>
                         <input
                           type='number'
                           value={item.unit_price}
@@ -755,7 +730,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                             handleItemChange(idx, 'unit_price', parseInt(e.target.value) || 0)
                           }
                           className={`w-28 rounded-md border border-gray-300 px-2 py-1 text-sm ${
-                            item.unit_price > 0 && item.variant ? 'bg-blue-50 border-blue-300' : ''
+                            item.unit_price > 0 && item.variant ? 'border-blue-300 bg-blue-50' : ''
                           }`}
                           min='0'
                           disabled={isSubmitting}
@@ -772,17 +747,17 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           원
                         </div>
                       </div>
-                      <div className='flex w-32 items-center px-3 py-3.5'>
+                      <div className='flex w-32 items-center px-3 py-2'>
                         <input
                           type='text'
                           value={item.remark}
                           onChange={(e) => handleItemChange(idx, 'remark', e.target.value)}
                           placeholder='비고'
-                          className='w-full rounded-md border border-gray-300 px-2 pt-1.5 pb-1 text-sm placeholder-gray-400'
+                          className='w-full rounded-md border border-gray-300 px-2 py-1 text-sm placeholder-gray-400'
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-14 items-center justify-center px-3 py-3'>
+                      <div className='flex w-14 items-center justify-center px-3 py-2'>
                         <button
                           type='button'
                           className='text-red-500 hover:text-red-700'

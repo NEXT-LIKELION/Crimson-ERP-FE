@@ -3,7 +3,7 @@ import GreenButton from '../../components/button/GreenButton';
 import PrimaryButton from '../../components/button/PrimaryButton';
 import SecondaryButton from '../../components/button/SecondaryButton';
 import { FaPlus, FaFileArrowUp } from 'react-icons/fa6';
-import { FaCodeBranch, FaHistory } from 'react-icons/fa';
+import { FaCodeBranch, FaHistory, FaUndo } from 'react-icons/fa';
 import InputField from '../../components/inputfield/InputField';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import { useInventories } from '../../hooks/queries/useInventories';
@@ -20,6 +20,8 @@ import AddProductModal from '../../components/modal/AddProductModal';
 import MergeVariantsModal from '../../components/modal/MergeVariantsModal';
 import StockAdjustmentModal from '../../components/modal/StockAdjustmentModal';
 import StockHistoryModal from '../../components/modal/StockHistoryModal';
+import InventoryRollbackModal from '../../components/modal/InventoryRollbackModal';
+import InventoryTabs from '../../components/tabs/InventoryTabs';
 import { Product } from '../../types/product';
 import { useQueryClient } from '@tanstack/react-query';
 import { uploadInventoryExcel } from '../../api/upload';
@@ -35,6 +37,15 @@ const InventoryPage = () => {
   const [isMergeModalOpen, setMergeModalOpen] = useState(false);
   const [isStockAdjustModalOpen, setStockAdjustModalOpen] = useState(false);
   const [isStockHistoryModalOpen, setStockHistoryModalOpen] = useState(false);
+  const [isRollbackModalOpen, setRollbackModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'offline' | 'online'>('all');
+
+  const handleTabChange = (tab: 'all' | 'offline' | 'online') => {
+    if (tab !== 'all' && tab !== activeTab) {
+      alert('🎲 랜덤 필터링 중!\n\n백엔드에 채널 구분 필드가 없어서\n임시로 랜덤하게 데이터를 나누어 표시합니다.\n\n새로고침할 때마다 결과가 달라질 수 있습니다.');
+    }
+    setActiveTab(tab);
+  };
   const [selectedVariantForStock, setSelectedVariantForStock] = useState<{
     variant_code: string;
     product_id: string;
@@ -491,6 +502,24 @@ const InventoryPage = () => {
     }
   };
 
+  // 탭별 데이터 필터링 (현재는 시뮬레이션)
+  const getTabData = () => {
+    switch (activeTab) {
+      case 'all':
+        return data ?? [];
+      case 'offline':
+        // TODO: 백엔드 구현 후 오프라인 데이터만 필터링
+        return (data ?? []).filter((item: any) => item.source === 'offline' || Math.random() < 0.5);
+      case 'online':
+        // TODO: 백엔드 구현 후 온라인 데이터만 필터링
+        return (data ?? []).filter((item: any) => item.source === 'online' || Math.random() < 0.5);
+      default:
+        return data ?? [];
+    }
+  };
+
+  const tabData = getTabData();
+
   if (isLoading) return <p>로딩 중...</p>;
   if (error) return <p>에러가 발생했습니다!</p>;
 
@@ -519,6 +548,11 @@ const InventoryPage = () => {
                 icon={<FaHistory size={16} />}
                 onClick={() => setStockHistoryModalOpen(true)}
               />
+              <SecondaryButton
+                text='POS 롤백'
+                icon={<FaUndo size={16} />}
+                onClick={() => setRollbackModalOpen(true)}
+              />
               <PrimaryButton
                 text='POS 데이터 업로드'
                 icon={<FaFileArrowUp size={16} />}
@@ -536,6 +570,12 @@ const InventoryPage = () => {
           />
         </div>
       </div>
+
+      {/* 탭 메뉴 */}
+      <InventoryTabs
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+      />
 
       <div className='mb-6'>
         <InputField
@@ -611,8 +651,24 @@ const InventoryPage = () => {
         />
       </div>
 
+      {/* 탭 상태 표시 (임시) */}
+      <div className='mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4'>
+        <div className='flex items-center gap-2'>
+          <div className='h-2 w-2 rounded-full bg-blue-600'></div>
+          <span className='text-sm font-medium text-blue-800'>
+            현재 탭: {activeTab === 'all' ? '전체' : activeTab === 'offline' ? '오프라인' : '온라인'}
+            ({tabData.length}개 상품)
+          </span>
+        </div>
+        {activeTab !== 'all' && (
+          <p className='mt-1 text-xs text-blue-600'>
+            * 백엔드 구현 중 - 현재는 임시 데이터 필터링
+          </p>
+        )}
+      </div>
+
       <InventoryTable
-        inventories={data ?? []}
+        inventories={tabData}
         onDelete={handleVariantDelete}
         onExportToExcel={handleExportToExcel}
         // 무한 스크롤 관련 props
@@ -661,6 +717,13 @@ const InventoryPage = () => {
         <StockHistoryModal
           isOpen={isStockHistoryModalOpen}
           onClose={() => setStockHistoryModalOpen(false)}
+        />
+      )}
+      {isRollbackModalOpen && (
+        <InventoryRollbackModal
+          isOpen={isRollbackModalOpen}
+          onClose={() => setRollbackModalOpen(false)}
+          onSuccess={refetch}
         />
       )}
     </div>

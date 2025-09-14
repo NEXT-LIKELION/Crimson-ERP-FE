@@ -260,6 +260,45 @@ export const fetchStockAdjustments = (params?: { page?: number; variant_code?: s
     });
 };
 
+// 스냅샷 목록 조회
+export const fetchInventorySnapshots = (params?: { page?: number }) => {
+  return api
+    .get('/inventory/snapshot', { params })
+    .then((response) => {
+      return response;
+    })
+    .catch((error) => {
+      console.error('fetchInventorySnapshots - error:', error);
+      throw error;
+    });
+};
+
+// 스냅샷 상세 조회
+export const fetchInventorySnapshot = (id: number) => {
+  return api
+    .get(`/inventory/snapshot/${id}/`)
+    .then((response) => {
+      return response;
+    })
+    .catch((error) => {
+      console.error('fetchInventorySnapshot - error:', error);
+      throw error;
+    });
+};
+
+// 재고 롤백
+export const rollbackToSnapshot = (snapshotId: number, reason?: string) => {
+  return api
+    .post(`/inventory/rollback/${snapshotId}/`, { reason })
+    .then((response) => {
+      return response;
+    })
+    .catch((error) => {
+      console.error('rollbackToSnapshot - error:', error);
+      throw error;
+    });
+};
+
 // 상품 코드 병합
 export const mergeVariants = async (payload: {
   target_variant_code: string;
@@ -277,4 +316,3 @@ export const mergeVariants = async (payload: {
     });
 };
 
-// duplicate removed
