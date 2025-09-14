@@ -1,4 +1,5 @@
 import { api } from './axios';
+import { ProductVariant } from '../types/product';
 
 // 🔹 1. 발주 목록 조회 (GET /orders/)
 export const fetchOrders = (params?: {
@@ -87,11 +88,11 @@ export const fetchProductsBySupplier = async (supplierId: number) => {
 // 🔹 8. 상품 검색 (발주용) - 모든 상품에서 검색 (페이지네이션 지원)
 export const searchProducts = async (query: string) => {
   try {
-    let allVariants: any[] = [];
+    let allVariants: ProductVariant[] = [];
     let page = 1;
     let hasMoreData = true;
 
-    const baseParams: any = {
+    const baseParams: Record<string, string | number> = {
       page_size: 100
     };
 

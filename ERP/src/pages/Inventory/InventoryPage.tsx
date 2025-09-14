@@ -22,7 +22,7 @@ import StockAdjustmentModal from '../../components/modal/StockAdjustmentModal';
 import StockHistoryModal from '../../components/modal/StockHistoryModal';
 import InventoryRollbackModal from '../../components/modal/InventoryRollbackModal';
 import InventoryTabs from '../../components/tabs/InventoryTabs';
-import { Product } from '../../types/product';
+import { Product, ProductVariant } from '../../types/product';
 import { useQueryClient } from '@tanstack/react-query';
 import { uploadInventoryExcel } from '../../api/upload';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -42,7 +42,9 @@ const InventoryPage = () => {
 
   const handleTabChange = (tab: 'all' | 'offline' | 'online') => {
     if (tab !== 'all' && tab !== activeTab) {
-      alert('🎲 랜덤 필터링 중!\n\n백엔드에 채널 구분 필드가 없어서\n임시로 랜덤하게 데이터를 나누어 표시합니다.\n\n새로고침할 때마다 결과가 달라질 수 있습니다.');
+      alert(
+        '🎲 랜덤 필터링 중!\n\n백엔드에 채널 구분 필드가 없어서\n임시로 랜덤하게 데이터를 나누어 표시합니다.\n\n새로고침할 때마다 결과가 달라질 수 있습니다.'
+      );
     }
     setActiveTab(tab);
   };
@@ -110,15 +112,15 @@ const InventoryPage = () => {
     setIsInitialized(true);
   }, [searchParams, isInitialized]);
 
-  const { 
-    data, 
-    isLoading, 
-    error, 
-    refetch, 
-    fetchNextPage, 
-    hasNextPage, 
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
     isFetchingNextPage,
-    infiniteScroll
+    infiniteScroll,
   } = useInventories(appliedFilters);
 
   const adjustStockMutation = useAdjustStock();
@@ -131,7 +133,11 @@ const InventoryPage = () => {
     if (!allMergeData || allMergeData.length === 0) return ['모든 카테고리'];
 
     const uniqueCategories = Array.from(
-      new Set((allMergeData as { category?: string }[]).map((item) => item.category).filter(Boolean) as string[])
+      new Set(
+        (allMergeData as { category?: string }[])
+          .map((item) => item.category)
+          .filter(Boolean) as string[]
+      )
     );
 
     return ['모든 카테고리', ...uniqueCategories.sort()];
@@ -180,7 +186,9 @@ const InventoryPage = () => {
   const selectedProduct = useMemo(() => {
     if (!data || !editId) return null;
     // 백엔드에서 이미 평면화된 데이터를 직접 사용
-    const result = data.find((item: { variant_code: string }) => item.variant_code === String(editId));
+    const result = data.find(
+      (item: { variant_code: string }) => item.variant_code === String(editId)
+    );
     if (!result) return null;
 
     const processedResult = {
@@ -195,7 +203,6 @@ const InventoryPage = () => {
       memo: result.memo || '',
       suppliers: result.suppliers || [],
     };
-
 
     return processedResult;
   }, [data, editId]);
@@ -223,19 +230,10 @@ const InventoryPage = () => {
         throw new Error('variant 식별자를 찾을 수 없습니다.');
       }
 
-
-
       // suppliers와 readOnly 필드들 제외
-      const { 
-        suppliers, 
-        sales, 
-        cost_price, 
-        order_count, 
-        return_count, 
-        stock,
-        ...editableFields 
-      } = updatedProduct;
-      
+      const { suppliers, sales, cost_price, order_count, return_count, stock, ...editableFields } =
+        updatedProduct;
+
       // readOnly 필드들은 사용되지 않지만 구조분해할당으로 제외하기 위해 필요
       void suppliers;
       void sales;
@@ -247,21 +245,20 @@ const InventoryPage = () => {
       // API에 전송할 수정 가능한 필드들만 포함
       const updateData = {
         ...editableFields,
-        price: typeof editableFields.price === 'string' 
-          ? Number(editableFields.price) 
-          : editableFields.price,
-        min_stock: typeof editableFields.min_stock === 'string'
-          ? Number(editableFields.min_stock)
-          : editableFields.min_stock,
+        price:
+          typeof editableFields.price === 'string'
+            ? Number(editableFields.price)
+            : editableFields.price,
+        min_stock:
+          typeof editableFields.min_stock === 'string'
+            ? Number(editableFields.min_stock)
+            : editableFields.min_stock,
       };
 
-
-      
       await updateInventoryVariant(String(variantIdentifier), updateData);
-      
+
       // 공급업체 정보가 배열로 제공된 경우 (향후 구현)
       if (Array.isArray(suppliers) && suppliers.length > 0) {
-
         // TODO: 공급업체 매핑 업데이트 API 구현 후 호출
       }
       alert('상품이 성공적으로 수정되었습니다.');
@@ -276,7 +273,9 @@ const InventoryPage = () => {
 
   const handleVariantDelete = async (variantCode: string) => {
     // 백엔드에서 이미 평면화된 데이터를 직접 사용
-    const variantToDelete = data?.find((item: { variant_code: string }) => item.variant_code === variantCode);
+    const variantToDelete = data?.find(
+      (item: { variant_code: string }) => item.variant_code === variantCode
+    );
 
     if (!variantToDelete) {
       alert('삭제할 품목을 찾을 수 없습니다.');
@@ -354,7 +353,6 @@ const InventoryPage = () => {
 
       // 필터 초기화해서 최신 데이터 확인
       setAppliedFilters({});
-
     } catch (error) {
       console.error('병합 실패:', error);
       throw error; // 모달에서 에러 처리하도록 re-throw
@@ -363,15 +361,12 @@ const InventoryPage = () => {
 
   const handleExportToExcel = async () => {
     try {
-
-
       // 현재 필터링된 전체 데이터 가져오기 (페이지네이션 무시)
       let exportData: unknown[] = [];
 
       if (Object.keys(appliedFilters).length === 0) {
         // 필터가 없는 경우 → 전체 데이터 가져오기
         exportData = allMergeData; // 이미 로드된 전체 데이터 사용
-
       } else {
         // 필터가 있는 경우 → api에서 처리
         // API 파라미터명 변환
@@ -392,7 +387,7 @@ const InventoryPage = () => {
           exportFilters.sales_max = appliedFilters.max_sales;
           delete exportFilters.max_sales;
         }
-        
+
         exportData = await fetchFilteredInventoriesForExport(exportFilters);
       }
 
@@ -413,7 +408,12 @@ const InventoryPage = () => {
         매입가: item.cost_price,
         재고수량: Math.max(0, Number(item.stock) || 0),
         최소재고: Math.max(0, Number(item.min_stock) || 0),
-        상태: item.stock === 0 ? '품절' : (item.stock || 0) < (item.min_stock || 0) ? '재고부족' : '정상',
+        상태:
+          item.stock === 0
+            ? '품절'
+            : (item.stock || 0) < (item.min_stock || 0)
+              ? '재고부족'
+              : '정상',
         결제수량: item.order_count,
         환불수량: item.return_count,
         판매합계: item.sales,
@@ -462,8 +462,6 @@ const InventoryPage = () => {
 
       // 파일 다운로드
       XLSX.writeFile(workbook, filename);
-
-
     } catch (error) {
       console.error('엑셀 Export 오류:', error);
       alert('엑셀 파일 생성 중 오류가 발생했습니다.');
@@ -509,10 +507,16 @@ const InventoryPage = () => {
         return data ?? [];
       case 'offline':
         // TODO: 백엔드 구현 후 오프라인 데이터만 필터링
-        return (data ?? []).filter((item: any) => item.source === 'offline' || Math.random() < 0.5);
+        return (data ?? []).filter(
+          (item: ProductVariant & { source?: string }) =>
+            item.source === 'offline' || Math.random() < 0.5
+        );
       case 'online':
         // TODO: 백엔드 구현 후 온라인 데이터만 필터링
-        return (data ?? []).filter((item: any) => item.source === 'online' || Math.random() < 0.5);
+        return (data ?? []).filter(
+          (item: ProductVariant & { source?: string }) =>
+            item.source === 'online' || Math.random() < 0.5
+        );
       default:
         return data ?? [];
     }
@@ -572,10 +576,7 @@ const InventoryPage = () => {
       </div>
 
       {/* 탭 메뉴 */}
-      <InventoryTabs
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-      />
+      <InventoryTabs activeTab={activeTab} onTabChange={handleTabChange} />
 
       <div className='mb-6'>
         <InputField
@@ -613,36 +614,36 @@ const InventoryPage = () => {
 
             // 검색 실행
             const newFilters: Record<string, string | number> = {};
-            
+
             // 상품명 필터
             if (productName.trim()) {
               newFilters.product_name = productName.trim();
             }
-            
+
             // 카테고리 필터
             if (category && category !== '모든 카테고리') {
               newFilters.category = category;
             }
-            
+
             // 상태 필터
             if (status && status !== '모든 상태') {
               newFilters.status = status;
             }
-            
+
             // 재고 필터 (기본값이 아닌 경우만)
             const isDefaultStock = minStockValue === 0 && maxStockValue === 1000;
             if (!isDefaultStock) {
               newFilters.min_stock = minStockValue;
               newFilters.max_stock = maxStockValue;
             }
-            
+
             // 판매 필터 (기본값이 아닌 경우만)
             const isDefaultSales = minSalesValue === 0 && maxSalesValue === 5000000;
             if (!isDefaultSales) {
               newFilters.min_sales = minSalesValue;
               newFilters.max_sales = maxSalesValue;
             }
-            
+
             console.log('🔍 Setting applied filters:', newFilters);
             setAppliedFilters(newFilters);
             updateURL(newFilters);
@@ -656,14 +657,13 @@ const InventoryPage = () => {
         <div className='flex items-center gap-2'>
           <div className='h-2 w-2 rounded-full bg-blue-600'></div>
           <span className='text-sm font-medium text-blue-800'>
-            현재 탭: {activeTab === 'all' ? '전체' : activeTab === 'offline' ? '오프라인' : '온라인'}
-            ({tabData.length}개 상품)
+            현재 탭:{' '}
+            {activeTab === 'all' ? '전체' : activeTab === 'offline' ? '오프라인' : '온라인'}(
+            {tabData.length}개 상품)
           </span>
         </div>
         {activeTab !== 'all' && (
-          <p className='mt-1 text-xs text-blue-600'>
-            * 백엔드 구현 중 - 현재는 임시 데이터 필터링
-          </p>
+          <p className='mt-1 text-xs text-blue-600'>* 백엔드 구현 중 - 현재는 임시 데이터 필터링</p>
         )}
       </div>
 

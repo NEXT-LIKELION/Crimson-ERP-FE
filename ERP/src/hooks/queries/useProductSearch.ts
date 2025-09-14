@@ -1,10 +1,18 @@
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { api } from '../../api/axios';
-import { ProductOption } from '../../types/product';
+import { ProductOption, ProductVariant } from '../../types/product';
 import { useMemo } from 'react';
 
 interface ProductSearchFilters {
   product_name?: string;
+}
+
+// API 응답 타입 정의
+interface ProductSearchPageData {
+  results: ProductVariant[];
+  count: number;
+  next: string | null;
+  previous: string | null;
 }
 
 export const useProductSearch = (filters?: ProductSearchFilters) => {
@@ -20,7 +28,7 @@ export const useProductSearch = (filters?: ProductSearchFilters) => {
       const finalParams = {
         ...apiFilters,
         page: pageParam,
-        page_size: 20 // 페이지당 20개
+        page_size: 20, // 페이지당 20개
       };
       console.log('🔍 Product Search API Request:', finalParams);
       const response = await api.get('/inventory/variants/', { params: finalParams });
@@ -43,17 +51,17 @@ export const useProductSearch = (filters?: ProductSearchFilters) => {
   // useInfiniteQuery 데이터 처리
   const allData = useMemo(() => {
     if (!query.data?.pages) return [];
-    return query.data.pages.flatMap(page => page.results || []);
+    return query.data.pages.flatMap((page) => page.results || []);
   }, [query.data?.pages]);
 
   // product_id 기준 중복 제거하여 ProductOption 형태로 변환 (기존 방식)
   const productOptions = useMemo(() => {
     const uniqueProducts = new Map();
-    allData.forEach((variant: any) => {
+    allData.forEach((variant: ProductVariant) => {
       if (!uniqueProducts.has(variant.product_id)) {
         uniqueProducts.set(variant.product_id, {
           product_id: variant.product_id,
-          name: variant.name
+          name: variant.name,
         });
       }
     });
@@ -81,22 +89,24 @@ export const useProductSearch = (filters?: ProductSearchFilters) => {
       const finalParams = {
         ...apiFilters,
         page: nextPageParam,
-        page_size: 20
+        page_size: 20,
       };
       console.log('🔍 Product Search API Request (수동 페치):', finalParams);
       const response = await api.get('/inventory/variants/', { params: finalParams });
 
       // QueryClient를 통해 기존 데이터에 새 페이지 추가
-      queryClient.setQueryData(['productSearch', apiFilters], (oldData: any) => {
-        if (!oldData) return { pages: [response.data], pageParams: [1, nextPageParam] };
+      queryClient.setQueryData(
+        ['productSearch', apiFilters],
+        (oldData: InfiniteData<ProductSearchPageData> | undefined) => {
+          if (!oldData) return { pages: [response.data], pageParams: [1, nextPageParam] };
 
-        return {
-          ...oldData,
-          pages: [...oldData.pages, response.data],
-          pageParams: [...(oldData.pageParams || []), nextPageParam]
-        };
-      });
-
+          return {
+            ...oldData,
+            pages: [...oldData.pages, response.data],
+            pageParams: [...(oldData.pageParams || []), nextPageParam],
+          };
+        }
+      );
     } catch (error) {
       console.error('❌ 다음 페이지 불러오기 실패:', error);
     }
