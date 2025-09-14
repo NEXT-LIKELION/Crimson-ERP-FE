@@ -7,13 +7,14 @@ import { FaCodeBranch, FaHistory } from 'react-icons/fa';
 import InputField from '../../components/inputfield/InputField';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import { useInventories } from '../../hooks/queries/useInventories';
-import {
-  deleteProductVariant,
-  updateInventoryVariant,
-  mergeVariants,
-  fetchAllInventoriesForMerge,
-  fetchFilteredInventoriesForExport,
-} from '../../api/inventory';
+  import {
+    deleteProductVariant,
+    updateInventoryVariant,
+    mergeVariants,
+    fetchAllInventoriesForMerge,
+    fetchFilteredInventoriesForExport,
+    fetchCategories,
+  } from '../../api/inventory';
 import { useSearchParams } from 'react-router-dom';
 import EditProductModal from '../../components/modal/EditProductModal';
 import AddProductModal from '../../components/modal/AddProductModal';
@@ -114,20 +115,28 @@ const InventoryPage = () => {
 
   // 병합 모달용 전체 데이터 (모든 페이지 데이터 합치기)
   const [allMergeData, setAllMergeData] = useState<unknown[]>([]);
+  // 서버 제공 카테고리 목록
+  const [serverCategories, setServerCategories] = useState<string[]>([]);
 
-  // 전체 데이터에서 카테고리 목록 추출 (병합용 데이터 사용)
+  // 카테고리 옵션: 서버 우선, 실패 시 현재 로드된 목록(첫 페이지들)이나 병합 데이터에서 추출
   const categoryOptions = useMemo(() => {
-    if (!allMergeData || allMergeData.length === 0) return ['모든 카테고리'];
-
-    const uniqueCategories = Array.from(
-      new Set((allMergeData as { category?: string }[]).map((item) => item.category).filter(Boolean) as string[])
+    if (serverCategories.length > 0) {
+      return ['모든 카테고리', ...serverCategories];
+    }
+    const source = (Array.isArray(data) && data.length > 0
+      ? (data as { category?: string }[])
+      : ((allMergeData as { category?: string }[]) || [])
     );
+    if (!source || source.length === 0) return ['모든 카테고리'];
+    const unique = Array.from(new Set(source.map((i) => i.category).filter(Boolean) as string[])).sort();
+    return ['모든 카테고리', ...unique];
+  }, [serverCategories, data, allMergeData]);
 
-    return ['모든 카테고리', ...uniqueCategories.sort()];
-  }, [allMergeData]);
-
+  // 병합용 전체 데이터는 필요할 때만 로드 (모달 열릴 때)
   useEffect(() => {
-    const loadAllData = async () => {
+    const maybeLoadAllData = async () => {
+      if (!isMergeModalOpen) return;
+      if (allMergeData && allMergeData.length > 0) return;
       try {
         const allData = await fetchAllInventoriesForMerge();
         setAllMergeData(allData);
@@ -135,9 +144,44 @@ const InventoryPage = () => {
         console.error('전체 데이터 로드 실패:', error);
       }
     };
+    maybeLoadAllData();
+  }, [isMergeModalOpen]);
 
-    loadAllData();
-  }, []); // 컴포넌트 마운트 시 한 번만 실행
+  // 카테고리 목록 서버에서 선호적으로 가져오기
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await fetchCategories();
+        const payload = res.data;
+        let candidates: unknown[] = [];
+        if (Array.isArray(payload)) {
+          candidates = payload;
+        } else if (Array.isArray(payload?.results)) {
+          candidates = payload.results;
+        } else if (Array.isArray(payload?.categories)) {
+          candidates = payload.categories;
+        }
+        const list = (candidates as unknown[])
+          .map((v) => {
+            if (typeof v === 'string') return v;
+            if (v && typeof v === 'object') {
+              const obj = v as Record<string, unknown>;
+              return (obj.name || obj.label || obj.value) as string | undefined;
+            }
+            return undefined;
+          })
+          .filter((v): v is string => typeof v === 'string' && v.trim() !== '');
+
+        // 중복 제거 + 정렬
+        const cleaned = Array.from(new Set(list)).sort();
+        setServerCategories(cleaned);
+      } catch (err) {
+        console.warn('카테고리 목록 조회 실패. 로컬 데이터로 대체합니다.', err);
+        setServerCategories([]);
+      }
+    };
+    loadCategories();
+  }, []);
 
   // URL 업데이트 함수 (페이지 파라미터 제거)
   const updateURL = useCallback(
@@ -358,8 +402,14 @@ const InventoryPage = () => {
       let exportData: unknown[] = [];
 
       if (Object.keys(appliedFilters).length === 0) {
-        // 필터가 없는 경우 → 전체 데이터 가져오기
-        exportData = allMergeData; // 이미 로드된 전체 데이터 사용
+        // 필터가 없는 경우 → 필요 시 전체 데이터 즉시 로드
+        if (!allMergeData || allMergeData.length === 0) {
+          const allData = await fetchAllInventoriesForMerge();
+          setAllMergeData(allData);
+          exportData = allData;
+        } else {
+          exportData = allMergeData;
+        }
 
       } else {
         // 필터가 있는 경우 → api에서 처리

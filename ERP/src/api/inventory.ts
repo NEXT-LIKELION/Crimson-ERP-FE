@@ -81,6 +81,9 @@ export const fetchProductOptions = () => api.get('/inventory/');
 export const fetchVariantDetail = (variantCode: string) =>
   api.get(`/inventory/variants/${variantCode}/`);
 
+// 카테고리 목록 조회
+export const fetchCategories = () => api.get('/inventory/categories/');
+
 // 상품명 중복 여부 확인 (대소문자/공백 무시 정확 일치)
 export const checkProductNameExists = async (
   name: string

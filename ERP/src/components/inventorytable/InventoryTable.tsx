@@ -114,27 +114,22 @@ const InventoryTable = ({
     const observerTarget = document.getElementById('infinite-scroll-trigger');
     if (!observerTarget) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // 트리거가 화면에 보이고, 더 불러올 데이터가 있고, 현재 로딩 중이 아닐 때
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      {
-        // 요소가 10% 보일 때 트리거
-        threshold: 0.1,
-        // 루트 여백 설정 (200px 전에 미리 로딩)
-        rootMargin: '200px'
+    // 앱의 스크롤 컨테이너에 붙여 실제 스크롤 시에만 작동하도록 함
+    const rootEl = document.querySelector('section.overflow-y-auto') as Element | null;
+    const options: IntersectionObserverInit = {
+      threshold: 0.1,
+      rootMargin: '200px',
+    };
+    if (rootEl) options.root = rootEl;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
       }
-    );
+    }, options);
 
     observer.observe(observerTarget);
-
-    // 컴포넌트 언마운트 시 Observer 정리
-    return () => {
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // 스크롤 위로 가기 버튼 표시 여부 관리
