@@ -55,6 +55,18 @@ const SortableHeader = ({
   </th>
 );
 
+// 상태별 스타일 클래스를 반환하는 헬퍼 함수
+const getStatusStyle = (status: string): string => {
+  switch (status) {
+    case '품절':
+      return 'bg-red-100 text-red-800';
+    case '재고부족':
+      return 'bg-yellow-100 text-yellow-800';
+    default:
+      return 'bg-green-100 text-green-800';
+  }
+};
+
 const InventoryTable = ({
   inventories,
   onDelete,
@@ -128,7 +140,7 @@ const InventoryTable = ({
         // 요소가 살짝 보이기 시작할 때 트리거 (더 부드러운 로딩)
         threshold: 0.1,
         // 화면 아래 200px 전에 미리 로드 시작
-        rootMargin: '200px'
+        rootMargin: '200px',
       }
     );
 
@@ -144,7 +156,7 @@ const InventoryTable = ({
   useEffect(() => {
     const mainContainer = document.querySelector('section.overflow-y-auto');
     if (!mainContainer) return;
-    
+
     const handleScroll = () => {
       // 스크롤이 시작되면 hasScrolled를 true로 설정
       if (mainContainer.scrollTop > 0 && !hasScrolled) {
@@ -155,7 +167,7 @@ const InventoryTable = ({
 
     handleScroll();
     mainContainer.addEventListener('scroll', handleScroll, { passive: true });
-    
+
     return () => {
       mainContainer.removeEventListener('scroll', handleScroll);
     };
@@ -167,7 +179,7 @@ const InventoryTable = ({
     if (mainContainer) {
       mainContainer.scrollTo({
         top: 0,
-        behavior: 'smooth'
+        behavior: 'smooth',
       });
     }
   };
@@ -209,8 +221,7 @@ const InventoryTable = ({
         <h2 className='flex items-center text-lg font-semibold'>상품별 재고 현황</h2>
         <div className='flex items-center space-x-3 text-gray-500'>
           <span className='text-sm'>
-            총 {infiniteScroll.totalCount}개 상품 
-            ({infiniteScroll.totalLoaded}개 로딩됨)
+            총 {infiniteScroll.totalCount}개 상품 ({infiniteScroll.totalLoaded}개 로딩됨)
           </span>
           <MdOutlineDownload
             className='cursor-pointer hover:text-gray-700'
@@ -304,13 +315,7 @@ const InventoryTable = ({
                 </td>
                 <td className='px-4 py-2'>
                   <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${
-                      product.status === '품절'
-                        ? 'bg-red-100 text-red-800'
-                        : product.status === '재고부족'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
-                    }`}>
+                    className={`rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${getStatusStyle(product.status)}`}>
                     {product.status}
                   </span>
                 </td>
@@ -344,19 +349,18 @@ const InventoryTable = ({
             <span>더 많은 상품을 불러오는 중...</span>
           </div>
         )}
-        
+
         {/* 스크롤 기반 무한 로딩 - 더 보기 버튼 제거 */}
-        
+
         {!hasNextPage && infiniteScroll.totalCount > 0 && (
           <p className='text-sm text-gray-500'>모든 상품을 불러왔습니다.</p>
         )}
-        
+
         {/* Intersection Observer를 위한 감지 영역 - 테이블 하단에 위치 */}
         {hasNextPage && (
-          <div 
-            id="infinite-scroll-trigger" 
-            className='h-20 w-full flex items-center justify-center text-gray-400 text-sm'
-          >
+          <div
+            id='infinite-scroll-trigger'
+            className='flex h-20 w-full items-center justify-center text-sm text-gray-400'>
             스크롤하여 더 많은 상품 보기...
           </div>
         )}
@@ -365,9 +369,8 @@ const InventoryTable = ({
       {/* 스크롤 위로 가기 버튼 - 디버깅용으로 항상 표시 */}
       <button
         onClick={scrollToTop}
-        className='fixed bottom-8 right-8 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all duration-300 hover:bg-blue-700 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
-        title='맨 위로 가기'
-      >
+        className='fixed right-8 bottom-8 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
+        title='맨 위로 가기'>
         <HiArrowUp className='h-5 w-5' />
       </button>
     </div>

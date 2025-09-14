@@ -1,7 +1,15 @@
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchInventories } from '../../api/inventory';
-import { Product } from '../../types/product';
+import { useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
+import { fetchInventories } from '../../api/inventory';
+import { Product, ProductVariant } from '../../types/product';
+
+// API 응답 타입 정의
+interface InventoryPageData {
+  results: ProductVariant[];
+  count: number;
+  next: string | null;
+  previous: string | null;
+}
 
 export const useInventories = (filters?: {
   name?: string;
@@ -13,7 +21,7 @@ export const useInventories = (filters?: {
   max_sales?: number;
 }) => {
   const queryClient = useQueryClient();
-  
+
   // API 파라미터명 변환
   const apiFilters: Record<string, unknown> = filters ? { ...filters } : {};
 
@@ -48,10 +56,10 @@ export const useInventories = (filters?: {
   const query = useInfiniteQuery({
     queryKey: ['inventories', apiFilters, frontendStatus],
     queryFn: async ({ pageParam = 1 }) => {
-      const finalParams = { 
-        ...apiFilters, 
+      const finalParams = {
+        ...apiFilters,
         page: pageParam,
-        page_size: 20 // 항상 page_size 포함
+        page_size: 20, // 항상 page_size 포함
       };
       console.log('🔍 API Request Parameters:', finalParams);
       const response = await fetchInventories(finalParams);
@@ -80,7 +88,7 @@ export const useInventories = (filters?: {
   // useInfiniteQuery 데이터 처리
   const allData = useMemo(() => {
     if (!query.data?.pages) return [];
-    return query.data.pages.flatMap(page => page.results || []);
+    return query.data.pages.flatMap((page) => page.results || []);
   }, [query.data?.pages]);
 
   // 프론트엔드 상태 필터링 적용 (점진적으로 서버로 이동 예정)
@@ -108,7 +116,7 @@ export const useInventories = (filters?: {
 
   // 전체 개수 계산
   const totalCount = query.data?.pages?.[0]?.count ?? 0;
-  
+
   // hasNextPage 수동 계산
   const currentLoadedCount = allData.length;
   const hasNextPage = currentLoadedCount < totalCount;
@@ -119,30 +127,32 @@ export const useInventories = (filters?: {
       console.log('⏸️ fetchNextPage blocked:', { hasNextPage, isFetching: query.isFetching });
       return;
     }
-    
+
     const nextPageParam = query.data?.pages?.length ? query.data.pages.length + 1 : 2;
     console.log('🔘 Manual fetchNextPage called for page:', nextPageParam);
-    
+
     try {
-      const finalParams = { 
-        ...apiFilters, 
+      const finalParams = {
+        ...apiFilters,
         page: nextPageParam,
-        page_size: 20
+        page_size: 20,
       };
       console.log('🔍 API Request Parameters (수동 페치):', finalParams);
       const response = await fetchInventories(finalParams);
-      
+
       // QueryClient를 통해 기존 데이터에 새 페이지 추가
-      queryClient.setQueryData(['inventories', apiFilters, frontendStatus], (oldData: any) => {
-        if (!oldData) return { pages: [response.data], pageParams: [1, nextPageParam] };
-        
-        return {
-          ...oldData,
-          pages: [...oldData.pages, response.data],
-          pageParams: [...(oldData.pageParams || []), nextPageParam]
-        };
-      });
-      
+      queryClient.setQueryData(
+        ['inventories', apiFilters, frontendStatus],
+        (oldData: InfiniteData<InventoryPageData> | undefined) => {
+          if (!oldData) return { pages: [response.data], pageParams: [1, nextPageParam] };
+
+          return {
+            ...oldData,
+            pages: [...oldData.pages, response.data],
+            pageParams: [...(oldData.pageParams || []), nextPageParam],
+          };
+        }
+      );
     } catch (error) {
       console.error('❌ 다음 페이지 불러오기 실패:', error);
     }

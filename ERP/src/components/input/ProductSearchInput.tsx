@@ -14,7 +14,7 @@ const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
   placeholder = '상품 검색... (Enter키로 검색)',
   value = '',
   onSelect,
-  disabled = false
+  disabled = false,
 }) => {
   const [query, setQuery] = useState(value);
   const [searchQuery, setSearchQuery] = useState(''); // 실제 검색에 사용되는 쿼리
@@ -30,9 +30,9 @@ const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
     isLoading: isSearching,
     hasNextPage,
     fetchNextPage,
-    isFetchingNextPage
+    isFetchingNextPage,
   } = useProductSearch({
-    product_name: searchQuery || undefined // 빈 문자열이면 undefined로 전체 검색
+    product_name: searchQuery || undefined, // 빈 문자열이면 undefined로 전체 검색
   });
 
   // 검색 결과가 있으면 드롭다운 열기
@@ -79,18 +79,14 @@ const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
       case 'ArrowDown':
         if (isDropdownOpen && searchResults.length > 0) {
           e.preventDefault();
-          setSelectedIndex(prev =>
-            prev < searchResults.length - 1 ? prev + 1 : 0
-          );
+          setSelectedIndex((prev) => (prev < searchResults.length - 1 ? prev + 1 : 0));
         }
         break;
 
       case 'ArrowUp':
         if (isDropdownOpen && searchResults.length > 0) {
           e.preventDefault();
-          setSelectedIndex(prev =>
-            prev > 0 ? prev - 1 : searchResults.length - 1
-          );
+          setSelectedIndex((prev) => (prev > 0 ? prev - 1 : searchResults.length - 1));
         }
         break;
 
@@ -126,26 +122,26 @@ const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
   };
 
   return (
-    <div className="relative w-full">
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+    <div className='relative w-full'>
+      <div className='relative'>
+        <div className='pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3'>
           {isSearching ? (
-            <FiLoader className="h-4 w-4 text-gray-400 animate-spin" />
+            <FiLoader className='h-4 w-4 animate-spin text-gray-400' />
           ) : (
-            <FiSearch className="h-4 w-4 text-gray-400" />
+            <FiSearch className='h-4 w-4 text-gray-400' />
           )}
         </div>
 
         <input
           ref={inputRef}
-          type="text"
+          type='text'
           value={query}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className='w-full rounded-md border border-gray-300 py-2 pr-3 pl-10 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100'
         />
       </div>
 
@@ -153,7 +149,7 @@ const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
       {isDropdownOpen && (
         <div
           ref={dropdownRef}
-          className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-xl max-h-60 overflow-y-auto"
+          className='absolute z-[9999] mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-gray-300 bg-white shadow-xl'
           style={{ zIndex: 9999 }}
           onScroll={(e) => {
             const target = e.target as HTMLDivElement;
@@ -162,34 +158,30 @@ const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
               fetchNextPage();
             }
           }}>
-
           {searchResults.length === 0 && !isSearching ? (
-            <div className="px-3 py-2 text-sm text-gray-500">
+            <div className='px-3 py-2 text-sm text-gray-500'>
               {searchQuery ? '검색 결과가 없습니다' : 'Enter키를 눌러 검색하세요'}
             </div>
           ) : (
             <>
               {searchResults.map((product, index) => (
                 <button
-                  key={product.variant_code || product.product_id}
+                  key={product.product_id}
                   onClick={() => handleSelect(product)}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                  className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 ${
                     index === selectedIndex ? 'bg-blue-50 text-blue-900' : 'text-gray-900'
                   }`}>
-                  <div className="flex items-center justify-between">
+                  <div className='flex items-center justify-between'>
                     <div>
-                      <div className="font-medium">{product.name}</div>
-                      <div className="text-xs text-gray-500">
-                        ID: {product.product_id}
-                      </div>
+                      <div className='font-medium'>{product.name}</div>
+                      <div className='text-xs text-gray-500'>ID: {product.product_id}</div>
                     </div>
                   </div>
                 </button>
               ))}
               {isFetchingNextPage && (
-                <div className="px-3 py-2 text-center text-sm text-gray-500">
-                  <FiLoader className="inline animate-spin mr-2" />
-                  더 불러오는 중...
+                <div className='px-3 py-2 text-center text-sm text-gray-500'>
+                  <FiLoader className='mr-2 inline animate-spin' />더 불러오는 중...
                 </div>
               )}
             </>
