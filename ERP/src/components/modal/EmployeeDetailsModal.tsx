@@ -60,7 +60,9 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
         remaining_leave_days: parseInt(apiData.remaining_leave_days) || 0,
         vacation_days: typeof apiData.vacation_days === 'string' ? [] as VacationDay[] : apiData.vacation_days as VacationDay[],
         vacation_pending_days: typeof apiData.vacation_pending_days === 'string' ? [] as VacationDay[] : apiData.vacation_pending_days as VacationDay[],
-        gender: apiData.gender, // API 스펙에 따라 gender 필드 추가
+        gender: apiData.gender && ['MALE', 'FEMALE'].includes(apiData.gender)
+          ? apiData.gender
+          : undefined, // gender 필드 타입 검증
       };
       
       return mappedEmployee;

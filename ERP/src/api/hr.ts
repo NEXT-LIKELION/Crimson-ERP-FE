@@ -86,6 +86,7 @@ export interface EmployeeList {
   is_active: boolean;            // 퇴사 여부
   hire_date: string | null;      // date format, nullable, readOnly
   remaining_leave_days: string;  // readOnly
+  gender?: 'MALE' | 'FEMALE';    // 성별, nullable
 }
 
 // 직원 상세 조회 응답 타입 (GET /hr/employees/{id}/) - API 스펙 정확히 반영

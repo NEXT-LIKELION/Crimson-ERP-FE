@@ -123,7 +123,7 @@ const mapEmployeeData = (emp: EmployeeList): MappedEmployee => ({
   remaining_leave_days: parseInt(emp.remaining_leave_days) || 0,
   vacation_days: [], // 목록 조회에서는 제공되지 않음
   vacation_pending_days: [], // 목록 조회에서는 제공되지 않음
-  gender: (emp as EmployeeList & { gender?: 'MALE' | 'FEMALE' }).gender, // API 스펙에 따라 gender 필드 추가
+  gender: emp.gender,
   created_at: '',
   updated_at: '',
 });
@@ -277,7 +277,9 @@ const HRPage: React.FC = () => {
       hire_date: updatedEmployee.hire_date?.trim() || undefined,
       role: updatedEmployee.role,
       is_deleted: false, // 일반적인 정보 수정 시에는 항상 false (삭제가 아닌 경우)
-      gender: updatedEmployee.gender || undefined, // 성별 필드 추가
+      gender: updatedEmployee.gender && ['MALE', 'FEMALE'].includes(updatedEmployee.gender)
+        ? updatedEmployee.gender
+        : undefined, // 성별 필드 유효성 검증
     };
 
     try {
@@ -535,11 +537,6 @@ const HRPage: React.FC = () => {
 
   // 개인 직원용 마이페이지 컴포넌트
   const PersonalInfoPage = ({ employee }: { employee: MappedEmployee }) => {
-    const handleViewDetails = () => {
-      setSelectedEmployee(employee);
-      setShowDetailsModal(true);
-    };
-
     return (
       <div className='min-h-screen bg-gray-50'>
         <div className='mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8'>
