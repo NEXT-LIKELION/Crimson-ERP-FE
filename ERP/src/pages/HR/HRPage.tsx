@@ -240,15 +240,16 @@ const HRPage: React.FC = () => {
 
     // 백엔드 API에 맞게 필드명 변경 (PATCH API 스펙에 맞춤)
     const updateData = {
-      email: updatedEmployee.email,
-      first_name: updatedEmployee.name,
-      contact: updatedEmployee.phone,
-      // is_active는 퇴사 처리가 아닌 한 항상 true 유지
-      annual_leave_days: updatedEmployee.annual_leave_days,
-      allowed_tabs: updatedEmployee.allowed_tabs,
-      hire_date: updatedEmployee.hire_date,
+      email: updatedEmployee.email?.trim() || undefined,
+      first_name: updatedEmployee.name?.trim() || undefined,
+      contact: updatedEmployee.phone?.trim() || undefined,
+      is_active: true, // 일반적인 정보 수정 시에는 항상 true (퇴사가 아닌 경우)
+      annual_leave_days: Number(updatedEmployee.annual_leave_days) || 0,
+      allowed_tabs: Array.isArray(updatedEmployee.allowed_tabs) ? updatedEmployee.allowed_tabs : [],
+      hire_date: updatedEmployee.hire_date?.trim() || undefined,
       role: updatedEmployee.role,
-      gender: updatedEmployee.gender, // 성별 필드 추가
+      is_deleted: false, // 일반적인 정보 수정 시에는 항상 false (삭제가 아닌 경우)
+      gender: updatedEmployee.gender || undefined, // 성별 필드 추가
     };
 
     try {

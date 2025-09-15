@@ -121,10 +121,6 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
       return;
     }
 
-    if (!editedEmployee.hire_date?.trim()) {
-      alert('입사일을 입력해주세요.');
-      return;
-    }
 
     // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -241,7 +237,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                 </select>
               ) : (
                 <span className='text-gray-900'>
-                  {currentEmployee.gender === 'MALE' ? '남성' : 
+                  {currentEmployee.gender === 'MALE' ? '남성' :
                    currentEmployee.gender === 'FEMALE' ? '여성' : '미입력'}
                 </span>
               )}
@@ -259,7 +255,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                   className='w-full rounded-md border border-gray-300 px-3 py-2 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'
                 />
               ) : (
-                <span className='text-gray-900'>{formatDateToKorean(employee.hire_date)}</span>
+                <span className='text-gray-900'>{formatDateToKorean(currentEmployee.hire_date)}</span>
               )}
             </div>
 
