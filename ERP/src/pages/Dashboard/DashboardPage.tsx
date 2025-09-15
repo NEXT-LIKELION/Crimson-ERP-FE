@@ -1,12 +1,158 @@
-import Table from '../../components/table/table';
+import React, { useState, useMemo } from 'react';
 import { HiArchiveBox } from 'react-icons/hi2';
 import { IoClipboard } from 'react-icons/io5';
 import { IoPeopleSharp } from 'react-icons/io5';
+import { FiChevronLeft, FiChevronRight, FiCalendar, FiX, FiUser, FiClock } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
-import { useDashboard } from '../../hooks/queries/useDashboard';
+import { useVacations } from '../../hooks/queries/useVacations';
+import { useEmployees } from '../../hooks/queries/useEmployees';
+import { Vacation, LEAVE_TYPE_OPTIONS, EmployeeList } from '../../api/hr';
 
 const DashboardPage = () => {
-  const { data: dashboardData, isLoading, error } = useDashboard();
+  const { data: vacationsData, isLoading, error } = useVacations();
+  const { data: employeesData } = useEmployees();
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedVacation, setSelectedVacation] = useState<Vacation | null>(null);
+
+  // 직원별 고유 색상 생성
+  const employeeColors = useMemo(() => {
+    const employees = employeesData?.data || [];
+    const colors = [
+      'bg-blue-500',
+      'bg-green-500',
+      'bg-purple-500',
+      'bg-red-500',
+      'bg-yellow-500',
+      'bg-indigo-500',
+      'bg-pink-500',
+      'bg-teal-500',
+      'bg-orange-500',
+    ];
+    const colorMap: Record<number, string> = {};
+    employees.forEach((employee: EmployeeList, index: number) => {
+      colorMap[employee.id] = colors[index % colors.length];
+    });
+    return colorMap;
+  }, [employeesData?.data]);
+
+  // 날짜별 휴가 그룹화 (취소, 대기중 제외)
+  const vacationsByDate = useMemo(() => {
+    const grouped: Record<string, Vacation[]> = {};
+    const vacations = vacationsData?.data || [];
+
+    // 승인된 휴가만 필터링
+    const approvedVacations = vacations.filter(
+      (vacation) => vacation.status === 'APPROVED'
+    );
+
+    approvedVacations.forEach((vacation) => {
+      const start = new Date(vacation.start_date);
+      const end = new Date(vacation.end_date);
+
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = [];
+        }
+        grouped[dateKey].push(vacation);
+      }
+    });
+
+    return grouped;
+  }, [vacationsData?.data]);
+
+  // 직원 이름 가져오기
+  const getEmployeeName = (employeeId: number): string => {
+    const employees = employeesData?.data || [];
+    const employee = employees.find((emp: EmployeeList) => emp.id === employeeId);
+    return employee?.first_name || `직원 #${employeeId}`;
+  };
+
+  // 휴가 유형 라벨 가져오기
+  const getLeaveTypeLabel = (leaveType: string): string => {
+    const option = LEAVE_TYPE_OPTIONS.find((opt) => opt.value === leaveType);
+    return option?.label || leaveType;
+  };
+
+  // 월 네비게이션
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    const newDate = new Date(currentDate);
+    if (direction === 'prev') {
+      newDate.setMonth(newDate.getMonth() - 1);
+    } else {
+      newDate.setMonth(newDate.getMonth() + 1);
+    }
+    setCurrentDate(newDate);
+  };
+
+  // 달력 렌더링
+  const renderCalendar = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+    const firstDayOfWeek = firstDayOfMonth.getDay();
+    const daysInMonth = lastDayOfMonth.getDate();
+
+    const days = [];
+
+    // 요일 헤더
+    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+    weekdays.forEach((day, index) => {
+      days.push(
+        <div key={`header-${day}`} className='bg-gray-100 p-2 text-center text-xs font-medium text-gray-600'>
+          {day}
+        </div>
+      );
+    });
+
+    // 이전 달의 빈 칸
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      days.push(<div key={`empty-${i}`} className='bg-gray-50 p-2'></div>);
+    }
+
+    // 이번 달의 날짜들
+    for (let date = 1; date <= daysInMonth; date++) {
+      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+      const dayVacations = vacationsByDate[dateKey] || [];
+      const isToday = new Date().toDateString() === new Date(year, month, date).toDateString();
+
+      days.push(
+        <div
+          key={date}
+          className={`min-h-20 border-b border-r border-gray-200 p-1 ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
+          <div className={`mb-1 text-xs font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+            {date}
+          </div>
+          <div className='space-y-1'>
+            {dayVacations.map((vacation, index) => {
+              const employeeColor = employeeColors[vacation.employee] || 'bg-gray-500';
+              const leaveTypeLabel = getLeaveTypeLabel(vacation.leave_type);
+
+              return (
+                <div
+                  key={`${vacation.id}-${index}`}
+                  className={`rounded px-1 py-0.5 text-xs text-white ${employeeColor} cursor-pointer hover:opacity-80 transition-opacity`}
+                  title={`${getEmployeeName(vacation.employee)} - ${leaveTypeLabel}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedVacation(vacation);
+                  }}>
+                  <span className='truncate block'>{getEmployeeName(vacation.employee)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className='grid grid-cols-7 gap-0 overflow-hidden rounded-lg border border-gray-200'>
+        {days}
+      </div>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -27,31 +173,6 @@ const DashboardPage = () => {
       </div>
     );
   }
-
-  // 재고 부족 상품 테이블 데이터
-  const lowStockColumns = ['제품코드', '제품명', '옵션', '현재 재고', '최소 재고'];
-  const lowStockData =
-    dashboardData?.top_low_stock.map((item) => ({
-      ['제품코드']: item.variant_code,
-      ['제품명']: item.product_name,
-      ['옵션']: item.option,
-      ['현재 재고']: item.stock,
-      ['최소 재고']: item.min_stock,
-    })) || [];
-
-  // 최근 발주 현황 테이블 데이터
-  const recentOrdersColumns = ['발주번호', '업체', '발주일', '예상 입고일', '담당자', '상태'];
-  const recentOrdersData =
-    dashboardData?.recent_orders.map((item) => ({
-      ['발주번호']: item.order_id,
-      ['업체']: item.supplier,
-      ['발주일']: item.order_date,
-      ['예상 입고일']: item.expected_delivery_date,
-      ['담당자']: item.manager,
-      ['상태']: item.status,
-    })) || [];
-
-  const vacations = dashboardData?.recent_vacations ?? [];
 
   return (
     <div className='p-6'>
@@ -79,154 +200,32 @@ const DashboardPage = () => {
           </div>
         </Link>
       </div>
-      <div className='flex gap-6'>
-        <div className='flex-1 rounded-lg bg-white p-4 shadow-md'>
-          <div className='border-b- flex h-17.25 items-center justify-between border-b-1 pt-5 pr-4 pb-5.25'>
-            <h2 className='mb-2 text-lg font-medium text-gray-900'>재고 부족 상품</h2>
-            <img src='/images/warn.png' className='h-6 w-6' />
-          </div>
-          <div className='mt-4'>
-            <Table columns={lowStockColumns} data={lowStockData} />
-          </div>
-          <div className='mt-4 flex cursor-pointer items-center space-x-1 text-indigo-600 hover:text-indigo-800'>
-            <Link to='/inventory' className='flex items-center space-x-1'>
-              <span className='text-sm font-medium'>전체 재고 확인하기</span>
-              <svg
-                xmlns='http://www.w3.org/2000/svg'
-                className='h-4 w-4'
-                fill='none'
-                viewBox='0 0 24 24'
-                stroke='currentColor'>
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth='2'
-                  d='M9 5l7 7-7 7'
-                />
-              </svg>
-            </Link>
-          </div>
-        </div>
-        <div className='flex-1 rounded-lg bg-white p-4 shadow-md'>
-          <div className='flex h-17.25 items-center justify-between border-b-1 pt-5 pr-4 pb-5.25'>
-            <h2 className='mb-2 text-lg font-medium text-gray-900'>최근 발주 현황</h2>
-            <img src='/images/status.png' className='h-6 w-6' />
-          </div>
-          <div className='mt-4'>
-            <Table columns={recentOrdersColumns} data={recentOrdersData} />
-          </div>
-          <div className='mt-4 flex cursor-pointer items-center space-x-1 text-indigo-600 hover:text-indigo-800'>
-            <Link to='/orders' className='flex items-center space-x-1'>
-              <span className='text-sm font-medium'>전체 발주 확인하기</span>
-              <svg
-                xmlns='http://www.w3.org/2000/svg'
-                className='h-4 w-4'
-                fill='none'
-                viewBox='0 0 24 24'
-                stroke='currentColor'>
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth='2'
-                  d='M9 5l7 7-7 7'
-                />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      </div>
-      <div className='mt-4'>
-        <div className='flex items-center'>
-          <img src='/images/alert.png' className='mb-1.5 h-6 w-6' />
-          <h2 className='mb-2 text-lg font-medium text-gray-900'>입고 예정 발주</h2>
-        </div>
-        <div className='rounded-lg bg-white p-4 shadow-md'>
-          <div className='grid grid-cols-1 gap-3'>
-            {dashboardData?.arriving_soon_orders.map((order) => (
-              <div
-                key={order.order_id}
-                className='rounded border-l-4 border-blue-500 bg-blue-50 p-4'>
-                <div className='flex items-center justify-between'>
-                  <div>
-                    <span className='font-medium text-gray-900'>발주번호: {order.order_id}</span>
-                    <span className='ml-4 text-gray-600'>업체: {order.supplier}</span>
-                  </div>
-                  <div className='text-sm text-gray-500'>
-                    예상 입고일: {order.expected_delivery_date}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className='mt-6 grid grid-cols-2 gap-6'>
-        <div className='rounded-lg bg-white p-6 shadow-md'>
-          <div className='mb-4 flex items-center'>
-            <img src='/images/sales.png' alt='매출 아이콘' className='mr-2 h-5 w-5' />
-            <h2 className='text-lg font-medium text-gray-900'>총 매출</h2>
-          </div>
-          <div className='rounded-lg bg-gray-50 p-6'>
-            <div className='mb-1 flex items-center text-gray-600'>
-              <img src='/images/month.png' alt='총 매출' className='mr-1 h-4 w-4' />
-              <span className='text-sm'>월별 업로드된 POS 데이터 기준</span>
-            </div>
-            <div className='text-3xl font-bold text-gray-900'>
-              ₩{dashboardData?.total_sales.toLocaleString() || 0}
-            </div>
-          </div>
-        </div>
-
-        <div className='rounded-lg bg-white p-6 shadow-md'>
-          <div className='mb-4 flex items-center'>
-            <img src='/images/productcode.svg' alt='최고 매출 상품' className='mr-2 h-5 w-5' />
-            <h2 className='text-lg font-medium text-gray-900'>최고 매출 상품</h2>
-          </div>
-          <div className='space-y-3'>
-            {dashboardData?.top_sales.slice(0, 3).map((item, index) => (
-              <div
-                key={item.variant_code}
-                className='flex items-center justify-between rounded bg-gray-50 p-3'>
-                <div>
-                  <div className='font-medium text-gray-900'>{item.product_name}</div>
-                  <div className='text-sm text-gray-500'>{item.option}</div>
-                </div>
-                <div className='text-right'>
-                  <div className='font-bold text-gray-900'>₩{item.sales.toLocaleString()}</div>
-                  <div className='text-xs text-gray-500'>#{index + 1}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <div className='mt-6 rounded-lg bg-white p-6 shadow-md'>
-        <div className='mb-4 flex items-center'>
-          <IoPeopleSharp className='mr-2 h-5 w-5 text-purple-600' />
-          <h2 className='text-lg font-medium text-gray-900'>최근 휴가 현황</h2>
-        </div>
-        <div className='space-y-3'>
-          {vacations.length > 0 ? (
-            vacations.map((vacation, index) => (
-              <div key={index} className='flex items-center justify-between rounded bg-gray-50 p-3'>
-                <div>
-                  <div className='font-medium text-gray-900'>{vacation.employee}</div>
-                  <div className='text-sm text-gray-500'>{vacation.leave_type}</div>
-                </div>
-                <div className='text-right'>
-                  <div className='text-sm font-medium text-gray-900'>
-                    {vacation.start_date} ~ {vacation.end_date}
-                  </div>
-                  <div className='text-xs text-gray-500'>
-                    신청일: {new Date(vacation.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className='py-4 text-center text-gray-500'>최근 휴가 신청이 없습니다.</div>
-          )}
+        <div className='space-y-4'>
+          {/* 달력 헤더 */}
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center'>
+              <FiCalendar className='mr-2 h-5 w-5 text-purple-600' />
+              <h3 className='text-lg font-medium text-gray-900'>
+                {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
+              </h3>
+            </div>
+            <div className='flex items-center space-x-2'>
+              <button
+                onClick={() => navigateMonth('prev')}
+                className='flex items-center justify-center rounded-lg bg-gray-100 p-2 text-gray-600 transition-colors hover:bg-gray-200'>
+                <FiChevronLeft className='h-4 w-4' />
+              </button>
+              <button
+                onClick={() => navigateMonth('next')}
+                className='flex items-center justify-center rounded-lg bg-gray-100 p-2 text-gray-600 transition-colors hover:bg-gray-200'>
+                <FiChevronRight className='h-4 w-4' />
+              </button>
+            </div>
+          </div>
+
+          {/* 달력 */}
+          {renderCalendar()}
         </div>
         <div className='mt-4 flex cursor-pointer items-center space-x-1 text-indigo-600 hover:text-indigo-800'>
           <Link to='/hr' className='flex items-center space-x-1'>
@@ -242,6 +241,82 @@ const DashboardPage = () => {
           </Link>
         </div>
       </div>
+
+      {/* 휴가 상세 정보 모달 */}
+      {selectedVacation && (
+        <div
+          className='fixed inset-0 z-50 flex items-center justify-center p-4'
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          onClick={() => setSelectedVacation(null)}>
+          <div
+            className='w-full max-w-md rounded-lg border border-gray-200 bg-white shadow-lg'
+            onClick={(e) => e.stopPropagation()}>
+            {/* 헤더 */}
+            <div className='flex items-center justify-between border-b border-gray-200 px-6 py-4'>
+              <h2 className='text-lg font-semibold text-gray-900'>휴가 상세 정보</h2>
+              <button
+                onClick={() => setSelectedVacation(null)}
+                className='text-gray-400 transition-colors hover:text-gray-600'>
+                <FiX className='h-5 w-5' />
+              </button>
+            </div>
+
+            {/* 내용 */}
+            <div className='p-6'>
+              <div className='space-y-4'>
+                {/* 직원 정보 */}
+                <div className='flex items-center'>
+                  <div className='flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100'>
+                    <FiUser className='h-5 w-5 text-gray-600' />
+                  </div>
+                  <div className='ml-3'>
+                    <p className='text-sm font-medium text-gray-900'>직원명</p>
+                    <p className='text-sm text-gray-600'>{getEmployeeName(selectedVacation.employee)}</p>
+                  </div>
+                </div>
+
+                {/* 휴가 유형 */}
+                <div className='flex items-center'>
+                  <div className='flex h-10 w-10 items-center justify-center rounded-lg bg-green-100'>
+                    <FiCalendar className='h-5 w-5 text-green-600' />
+                  </div>
+                  <div className='ml-3'>
+                    <p className='text-sm font-medium text-gray-900'>휴가 유형</p>
+                    <p className='text-sm text-gray-600'>{getLeaveTypeLabel(selectedVacation.leave_type)}</p>
+                  </div>
+                </div>
+
+                {/* 기간 */}
+                <div className='flex items-center'>
+                  <div className='flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100'>
+                    <FiClock className='h-5 w-5 text-blue-600' />
+                  </div>
+                  <div className='ml-3'>
+                    <p className='text-sm font-medium text-gray-900'>휴가 기간</p>
+                    <p className='text-sm text-gray-600'>
+                      {selectedVacation.start_date} ~ {selectedVacation.end_date}
+                    </p>
+                  </div>
+                </div>
+
+
+                {/* 사유 */}
+                {selectedVacation.reason && (
+                  <div className='rounded-lg bg-gray-50 p-3'>
+                    <p className='text-sm font-medium text-gray-900 mb-1'>사유</p>
+                    <p className='text-sm text-gray-600'>{selectedVacation.reason}</p>
+                  </div>
+                )}
+
+                {/* 신청일 */}
+                <div className='text-xs text-gray-500 text-center pt-2 border-t'>
+                  신청일: {new Date(selectedVacation.created_at).toLocaleDateString('ko-KR')}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
