@@ -7,13 +7,15 @@ import {
   FiTrash2,
   FiEye,
   FiPlusCircle,
+  FiLock,
 } from 'react-icons/fi';
 import StatusBadge from '../../components/common/StatusBadge';
 import EmployeeDetailsModal from '../../components/modal/EmployeeDetailsModal';
 import EmployeeRegistrationModal from '../../components/modal/EmployeeRegistrationModal';
 import VacationRequestModal from '../../components/modal/VacationRequestModal';
+import ChangePasswordModal from '../../components/modal/ChangePasswordModal';
 import OrganizationVacationCalendar from '../../components/calendar/OrganizationVacationCalendar';
-import { useEmployees, useEmployee, useTerminateEmployee, usePatchEmployee, useApproveEmployee, useDeleteEmployee } from '../../hooks/queries/useEmployees';
+import { useEmployees, useEmployee, useTerminateEmployee, usePatchEmployee, useApproveEmployee, useDeleteEmployee, useChangePassword } from '../../hooks/queries/useEmployees';
 import { useQueryClient } from '@tanstack/react-query';
 import { EmployeeList } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
@@ -137,6 +139,7 @@ const HRPage: React.FC = () => {
   const deleteEmployeeMutation = useDeleteEmployee();
   const patchEmployeeMutation = usePatchEmployee();
   const approveEmployeeMutation = useApproveEmployee();
+  const changePasswordMutation = useChangePassword();
   const queryClient = useQueryClient();
 
   // 매핑된 직원 데이터 계산된 값으로 사용
@@ -180,6 +183,8 @@ const HRPage: React.FC = () => {
   const [showEmployeeRegistrationModal, setShowEmployeeRegistrationModal] = useState(false);
   const [showVacationRequestModal, setShowVacationRequestModal] = useState(false);
   const [showOrganizationVacationCalendar, setShowOrganizationVacationCalendar] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [changePasswordEmployee, setChangePasswordEmployee] = useState<MappedEmployee | null>(null);
 
   // API 데이터 로드 useEffect 제거 - useMemo로 대체
   // useEffect(() => {
@@ -288,6 +293,16 @@ const HRPage: React.FC = () => {
     }
   };
 
+  // 비밀번호 변경 핸들러
+  const handleChangePassword = async (employeeId: number, password: string) => {
+    try {
+      await changePasswordMutation.mutateAsync({ employeeId, password });
+    } catch (error: unknown) {
+      console.error('비밀번호 변경 실패:', error);
+      throw error;
+    }
+  };
+
   // 직원 카드 컴포넌트
   const EmployeeCard: React.FC<{ employee: MappedEmployee }> = ({ employee }) => {
     const isTerminated = employee.status === 'terminated';
@@ -311,6 +326,12 @@ const HRPage: React.FC = () => {
     const handleViewDetails = () => {
       setSelectedEmployee(employee);
       setShowDetailsModal(true);
+    };
+
+    // 비밀번호 변경
+    const handleChangePasswordClick = () => {
+      setChangePasswordEmployee(employee);
+      setShowChangePasswordModal(true);
     };
 
     // 직원 퇴사 처리
@@ -370,127 +391,128 @@ const HRPage: React.FC = () => {
 
     return (
       <div
-        className={`overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-200 ${cardOpacity} ${
+        className={`overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md ${cardOpacity} ${
           isTerminated ? 'bg-gray-50' : ''
         }`}>
-        {/* 카드 상단 영역 */}
-        <div className='p-6'>
-          <div className='flex items-start'>
-            {/* 정보 영역 */}
-            <div className='min-w-0 flex-1'>
-              <div className='mb-2 flex items-start justify-between'>
-                <div>
-                  <h3
-                    className={`mb-10 truncate text-lg font-semibold ${textOpacity} ${
-                      isTerminated ? 'line-through' : ''
-                    }`}>
-                    {employee.name}
-                  </h3>
-                  {/* <p className={`text-sm ${subTextOpacity}`} >사번 #{employee.id}</p> */}
-                </div>
-                {getStatusBadge(employee.status as EmployeeStatus)}
-              </div>
+        {/* 카드 전체 영역 - 컴팩트하게 */}
+        <div className='p-4'>
+          {/* 상단: 이름과 상태 */}
+          <div className='mb-3 flex items-center justify-between'>
+            <h3
+              className={`truncate text-base font-semibold ${textOpacity} ${
+                isTerminated ? 'line-through' : ''
+              }`}>
+              {employee.name}
+            </h3>
+            {getStatusBadge(employee.status as EmployeeStatus)}
+          </div>
 
-              <div className='space-y-1'>
-                <div className={`flex items-center text-sm ${subTextOpacity}`}>
-                  <FiUser className='mr-2 h-4 w-4 text-gray-400' />
-                  <span>{employee.position}</span>
+          {/* 중간: 직책 및 정보 */}
+          <div className='mb-3 space-y-1'>
+            <div className={`flex items-center text-sm ${subTextOpacity}`}>
+              <FiUser className='mr-2 h-3 w-3 text-gray-400' />
+              <span>{employee.position}</span>
+              {employee.gender && (
+                <>
                   <span className='mx-2'>•</span>
-                  <span>{employee.department}</span>
-                  {employee.gender && (
-                    <>
-                      <span className='mx-2'>•</span>
-                      <span>{mapGenderToKorean(employee.gender)}</span>
-                    </>
-                  )}
-                </div>
-                <div className={`flex items-center text-sm ${subTextOpacity}`}>
-                  <FiCalendar className='mr-2 h-4 w-4 text-gray-400' />
-                  <span>{formatDateToKorean(employee.hire_date)}</span>
-                </div>
-              </div>
+                  <span>{mapGenderToKorean(employee.gender)}</span>
+                </>
+              )}
+            </div>
+            <div className={`flex items-center text-sm ${subTextOpacity}`}>
+              <FiCalendar className='mr-2 h-3 w-3 text-gray-400' />
+              <span>{formatDateToKorean(employee.hire_date)}</span>
             </div>
           </div>
-        </div>
 
-        {/* 카드 하단 액션 영역 */}
-        <div className='border-t border-gray-100 bg-gray-50 px-6 py-4'>
-          <div className='flex items-center justify-end space-x-2'>
-            <button
-              className='flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:border-gray-300 hover:bg-gray-50'
-              onClick={handleViewDetails}>
-              <FiEye className='mr-1 h-4 w-4' />
-              상세보기
-            </button>
-            {/* 퇴사 버튼: 관리자만 보이고, 재직중이고, 본인이 아닌 경우에만 표시 */}
-            {isAdmin && employee.status === 'active' && !isCurrentUser && (
+          {/* 하단: 액션 버튼들 */}
+          <div className='border-t border-gray-100 pt-3 -mx-4 px-4'>
+            <div className='flex items-center justify-end space-x-1.5'>
               <button
-                className='flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 shadow-sm transition-all duration-200 hover:border-red-300 hover:bg-red-100'
-                onClick={handleTerminateEmployee}>
-                <FiTrash2 className='mr-1 h-4 w-4' />
-                퇴사
+                className='flex items-center rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50'
+                onClick={handleViewDetails}>
+                <FiEye className='mr-1 h-3 w-3' />
+                상세보기
               </button>
-            )}
+              {/* 비밀번호 변경 버튼: 본인 또는 관리자만 볼 수 있음 */}
+              {(isCurrentUser || isAdmin) && employee.status === 'active' && (
+                <button
+                  className='flex items-center rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100'
+                  onClick={handleChangePasswordClick}>
+                  <FiLock className='mr-1 h-3 w-3' />
+                  비밀번호 변경
+                </button>
+              )}
+              {/* 퇴사 버튼: 관리자만 보이고, 재직중이고, 본인이 아닌 경우에만 표시 */}
+              {isAdmin && employee.status === 'active' && !isCurrentUser && (
+                <button
+                  className='flex items-center rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100'
+                  onClick={handleTerminateEmployee}>
+                  <FiTrash2 className='mr-1 h-3 w-3' />
+                  퇴사
+                </button>
+              )}
 
-            {/* 삭제 버튼: 관리자만 보이고, 퇴사한 직원에게만 표시 */}
-            {isAdmin && employee.status === 'terminated' && (
-              <button
-                className='flex items-center rounded-lg border border-red-300 bg-red-100 px-3 py-1.5 text-sm font-medium text-red-800 shadow-sm transition-all duration-200 hover:border-red-400 hover:bg-red-200'
-                onClick={handleDeleteEmployee}>
-                <FiTrash2 className='mr-1 h-4 w-4' />
-                삭제
-              </button>
-            )}
-            {/* 승인대기중 직원에게만 승인/거절 버튼 표시 */}
-            {isAdmin && employee.status === 'denied' && (
-              <div className='flex space-x-2'>
-                {/* 승인 버튼 */}
+              {/* 삭제 버튼: 관리자만 보이고, 퇴사한 직원에게만 표시 */}
+              {isAdmin && employee.status === 'terminated' && (
                 <button
-                  className='flex items-center rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 shadow-sm transition-all duration-200 hover:border-green-300 hover:bg-green-100'
-                  onClick={async () => {
-                    try {
-                      await approveEmployeeMutation.mutateAsync({
-                        username: employee.username,
-                        status: 'approved'
-                      });
-                      alert('승인 완료!');
-                    } catch (e: unknown) {
-                      console.error('승인 처리 실패:', e);
-                      const errorMsg = getErrorMessage(e, '승인 실패');
-                      alert(errorMsg);
-                    }
-                  }}>
-                  승인
+                  className='flex items-center rounded-md border border-red-300 bg-red-100 px-2.5 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200'
+                  onClick={handleDeleteEmployee}>
+                  <FiTrash2 className='mr-1 h-3 w-3' />
+                  삭제
                 </button>
-                
-                {/* 거절 버튼 */}
-                <button
-                  className='flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 shadow-sm transition-all duration-200 hover:border-red-300 hover:bg-red-100'
-                  onClick={async () => {
-                    try {
-                      await approveEmployeeMutation.mutateAsync({
-                        username: employee.username,
-                        status: 'denied'
-                      });
-                      
-                      await patchEmployeeMutation.mutateAsync({
-                        employeeId: employee.id,
-                        data: {
-                          is_active: false
-                        }
-                      });
-                      
-                      alert('거절 및 퇴사 처리 완료!');
-                    } catch (e: unknown) {
-                      console.error('거절 처리 실패:', e);
-                      const errorMsg = getErrorMessage(e, '거절 처리 실패');
-                      alert(errorMsg);
-                    }
-                  }}>
-                  거절
-                </button>
-              </div>
-            )}
+              )}
+              {/* 승인대기중 직원에게만 승인/거절 버튼 표시 */}
+              {isAdmin && employee.status === 'denied' && (
+                <>
+                  {/* 승인 버튼 */}
+                  <button
+                    className='flex items-center rounded-md border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 transition-colors hover:bg-green-100'
+                    onClick={async () => {
+                      try {
+                        await approveEmployeeMutation.mutateAsync({
+                          username: employee.username,
+                          status: 'approved'
+                        });
+                        alert('승인 완료!');
+                      } catch (e: unknown) {
+                        console.error('승인 처리 실패:', e);
+                        const errorMsg = getErrorMessage(e, '승인 실패');
+                        alert(errorMsg);
+                      }
+                    }}>
+                    승인
+                  </button>
+
+                  {/* 거절 버튼 */}
+                  <button
+                    className='flex items-center rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100'
+                    onClick={async () => {
+                      try {
+                        await approveEmployeeMutation.mutateAsync({
+                          username: employee.username,
+                          status: 'denied'
+                        });
+
+                        await patchEmployeeMutation.mutateAsync({
+                          employeeId: employee.id,
+                          data: {
+                            is_active: false
+                          }
+                        });
+
+                        alert('거절 및 퇴사 처리 완료!');
+                      } catch (e: unknown) {
+                        console.error('거절 처리 실패:', e);
+                        const errorMsg = getErrorMessage(e, '거절 처리 실패');
+                        alert(errorMsg);
+                      }
+                    }}>
+                    거절
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -561,10 +583,17 @@ const HRPage: React.FC = () => {
               <div className='mb-4 flex items-center justify-between'>
                 <h2 className='text-lg font-semibold text-gray-900'>개인 정보</h2>
                 <button
-                  onClick={handleViewDetails}
-                  className='flex items-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:border-gray-300 hover:bg-gray-50'>
-                  <FiEye className='mr-2 h-4 w-4' />
-                  상세보기/수정
+                  onClick={() => {
+                    if (currentEmployeeData) {
+                      setChangePasswordEmployee(currentEmployeeData);
+                      setShowChangePasswordModal(true);
+                    } else {
+                      alert('직원 정보를 불러올 수 없습니다. 페이지를 새로고침해주세요.');
+                    }
+                  }}
+                  className='flex items-center rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 shadow-sm transition-all duration-200 hover:border-blue-300 hover:bg-blue-100'>
+                  <FiLock className='mr-2 h-4 w-4' />
+                  비밀번호 변경
                 </button>
               </div>
 
@@ -574,8 +603,19 @@ const HRPage: React.FC = () => {
                   <p className='text-gray-900'>{employee.name}</p>
                 </div>
                 <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>사용자명</label>
+                  <p className='text-gray-900'>{employee.username}</p>
+                </div>
+                <div>
                   <label className='block text-sm font-medium text-gray-700 mb-2'>직책</label>
-                  <p className='text-gray-900'>{employee.position} • {employee.department}</p>
+                  <p className='text-gray-900'>{employee.position}</p>
+                </div>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>근무 상태</label>
+                  <p className='text-gray-900'>
+                    {employee.status === 'active' ? '재직중' :
+                     employee.status === 'terminated' ? '퇴사' : '승인대기'}
+                  </p>
                 </div>
                 <div>
                   <label className='block text-sm font-medium text-gray-700 mb-2'>이메일</label>
@@ -595,6 +635,31 @@ const HRPage: React.FC = () => {
                   <label className='block text-sm font-medium text-gray-700 mb-2'>입사일</label>
                   <p className='text-gray-900'>{formatDateToKorean(employee.hire_date)}</p>
                 </div>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>연차 총 일수</label>
+                  <p className='text-gray-900'>{employee.annual_leave_days}일</p>
+                </div>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>남은 연차</label>
+                  <p className='text-gray-900'>{employee.remaining_leave_days}일</p>
+                </div>
+                {employee.allowed_tabs && employee.allowed_tabs.length > 0 && (
+                  <div className='md:col-span-2'>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>접근 권한</label>
+                    <div className='flex flex-wrap gap-2'>
+                      {employee.allowed_tabs.map((tab) => (
+                        <span
+                          key={tab}
+                          className='inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800'>
+                          {tab === 'INVENTORY' ? '재고 관리' :
+                           tab === 'ORDER' ? '발주 관리' :
+                           tab === 'SUPPLIER' ? '업체 관리' :
+                           tab === 'HR' ? 'HR 관리' : tab}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -709,6 +774,19 @@ const HRPage: React.FC = () => {
         {/* 개인 휴가 캘린더 모달 */}
         {showOrganizationVacationCalendar && (
           <OrganizationVacationCalendar onClose={() => setShowOrganizationVacationCalendar(false)} />
+        )}
+
+        {/* 비밀번호 변경 모달 (마이페이지용) */}
+        {showChangePasswordModal && changePasswordEmployee && (
+          <ChangePasswordModal
+            employeeId={changePasswordEmployee.id}
+            employeeName={changePasswordEmployee.name}
+            onClose={() => {
+              setShowChangePasswordModal(false);
+              setChangePasswordEmployee(null);
+            }}
+            onChangePassword={handleChangePassword}
+          />
         )}
       </>
     );
@@ -833,6 +911,19 @@ const HRPage: React.FC = () => {
       {/* 조직 휴가 캘린더 모달 */}
       {showOrganizationVacationCalendar && (
         <OrganizationVacationCalendar onClose={() => setShowOrganizationVacationCalendar(false)} />
+      )}
+
+      {/* 비밀번호 변경 모달 */}
+      {showChangePasswordModal && changePasswordEmployee && (
+        <ChangePasswordModal
+          employeeId={changePasswordEmployee.id}
+          employeeName={changePasswordEmployee.name}
+          onClose={() => {
+            setShowChangePasswordModal(false);
+            setChangePasswordEmployee(null);
+          }}
+          onChangePassword={handleChangePassword}
+        />
       )}
     </div>
   );

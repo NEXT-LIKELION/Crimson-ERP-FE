@@ -6,6 +6,7 @@ import {
   terminateEmployee,
   deleteEmployee,
   approveEmployee,
+  changePassword,
   type EmployeePatchData,
   type EmployeeList,
   type EmployeeDetail,
@@ -122,13 +123,27 @@ export const useApproveEmployee = () => {
     onSuccess: (data, variables) => {
       console.log('approveEmployee API 응답:', data);
       console.log('approveEmployee 요청 변수:', variables);
-      
+
       // 전체 데이터 강제 새로고침 - 캐시 무시하고 서버에서 새로 가져오기
       queryClient.refetchQueries({ queryKey: ['employees'] });
       console.log('직원 승인/거절 처리 완료 - 데이터 강제 새로고침');
     },
     onError: (error) => {
       console.error('직원 승인/거절 처리 실패:', error);
+    },
+  });
+};
+
+// 비밀번호 변경 뮤테이션 훅
+export const useChangePassword = () => {
+  return useMutation({
+    mutationFn: ({ employeeId, password }: { employeeId: number; password: string }) =>
+      changePassword(employeeId, password),
+    onSuccess: () => {
+      console.log('비밀번호 변경 성공');
+    },
+    onError: (error) => {
+      console.error('비밀번호 변경 실패:', error);
     },
   });
 };

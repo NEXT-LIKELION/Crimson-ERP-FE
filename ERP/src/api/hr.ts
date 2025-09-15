@@ -26,6 +26,10 @@ export const fetchDashboardData = () => api.get('/');
 export const approveEmployee = (username: string, status: 'approved' | 'denied') =>
   api.post('/authentication/approve/', { username, status });
 
+// 비밀번호 변경
+export const changePassword = (employeeId: number, password: string) =>
+  api.put(`/authentication/change-password/${employeeId}/`, { password });
+
 // 직원 등록 (회원가입) - 기본 필드만 사용
 export const registerEmployee = (data: EmployeeRegistrationData | {
   username: string;
