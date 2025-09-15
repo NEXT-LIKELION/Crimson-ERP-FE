@@ -41,12 +41,20 @@ const InventoryPage = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'offline' | 'online'>('all');
 
   const handleTabChange = (tab: 'all' | 'offline' | 'online') => {
-    if (tab !== 'all' && tab !== activeTab) {
-      alert(
-        '🎲 랜덤 필터링 중!\n\n백엔드에 채널 구분 필드가 없어서\n임시로 랜덤하게 데이터를 나누어 표시합니다.\n\n새로고침할 때마다 결과가 달라질 수 있습니다.'
-      );
-    }
     setActiveTab(tab);
+
+    // 탭 변경 시 현재 필터에 채널 정보 추가/제거
+    const newFilters = { ...appliedFilters };
+    if (tab === 'all') {
+      // 전체 탭이면 채널 필터 제거
+      delete newFilters.channel;
+    } else {
+      // TODO: 백엔드 구현 후 실제 채널 필터링 추가
+      // newFilters.channel = tab;
+    }
+
+    setAppliedFilters(newFilters);
+    updateURL(newFilters);
   };
   const [selectedVariantForStock, setSelectedVariantForStock] = useState<{
     variant_code: string;
@@ -335,8 +343,16 @@ const InventoryPage = () => {
     setMaxStock('1000');
     setMinSales('0');
     setMaxSales('5000000');
-    setAppliedFilters({});
-    updateURL({});
+
+    // 현재 탭이 전체가 아닌 경우 채널 필터는 유지
+    const baseFilters: Record<string, string | number> = {};
+    if (activeTab !== 'all') {
+      // TODO: 백엔드 구현 후 실제 채널 필터링 추가
+      // baseFilters.channel = activeTab;
+    }
+
+    setAppliedFilters(baseFilters);
+    updateURL(baseFilters);
     // 필터 초기화로 자동 refetch됨
   };
 
@@ -500,29 +516,8 @@ const InventoryPage = () => {
     }
   };
 
-  // 탭별 데이터 필터링 (현재는 시뮬레이션)
-  const getTabData = () => {
-    switch (activeTab) {
-      case 'all':
-        return data ?? [];
-      case 'offline':
-        // TODO: 백엔드 구현 후 오프라인 데이터만 필터링
-        return (data ?? []).filter(
-          (item: ProductVariant & { source?: string }) =>
-            item.source === 'offline' || Math.random() < 0.5
-        );
-      case 'online':
-        // TODO: 백엔드 구현 후 온라인 데이터만 필터링
-        return (data ?? []).filter(
-          (item: ProductVariant & { source?: string }) =>
-            item.source === 'online' || Math.random() < 0.5
-        );
-      default:
-        return data ?? [];
-    }
-  };
-
-  const tabData = getTabData();
+  // 모든 탭에서 동일한 API 기반 데이터 사용
+  const tabData = data ?? [];
 
   if (isLoading) return <p>로딩 중...</p>;
   if (error) return <p>에러가 발생했습니다!</p>;
@@ -615,6 +610,12 @@ const InventoryPage = () => {
             // 검색 실행
             const newFilters: Record<string, string | number> = {};
 
+            // 채널 필터 (탭에 따라)
+            if (activeTab !== 'all') {
+              // TODO: 백엔드 구현 후 실제 채널 필터링 추가
+              // newFilters.channel = activeTab;
+            }
+
             // 상품명 필터
             if (productName.trim()) {
               newFilters.product_name = productName.trim();
@@ -663,7 +664,7 @@ const InventoryPage = () => {
           </span>
         </div>
         {activeTab !== 'all' && (
-          <p className='mt-1 text-xs text-blue-600'>* 백엔드 구현 중 - 현재는 임시 데이터 필터링</p>
+          <p className='mt-1 text-xs text-blue-600'>* 전체 데이터 사용 중</p>
         )}
       </div>
 

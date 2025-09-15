@@ -221,13 +221,13 @@ const InventoryRollbackModal: React.FC<InventoryRollbackModalProps> = ({
               <table className='w-full border-collapse text-sm text-gray-700'>
                 <thead className='border-b border-gray-300 bg-gray-50 text-xs uppercase'>
                   <tr>
-                    <th className='px-4 py-3 text-left'>ID</th>
-                    <th className='px-4 py-3 text-left'>생성일시</th>
-                    <th className='px-4 py-3 text-left'>사유</th>
-                    <th className='px-4 py-3 text-left'>수행자</th>
-                    <th className='px-4 py-3 text-left'>파일명</th>
-                    <th className='px-4 py-3 text-left'>파일크기</th>
-                    <th className='px-4 py-3 text-center'>작업</th>
+                    <th className='min-w-[60px] px-4 py-3 text-left'>ID</th>
+                    <th className='min-w-[140px] px-4 py-3 text-left'>생성일시</th>
+                    <th className='min-w-[200px] px-4 py-3 text-left'>사유</th>
+                    <th className='min-w-[80px] px-4 py-3 text-left'>수행자</th>
+                    <th className='min-w-[250px] px-4 py-3 text-left'>파일명</th>
+                    <th className='min-w-[80px] px-4 py-3 text-left'>파일크기</th>
+                    <th className='min-w-[80px] px-4 py-3 text-center'>작업</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -237,22 +237,22 @@ const InventoryRollbackModal: React.FC<InventoryRollbackModalProps> = ({
                       className={`border-b border-gray-200 hover:bg-gray-50 ${
                         index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                       }`}>
-                      <td className='px-4 py-3 text-sm font-medium'>#{snapshot.id}</td>
-                      <td className='px-4 py-3 text-sm'>{formatDate(snapshot.created_at)}</td>
-                      <td className='px-4 py-3 text-sm max-w-xs truncate' title={snapshot.reason}>
-                        {snapshot.reason}
+                      <td className='min-w-[60px] px-4 py-3 text-left text-sm font-medium'>#{snapshot.id}</td>
+                      <td className='min-w-[140px] px-4 py-3 text-left text-sm'>{formatDate(snapshot.created_at)}</td>
+                      <td className='min-w-[200px] px-4 py-3 text-left text-sm' title={snapshot.reason}>
+                        <div className='max-w-[200px] truncate'>{snapshot.reason}</div>
                       </td>
-                      <td className='px-4 py-3 text-sm'>{snapshot.actor_name || 'System'}</td>
-                      <td className='px-4 py-3 text-sm'>
-                        {snapshot.meta?.filename || '-'}
+                      <td className='min-w-[80px] px-4 py-3 text-left text-sm'>{snapshot.actor_name || 'System'}</td>
+                      <td className='min-w-[250px] px-4 py-3 text-left text-sm' title={snapshot.meta?.filename || '-'}>
+                        <div className='max-w-[250px] truncate'>{snapshot.meta?.filename || '-'}</div>
                       </td>
-                      <td className='px-4 py-3 text-sm'>
+                      <td className='min-w-[80px] px-4 py-3 text-left text-sm'>
                         {formatFileSize(snapshot.meta?.filesize)}
                       </td>
-                      <td className='px-4 py-3 text-center'>
+                      <td className='min-w-[80px] px-4 py-3 text-center'>
                         <button
                           onClick={() => handleRollbackClick(snapshot)}
-                          className='inline-flex items-center gap-1 rounded-md bg-red-50 px-3 py-1 text-xs text-red-700 hover:bg-red-100'>
+                          className='inline-flex items-center gap-1 rounded-md bg-red-50 px-3 py-1 text-xs text-red-700 hover:bg-red-100 whitespace-nowrap'>
                           <FaUndo size={12} />
                           롤백
                         </button>

@@ -34,8 +34,13 @@ export const useProductSearch = (filters?: ProductSearchFilters) => {
       const response = await api.get('/inventory/variants/', { params: finalParams });
       return response.data;
     },
-    getNextPageParam: () => {
-      // 항상 undefined 반환해서 자동 프리페치 완전 차단
+    getNextPageParam: (lastPage: ProductSearchPageData) => {
+      // lastPage.next가 null이 아니면, URL에서 page 파라미터 추출
+      if (lastPage.next) {
+        const url = new URL(lastPage.next, window.location.origin);
+        const pageParam = url.searchParams.get('page');
+        return pageParam ? Number(pageParam) : undefined;
+      }
       return undefined;
     },
     initialPageParam: 1,
@@ -71,60 +76,21 @@ export const useProductSearch = (filters?: ProductSearchFilters) => {
   // 전체 개수 계산
   const totalCount = query.data?.pages?.[0]?.count ?? 0;
 
-  // hasNextPage 수동 계산
-  const currentLoadedCount = allData.length;
-  const hasNextPage = currentLoadedCount < totalCount;
-
-  // 수동 fetchNextPage
-  const fetchNextPage = async () => {
-    if (!hasNextPage || query.isFetching) {
-      console.log('⏸️ fetchNextPage blocked:', { hasNextPage, isFetching: query.isFetching });
-      return;
-    }
-
-    const nextPageParam = query.data?.pages?.length ? query.data.pages.length + 1 : 2;
-    console.log('🔘 Manual fetchNextPage called for page:', nextPageParam);
-
-    try {
-      const finalParams = {
-        ...apiFilters,
-        page: nextPageParam,
-        page_size: 20,
-      };
-      console.log('🔍 Product Search API Request (수동 페치):', finalParams);
-      const response = await api.get('/inventory/variants/', { params: finalParams });
-
-      // QueryClient를 통해 기존 데이터에 새 페이지 추가
-      queryClient.setQueryData(
-        ['productSearch', apiFilters],
-        (oldData: InfiniteData<ProductSearchPageData> | undefined) => {
-          if (!oldData) return { pages: [response.data], pageParams: [1, nextPageParam] };
-
-          return {
-            ...oldData,
-            pages: [...oldData.pages, response.data],
-            pageParams: [...(oldData.pageParams || []), nextPageParam],
-          };
-        }
-      );
-    } catch (error) {
-      console.error('❌ 다음 페이지 불러오기 실패:', error);
-    }
-  };
+  // TanStack Query 내장 기능 사용
 
   return {
     // 기본 쿼리 정보
     ...query,
     // 변환된 데이터
     data: productOptions,
-    // 무한 스크롤용 함수들
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage: query.isFetching,
+    // 무한 스크롤용 함수들 (TanStack Query 내장)
+    fetchNextPage: query.fetchNextPage,
+    hasNextPage: query.hasNextPage,
+    isFetchingNextPage: query.isFetchingNextPage,
     // 페이지네이션 정보
     pagination: {
       count: totalCount,
-      next: hasNextPage ? 'has-more' : null,
+      next: query.hasNextPage ? 'has-more' : null,
       previous: null,
     },
     // 무한 스크롤 관련 정보
@@ -132,8 +98,8 @@ export const useProductSearch = (filters?: ProductSearchFilters) => {
       totalLoaded: allData.length,
       totalFiltered: productOptions.length,
       totalCount: totalCount,
-      hasNextPage: hasNextPage,
-      isLoadingMore: query.isFetching,
+      hasNextPage: query.hasNextPage,
+      isLoadingMore: query.isFetchingNextPage,
     },
     // 편의 함수
     refetch: () => query.refetch(),
