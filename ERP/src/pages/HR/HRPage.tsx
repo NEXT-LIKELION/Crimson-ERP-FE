@@ -13,7 +13,7 @@ import EmployeeDetailsModal from '../../components/modal/EmployeeDetailsModal';
 import EmployeeRegistrationModal from '../../components/modal/EmployeeRegistrationModal';
 import VacationRequestModal from '../../components/modal/VacationRequestModal';
 import OrganizationVacationCalendar from '../../components/calendar/OrganizationVacationCalendar';
-import { useEmployees, useTerminateEmployee, usePatchEmployee, useApproveEmployee, useDeleteEmployee } from '../../hooks/queries/useEmployees';
+import { useEmployees, useEmployee, useTerminateEmployee, usePatchEmployee, useApproveEmployee, useDeleteEmployee } from '../../hooks/queries/useEmployees';
 import { useQueryClient } from '@tanstack/react-query';
 import { EmployeeList } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
@@ -145,11 +145,34 @@ const HRPage: React.FC = () => {
     return employeesData.data.map((emp: EmployeeList) => mapEmployeeData(emp));
   }, [employeesData?.data]);
 
-  // 현재 사용자 정보 (일반 직원용)
-  const currentEmployeeData = React.useMemo(() => {
+  // 현재 사용자의 상세 정보 조회 (연차 정보 포함)
+  const currentEmployeeId = React.useMemo(() => {
     if (!currentUser || isAdmin) return null;
-    return employees.find(emp => emp.username === currentUser.username) || null;
+    const currentEmp = employees.find(emp => emp.username === currentUser.username);
+    return currentEmp?.id || null;
   }, [employees, currentUser, isAdmin]);
+
+  // 현재 사용자 상세 정보 (연차 데이터 포함)
+  const { data: currentEmployeeDetailData } = useEmployee(currentEmployeeId);
+
+  // 현재 사용자 정보 (일반 직원용) - 상세 정보와 목록 정보 병합
+  const currentEmployeeData = React.useMemo(() => {
+    if (!currentUser || isAdmin || !currentEmployeeId) return null;
+
+    const basicData = employees.find(emp => emp.username === currentUser.username);
+    if (!basicData) return null;
+
+    // 상세 정보가 있으면 연차 데이터를 업데이트
+    if (currentEmployeeDetailData?.data) {
+      return {
+        ...basicData,
+        annual_leave_days: currentEmployeeDetailData.data.annual_leave_days,
+        allowed_tabs: currentEmployeeDetailData.data.allowed_tabs || [],
+      };
+    }
+
+    return basicData;
+  }, [employees, currentUser, isAdmin, currentEmployeeId, currentEmployeeDetailData]);
 
   // 모달 상태 관리
   const [selectedEmployee, setSelectedEmployee] = useState<MappedEmployee | null>(null);

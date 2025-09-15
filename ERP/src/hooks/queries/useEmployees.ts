@@ -24,10 +24,11 @@ export const useEmployees = () =>
   });
 
 // 직원 상세 조회 훅 - 캐시 비활성화로 항상 실시간 데이터
-export const useEmployee = (employeeId: number) =>
+export const useEmployee = (employeeId: number | null) =>
   useQuery<{ data: EmployeeDetail }>({
     queryKey: ['employee', employeeId],
-    queryFn: () => fetchEmployee(employeeId),
+    queryFn: () => fetchEmployee(employeeId!),
+    enabled: !!employeeId, // employeeId가 있을 때만 쿼리 실행
     staleTime: 0, // 즉시 stale 처리
     gcTime: 0, // 캐시 즉시 삭제
     refetchOnMount: true, // 마운트 시 항상 새로 가져오기
