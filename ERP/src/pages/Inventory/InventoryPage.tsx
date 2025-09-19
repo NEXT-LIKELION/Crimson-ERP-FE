@@ -1,10 +1,9 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import GreenButton from '../../components/button/GreenButton';
 import PrimaryButton from '../../components/button/PrimaryButton';
 import SecondaryButton from '../../components/button/SecondaryButton';
 import { FaPlus, FaFileArrowUp } from 'react-icons/fa6';
-import { FaCodeBranch, FaHistory } from 'react-icons/fa';
+import { FaCodeBranch, FaHistory, FaUndo } from 'react-icons/fa';
 import InputField from '../../components/inputfield/InputField';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import { useInventories } from '../../hooks/queries/useInventories';
@@ -21,11 +20,14 @@ import AddProductModal from '../../components/modal/AddProductModal';
 import MergeVariantsModal from '../../components/modal/MergeVariantsModal';
 import StockAdjustmentModal from '../../components/modal/StockAdjustmentModal';
 import StockHistoryModal from '../../components/modal/StockHistoryModal';
+import InventoryRollbackModal from '../../components/modal/InventoryRollbackModal';
+import InventoryTabs from '../../components/tabs/InventoryTabs';
 import { Product } from '../../types/product';
 import { useQueryClient } from '@tanstack/react-query';
 import { uploadInventoryExcel } from '../../api/upload';
 import { usePermissions } from '../../hooks/usePermissions';
 import * as XLSX from 'xlsx';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { useAdjustStock } from '../../hooks/queries/useStockAdjustment';
 
 const InventoryPage = () => {
@@ -36,6 +38,25 @@ const InventoryPage = () => {
   const [isMergeModalOpen, setMergeModalOpen] = useState(false);
   const [isStockAdjustModalOpen, setStockAdjustModalOpen] = useState(false);
   const [isStockHistoryModalOpen, setStockHistoryModalOpen] = useState(false);
+  const [isRollbackModalOpen, setRollbackModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'offline' | 'online'>('all');
+
+  const handleTabChange = (tab: 'all' | 'offline' | 'online') => {
+    setActiveTab(tab);
+
+    // 탭 변경 시 현재 필터에 채널 정보 추가/제거
+    const newFilters = { ...appliedFilters };
+    if (tab === 'all') {
+      // 전체 탭이면 채널 필터 제거
+      delete newFilters.channel;
+    } else {
+      // TODO: 백엔드 구현 후 실제 채널 필터링 추가
+      // newFilters.channel = tab;
+    }
+
+    setAppliedFilters(newFilters);
+    updateURL(newFilters);
+  };
   const [selectedVariantForStock, setSelectedVariantForStock] = useState<{
     variant_code: string;
     product_id: string;
@@ -51,15 +72,15 @@ const InventoryPage = () => {
   const [maxStock, setMaxStock] = useState('1000');
   const [minSales, setMinSales] = useState('0');
   const [maxSales, setMaxSales] = useState('5000000');
-  const [currentPage, setCurrentPage] = useState(1);
   const [appliedFilters, setAppliedFilters] = useState<{
-    page?: number;
-    name?: string;
+    product_name?: string;
     category?: string;
+    status?: string;
     min_stock?: number;
     max_stock?: number;
     min_sales?: number;
     max_sales?: number;
+    channel?: string;
   }>({});
 
   // URL에서 필터 파라미터 초기화 (초기 로드 시에만)
@@ -68,8 +89,7 @@ const InventoryPage = () => {
   useEffect(() => {
     if (isInitialized) return; // 이미 초기화되었으면 실행하지 않음
 
-    const urlPage = parseInt(searchParams.get('page') || '1');
-    const urlName = searchParams.get('name') || '';
+    const urlName = searchParams.get('product_name') || '';
     const urlCategory = searchParams.get('category') || '';
     const urlStatus = searchParams.get('status') || '';
     const urlMinStock = searchParams.get('min_stock') || '0';
@@ -77,7 +97,6 @@ const InventoryPage = () => {
     const urlMinSales = searchParams.get('min_sales') || '0';
     const urlMaxSales = searchParams.get('max_sales') || '5000000';
 
-    setCurrentPage(urlPage);
     setProductName(urlName);
     setCategory(urlCategory === '모든 카테고리' ? '' : urlCategory);
     setStatus(urlStatus === '모든 상태' ? '' : urlStatus);
@@ -86,8 +105,8 @@ const InventoryPage = () => {
     setMinSales(urlMinSales);
     setMaxSales(urlMaxSales);
 
-    const filters: Record<string, string | number> = { page: urlPage };
-    if (urlName) filters.name = urlName;
+    const filters: Record<string, string | number> = {};
+    if (urlName) filters.product_name = urlName;
     if (urlCategory && urlCategory !== '모든 카테고리') filters.category = urlCategory;
     if (urlStatus && urlStatus !== '모든 상태') filters.status = urlStatus;
     if (urlMinStock !== '0' || urlMaxStock !== '1000') {
@@ -103,116 +122,16 @@ const InventoryPage = () => {
     setIsInitialized(true);
   }, [searchParams, isInitialized]);
 
-  const { data, isLoading, error, refetch, pagination } = useInventories(appliedFilters);
-
-  // debounced values for text filters
-  const debouncedProductName = useDebouncedValue(productName, 300);
-
-  // 자동 적용: 상품명 텍스트는 디바운스 후 바로 필터 반영
-  useEffect(() => {
-    if (!isInitialized) return;
-    const newFilters: Record<string, string | number> = { ...appliedFilters, page: 1 };
-    if (debouncedProductName.trim()) {
-      newFilters.name = debouncedProductName.trim();
-    } else {
-      delete newFilters.name;
-    }
-    setCurrentPage(1);
-    setAppliedFilters(newFilters);
-    updateURL(newFilters, 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedProductName]);
-
-  // 자동 적용: 카테고리 드롭다운 변경 시 즉시 필터 반영
-  useEffect(() => {
-    if (!isInitialized) return;
-    const newFilters: Record<string, string | number> = { ...appliedFilters, page: 1 };
-
-    // 기존 필터에서 이름 유지
-    if (debouncedProductName.trim()) {
-      newFilters.name = debouncedProductName.trim();
-    }
-
-    // 카테고리 필터 적용
-    if (category && category !== '모든 카테고리') {
-      newFilters.category = category;
-    } else {
-      delete newFilters.category;
-    }
-
-    setCurrentPage(1);
-    setAppliedFilters(newFilters);
-    updateURL(newFilters, 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category]);
-
-  // 자동 적용: 상태 드롭다운 변경 시 즉시 필터 반영
-  useEffect(() => {
-    if (!isInitialized) return;
-    const newFilters: Record<string, string | number> = { ...appliedFilters, page: 1 };
-
-    // 기존 필터 유지
-    if (debouncedProductName.trim()) {
-      newFilters.name = debouncedProductName.trim();
-    }
-    if (category && category !== '모든 카테고리') {
-      newFilters.category = category;
-    }
-
-    // 상태 필터 적용
-    if (status && status !== '모든 상태') {
-      newFilters.status = status;
-    } else {
-      delete newFilters.status;
-    }
-
-    setCurrentPage(1);
-    setAppliedFilters(newFilters);
-    updateURL(newFilters, 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
-
-  // 자동 적용: 슬라이더 값 변경 시 즉시 필터 반영
-  useEffect(() => {
-    if (!isInitialized) return;
-    const newFilters: Record<string, string | number> = { ...appliedFilters, page: 1 };
-
-    // 기존 필터 유지
-    if (debouncedProductName.trim()) {
-      newFilters.name = debouncedProductName.trim();
-    }
-    if (category && category !== '모든 카테고리') {
-      newFilters.category = category;
-    }
-    if (status && status !== '모든 상태') {
-      newFilters.status = status;
-    }
-
-    // 재고 필터 적용 (항상 적용, 기본값이어도 필터링)
-    const minStockValue = parseInt(minStock) || 0;
-    const maxStockValue = parseInt(maxStock) || 1000;
-
-    newFilters.min_stock = minStockValue;
-    newFilters.max_stock = maxStockValue;
-
-    // 판매 필터 적용
-    const minSalesValue = parseInt(minSales) || 0;
-    const maxSalesValue = parseInt(maxSales) || 5000000;
-    const isDefaultSales = minSalesValue === 0 && maxSalesValue === 5000000;
-
-    if (!isDefaultSales) {
-      newFilters.min_sales = minSalesValue;
-      newFilters.max_sales = maxSalesValue;
-    } else {
-      delete newFilters.min_sales;
-      delete newFilters.max_sales;
-    }
-
-    setCurrentPage(1);
-    setAppliedFilters(newFilters);
-    updateURL(newFilters, 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [minStock, maxStock, minSales, maxSales]);
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    infiniteScroll,
+  } = useInventories(appliedFilters);
 
   const adjustStockMutation = useAdjustStock();
 
@@ -224,32 +143,35 @@ const InventoryPage = () => {
     if (!allMergeData || allMergeData.length === 0) return ['모든 카테고리'];
 
     const uniqueCategories = Array.from(
-      new Set((allMergeData as { category?: string }[]).map((item) => item.category).filter(Boolean) as string[])
+      new Set(
+        (allMergeData as { category?: string }[])
+          .map((item) => item.category)
+          .filter(Boolean) as string[]
+      )
     );
 
     return ['모든 카테고리', ...uniqueCategories.sort()];
   }, [allMergeData]);
 
-  useEffect(() => {
-    const loadAllData = async () => {
+  // 병합 모달이 열릴 때만 데이터 로드 (lazy loading)
+  const loadMergeData = async () => {
+    if (allMergeData.length === 0) {
       try {
+        console.log('🔄 Loading merge data...');
         const allData = await fetchAllInventoriesForMerge();
         setAllMergeData(allData);
       } catch (error) {
         console.error('전체 데이터 로드 실패:', error);
       }
-    };
+    }
+  };
 
-    loadAllData();
-  }, []); // 컴포넌트 마운트 시 한 번만 실행
-
-  // URL 업데이트 함수
+  // URL 업데이트 함수 (페이지 파라미터 제거)
   const updateURL = useCallback(
-    (newFilters: Record<string, string | number>, page: number) => {
+    (newFilters: Record<string, string | number>) => {
       const params = new URLSearchParams();
 
-      if (page > 1) params.set('page', page.toString());
-      if (newFilters.name) params.set('name', String(newFilters.name));
+      if (newFilters.product_name) params.set('product_name', String(newFilters.product_name));
       if (newFilters.category) params.set('category', String(newFilters.category));
       if (newFilters.status) params.set('status', String(newFilters.status));
       if (newFilters.min_stock !== undefined)
@@ -274,7 +196,9 @@ const InventoryPage = () => {
   const selectedProduct = useMemo(() => {
     if (!data || !editId) return null;
     // 백엔드에서 이미 평면화된 데이터를 직접 사용
-    const result = data.find((item: { variant_code: string }) => item.variant_code === String(editId));
+    const result = data.find(
+      (item: { variant_code: string }) => item.variant_code === String(editId)
+    );
     if (!result) return null;
 
     const processedResult = {
@@ -289,7 +213,6 @@ const InventoryPage = () => {
       memo: result.memo || '',
       suppliers: result.suppliers || [],
     };
-
 
     return processedResult;
   }, [data, editId]);
@@ -317,19 +240,10 @@ const InventoryPage = () => {
         throw new Error('variant 식별자를 찾을 수 없습니다.');
       }
 
-
-
       // suppliers와 readOnly 필드들 제외
-      const { 
-        suppliers, 
-        sales, 
-        cost_price, 
-        order_count, 
-        return_count, 
-        stock,
-        ...editableFields 
-      } = updatedProduct;
-      
+      const { suppliers, sales, cost_price, order_count, return_count, stock, ...editableFields } =
+        updatedProduct;
+
       // readOnly 필드들은 사용되지 않지만 구조분해할당으로 제외하기 위해 필요
       void suppliers;
       void sales;
@@ -341,21 +255,20 @@ const InventoryPage = () => {
       // API에 전송할 수정 가능한 필드들만 포함
       const updateData = {
         ...editableFields,
-        price: typeof editableFields.price === 'string' 
-          ? Number(editableFields.price) 
-          : editableFields.price,
-        min_stock: typeof editableFields.min_stock === 'string'
-          ? Number(editableFields.min_stock)
-          : editableFields.min_stock,
+        price:
+          typeof editableFields.price === 'string'
+            ? Number(editableFields.price)
+            : editableFields.price,
+        min_stock:
+          typeof editableFields.min_stock === 'string'
+            ? Number(editableFields.min_stock)
+            : editableFields.min_stock,
       };
 
-
-      
       await updateInventoryVariant(String(variantIdentifier), updateData);
-      
+
       // 공급업체 정보가 배열로 제공된 경우 (향후 구현)
       if (Array.isArray(suppliers) && suppliers.length > 0) {
-
         // TODO: 공급업체 매핑 업데이트 API 구현 후 호출
       }
       alert('상품이 성공적으로 수정되었습니다.');
@@ -370,7 +283,9 @@ const InventoryPage = () => {
 
   const handleVariantDelete = async (variantCode: string) => {
     // 백엔드에서 이미 평면화된 데이터를 직접 사용
-    const variantToDelete = data?.find((item: { variant_code: string }) => item.variant_code === variantCode);
+    const variantToDelete = data?.find(
+      (item: { variant_code: string }) => item.variant_code === variantCode
+    );
 
     if (!variantToDelete) {
       alert('삭제할 품목을 찾을 수 없습니다.');
@@ -430,9 +345,16 @@ const InventoryPage = () => {
     setMaxStock('1000');
     setMinSales('0');
     setMaxSales('5000000');
-    setCurrentPage(1);
-    setAppliedFilters({});
-    updateURL({}, 1);
+
+    // 현재 탭이 전체가 아닌 경우 채널 필터는 유지
+    const baseFilters: Record<string, string | number> = {};
+    if (activeTab !== 'all') {
+      // TODO: 백엔드 구현 후 실제 채널 필터링 추가
+      // baseFilters.channel = activeTab;
+    }
+
+    setAppliedFilters(baseFilters);
+    updateURL(baseFilters);
     // 필터 초기화로 자동 refetch됨
   };
 
@@ -449,7 +371,6 @@ const InventoryPage = () => {
 
       // 필터 초기화해서 최신 데이터 확인
       setAppliedFilters({});
-
     } catch (error) {
       console.error('병합 실패:', error);
       throw error; // 모달에서 에러 처리하도록 re-throw
@@ -458,18 +379,12 @@ const InventoryPage = () => {
 
   const handleExportToExcel = async () => {
     try {
-
-
       // 현재 필터링된 전체 데이터 가져오기 (페이지네이션 무시)
       let exportData: unknown[] = [];
 
-      if (
-        Object.keys(appliedFilters).length === 0 ||
-        (Object.keys(appliedFilters).length === 1 && appliedFilters.page)
-      ) {
-        // 필터가 없거나 페이지만 있는 경우 → 전체 데이터 가져오기
+      if (Object.keys(appliedFilters).length === 0) {
+        // 필터가 없는 경우 → 전체 데이터 가져오기
         exportData = allMergeData; // 이미 로드된 전체 데이터 사용
-
       } else {
         // 필터가 있는 경우 → api에서 처리
         // API 파라미터명 변환
@@ -490,7 +405,7 @@ const InventoryPage = () => {
           exportFilters.sales_max = appliedFilters.max_sales;
           delete exportFilters.max_sales;
         }
-        
+
         exportData = await fetchFilteredInventoriesForExport(exportFilters);
       }
 
@@ -511,7 +426,12 @@ const InventoryPage = () => {
         매입가: item.cost_price,
         재고수량: Math.max(0, Number(item.stock) || 0),
         최소재고: Math.max(0, Number(item.min_stock) || 0),
-        상태: item.stock === 0 ? '품절' : (item.stock || 0) < (item.min_stock || 0) ? '재고부족' : '정상',
+        상태:
+          item.stock === 0
+            ? '품절'
+            : (item.stock || 0) < (item.min_stock || 0)
+              ? '재고부족'
+              : '정상',
         결제수량: item.order_count,
         환불수량: item.return_count,
         판매합계: item.sales,
@@ -560,8 +480,6 @@ const InventoryPage = () => {
 
       // 파일 다운로드
       XLSX.writeFile(workbook, filename);
-
-
     } catch (error) {
       console.error('엑셀 Export 오류:', error);
       alert('엑셀 파일 생성 중 오류가 발생했습니다.');
@@ -600,11 +518,14 @@ const InventoryPage = () => {
     }
   };
 
-  if (isLoading) return <p>로딩 중...</p>;
+  // 모든 탭에서 동일한 API 기반 데이터 사용
+  const tabData = data ?? [];
+
   if (error) return <p>에러가 발생했습니다!</p>;
 
   return (
-    <div className='p-6'>
+    <div className="p-6 relative">
+      {isLoading && <LoadingSpinner overlay text="재고 데이터를 불러오는 중..." />}
       <div className='mb-4 flex items-center justify-between'>
         <h1 className='text-2xl font-bold'>재고 관리</h1>
         <div className='flex space-x-2'>
@@ -618,12 +539,20 @@ const InventoryPage = () => {
               <SecondaryButton
                 text='상품 병합'
                 icon={<FaCodeBranch size={16} />}
-                onClick={() => setMergeModalOpen(true)}
+                onClick={async () => {
+                  await loadMergeData(); // 병합 데이터 로드
+                  setMergeModalOpen(true);
+                }}
               />
               <SecondaryButton
                 text='재고 변경 이력'
                 icon={<FaHistory size={16} />}
                 onClick={() => setStockHistoryModalOpen(true)}
+              />
+              <SecondaryButton
+                text='POS 롤백'
+                icon={<FaUndo size={16} />}
+                onClick={() => setRollbackModalOpen(true)}
               />
               <PrimaryButton
                 text='POS 데이터 업로드'
@@ -643,6 +572,9 @@ const InventoryPage = () => {
         </div>
       </div>
 
+      {/* 탭 메뉴 */}
+      <InventoryTabs activeTab={activeTab} onTabChange={handleTabChange} />
+
       <div className='mb-6'>
         <InputField
           productName={productName}
@@ -661,7 +593,7 @@ const InventoryPage = () => {
           maxSales={maxSales}
           onMaxSalesChange={setMaxSales}
           onSearch={() => {
-            // 유효성 검사만 수행하고, 실제 필터링은 useEffect가 자동으로 처리
+            // 유효성 검사
             const minSalesValue = parseInt(minSales) || 0;
             const maxSalesValue = parseInt(maxSales) || 5000000;
             const minStockValue = parseInt(minStock) || 0;
@@ -677,26 +609,76 @@ const InventoryPage = () => {
               return;
             }
 
-            // 유효성 검사 통과 시 자동 필터링 로직이 이미 적용되어 있으므로
-            // 별도 처리 불필요
+            // 검색 실행
+            const newFilters: Record<string, string | number> = {};
 
+            // 채널 필터 (탭에 따라)
+            if (activeTab !== 'all') {
+              // TODO: 백엔드 구현 후 실제 채널 필터링 추가
+              // newFilters.channel = activeTab;
+            }
+
+            // 상품명 필터
+            if (productName.trim()) {
+              newFilters.product_name = productName.trim();
+            }
+
+            // 카테고리 필터
+            if (category && category !== '모든 카테고리') {
+              newFilters.category = category;
+            }
+
+            // 상태 필터
+            if (status && status !== '모든 상태') {
+              newFilters.status = status;
+            }
+
+            // 재고 필터 (기본값이 아닌 경우만)
+            const isDefaultStock = minStockValue === 0 && maxStockValue === 1000;
+            if (!isDefaultStock) {
+              newFilters.min_stock = minStockValue;
+              newFilters.max_stock = maxStockValue;
+            }
+
+            // 판매 필터 (기본값이 아닌 경우만)
+            const isDefaultSales = minSalesValue === 0 && maxSalesValue === 5000000;
+            if (!isDefaultSales) {
+              newFilters.min_sales = minSalesValue;
+              newFilters.max_sales = maxSalesValue;
+            }
+
+            console.log('🔍 Setting applied filters:', newFilters);
+            setAppliedFilters(newFilters);
+            updateURL(newFilters);
           }}
           onReset={handleReset}
         />
       </div>
 
+      {/* 탭 상태 표시 (임시) */}
+      <div className='mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4'>
+        <div className='flex items-center gap-2'>
+          <div className='h-2 w-2 rounded-full bg-blue-600'></div>
+          <span className='text-sm font-medium text-blue-800'>
+            현재 탭:{' '}
+            {activeTab === 'all' ? '전체' : activeTab === 'offline' ? '오프라인' : '온라인'}(
+            {tabData.length}개 상품)
+          </span>
+        </div>
+        {activeTab !== 'all' && (
+          <p className='mt-1 text-xs text-blue-600'>* 전체 데이터 사용 중</p>
+        )}
+      </div>
+
       <InventoryTable
-        inventories={data ?? []}
+        inventories={tabData}
         onDelete={handleVariantDelete}
-        pagination={pagination}
-        currentPage={currentPage}
-        onPageChange={(page) => {
-          setCurrentPage(page);
-          const newFilters = { ...appliedFilters, page };
-          setAppliedFilters(newFilters);
-          updateURL(newFilters, page);
-        }}
         onExportToExcel={handleExportToExcel}
+        // 무한 스크롤 관련 props
+        fetchNextPage={fetchNextPage}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        infiniteScroll={infiniteScroll}
       />
       {selectedProduct && (
         <EditProductModal
@@ -738,6 +720,13 @@ const InventoryPage = () => {
         <StockHistoryModal
           isOpen={isStockHistoryModalOpen}
           onClose={() => setStockHistoryModalOpen(false)}
+        />
+      )}
+      {isRollbackModalOpen && (
+        <InventoryRollbackModal
+          isOpen={isRollbackModalOpen}
+          onClose={() => setRollbackModalOpen(false)}
+          onSuccess={refetch}
         />
       )}
     </div>

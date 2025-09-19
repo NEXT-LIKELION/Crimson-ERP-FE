@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import Pagination from '../pagination/pagination';
 import { MdOutlineEdit, MdOutlineDelete } from 'react-icons/md';
 import { MdOutlineDownload } from 'react-icons/md';
 import { RxCaretSort } from 'react-icons/rx';
+import { HiArrowUp } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 import { Product } from '../../types/product';
 
@@ -19,14 +19,18 @@ interface TableProduct extends Omit<Product, 'variant_id'> {
 interface InventoryTableProps {
   inventories: Product[];
   onDelete: (productId: string) => Promise<void>;
-  pagination?: {
-    count: number;
-    next: string | null;
-    previous: string | null;
-  };
-  currentPage: number;
-  onPageChange: (page: number) => void;
   onExportToExcel: () => void;
+  // 무한 스크롤 관련 props
+  fetchNextPage: () => void;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  infiniteScroll: {
+    totalLoaded: number;
+    totalFiltered: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    isLoadingMore: boolean;
+  };
 }
 
 // 정렬 가능한 헤더 컴포넌트
@@ -51,16 +55,30 @@ const SortableHeader = ({
   </th>
 );
 
+// 상태별 스타일 클래스를 반환하는 헬퍼 함수
+const getStatusStyle = (status: string): string => {
+  switch (status) {
+    case '품절':
+      return 'bg-red-100 text-red-800';
+    case '재고부족':
+      return 'bg-yellow-100 text-yellow-800';
+    default:
+      return 'bg-green-100 text-green-800';
+  }
+};
+
 const InventoryTable = ({
   inventories,
   onDelete,
-  pagination,
-  currentPage = 1,
-  onPageChange,
   onExportToExcel,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
+  infiniteScroll,
 }: InventoryTableProps) => {
   const navigate = useNavigate();
   const [data, setData] = useState<TableProduct[]>([]);
+  const [hasScrolled, setHasScrolled] = useState(false);
   const [sortConfig, setSortConfig] = useState<{
     key: keyof TableProduct;
     order: 'asc' | 'desc' | null;
@@ -68,8 +86,6 @@ const InventoryTable = ({
     key: 'product_id',
     order: null,
   });
-
-  const itemsPerPage = 10;
 
   useEffect(() => {
     if (!Array.isArray(inventories)) return;
@@ -104,6 +120,69 @@ const InventoryTable = ({
 
     setData(rows);
   }, [inventories]);
+
+  // 스크롤 기반 무한 스크롤 - 사용자가 실제 스크롤할 때만 작동
+  useEffect(() => {
+    const observerTarget = document.getElementById('infinite-scroll-trigger');
+    if (!observerTarget) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // 사용자가 실제로 스크롤한 후에만 트리거되도록 함
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage && hasScrolled) {
+          console.log('🔄 Intersection triggered - Loading next page');
+          fetchNextPage();
+        } else if (entries[0].isIntersecting && !hasScrolled) {
+          console.log('⏸️ Intersection detected but user has not scrolled yet');
+        }
+      },
+      {
+        // 요소가 살짝 보이기 시작할 때 트리거 (더 부드러운 로딩)
+        threshold: 0.1,
+        // 화면 아래 200px 전에 미리 로드 시작
+        rootMargin: '200px',
+      }
+    );
+
+    observer.observe(observerTarget);
+
+    // 컴포넌트 언마운트 시 Observer 정리
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, hasScrolled]);
+
+  // 스크롤 위로 가기 버튼 표시 여부 관리 + 스크롤 감지
+  useEffect(() => {
+    const mainContainer = document.querySelector('section.overflow-y-auto');
+    if (!mainContainer) return;
+
+    const handleScroll = () => {
+      // 스크롤이 시작되면 hasScrolled를 true로 설정
+      if (mainContainer.scrollTop > 0 && !hasScrolled) {
+        console.log('📜 User started scrolling - Enabling infinite scroll');
+        setHasScrolled(true);
+      }
+    };
+
+    handleScroll();
+    mainContainer.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      mainContainer.removeEventListener('scroll', handleScroll);
+    };
+  }, [hasScrolled]);
+
+  // 스크롤 위로 가기 함수
+  const scrollToTop = () => {
+    const mainContainer = document.querySelector('section.overflow-y-auto');
+    if (mainContainer) {
+      mainContainer.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   // 정렬 함수
   const handleSort = (key: keyof TableProduct) => {
@@ -141,7 +220,9 @@ const InventoryTable = ({
       <div className='mb-4 flex items-center justify-between'>
         <h2 className='flex items-center text-lg font-semibold'>상품별 재고 현황</h2>
         <div className='flex items-center space-x-3 text-gray-500'>
-          <span className='text-sm'>총 {pagination?.count ?? data.length}개 상품</span>
+          <span className='text-sm'>
+            총 {infiniteScroll.totalCount}개 상품 ({infiniteScroll.totalLoaded}개 로딩됨)
+          </span>
           <MdOutlineDownload
             className='cursor-pointer hover:text-gray-700'
             size={20}
@@ -234,13 +315,7 @@ const InventoryTable = ({
                 </td>
                 <td className='px-4 py-2'>
                   <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${
-                      product.status === '품절'
-                        ? 'bg-red-100 text-red-800'
-                        : product.status === '재고부족'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
-                    }`}>
+                    className={`rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${getStatusStyle(product.status)}`}>
                     {product.status}
                   </span>
                 </td>
@@ -266,14 +341,38 @@ const InventoryTable = ({
           </tbody>
         </table>
       </div>
-      {pagination && onPageChange && (
-        <Pagination
-          currentPage={currentPage}
-          totalItems={pagination.count}
-          itemsPerPage={itemsPerPage}
-          onPageChange={onPageChange}
-        />
-      )}
+      {/* 무한 스크롤 컨트롤 */}
+      <div className='mt-4 flex flex-col items-center gap-3'>
+        {isFetchingNextPage && (
+          <div className='flex items-center gap-2 text-sm text-gray-600'>
+            <div className='h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent'></div>
+            <span>더 많은 상품을 불러오는 중...</span>
+          </div>
+        )}
+
+        {/* 스크롤 기반 무한 로딩 - 더 보기 버튼 제거 */}
+
+        {!hasNextPage && infiniteScroll.totalCount > 0 && (
+          <p className='text-sm text-gray-500'>모든 상품을 불러왔습니다.</p>
+        )}
+
+        {/* Intersection Observer를 위한 감지 영역 - 테이블 하단에 위치 */}
+        {hasNextPage && (
+          <div
+            id='infinite-scroll-trigger'
+            className='flex h-20 w-full items-center justify-center text-sm text-gray-400'>
+            스크롤하여 더 많은 상품 보기...
+          </div>
+        )}
+      </div>
+
+      {/* 스크롤 위로 가기 버튼 - 디버깅용으로 항상 표시 */}
+      <button
+        onClick={scrollToTop}
+        className='fixed right-8 bottom-8 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
+        title='맨 위로 가기'>
+        <HiArrowUp className='h-5 w-5' />
+      </button>
     </div>
   );
 };

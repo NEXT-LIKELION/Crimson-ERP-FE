@@ -20,7 +20,7 @@ export const fetchInventories = (params?: FetchInventoriesParams) => {
 };
 
 export const fetchInventoriesForExport = (params?: InventoryFilterParams) => {
-  return api.get('/inventory/variants/export', { params });
+  return api.get('/inventory/variants/export/', { params });
 };
 export const updateInventoryItem = (productId: number, data: Partial<Product>) => {
   return api.put(`/inventory/${productId}/`, data);
@@ -40,7 +40,9 @@ export const updateInventoryVariant = (variantId: string, data: Partial<ProductV
     });
 };
 
-export const createInventoryVariant = async (itemPayload: Omit<ProductVariantCreate, 'category_name'>) => {
+export const createInventoryVariant = async (
+  itemPayload: Omit<ProductVariantCreate, 'category_name'>
+) => {
   const res = await api.post(`/inventory/variants/`, itemPayload);
   return res.data;
 };
@@ -89,7 +91,9 @@ export const checkProductNameExists = async (
     const res = await fetchProductOptions();
     const list: ProductOption[] = res.data || [];
     const target = (name || '').trim().toLowerCase();
-    const isDuplicate = list.some((p: ProductOption) => (p?.name || '').trim().toLowerCase() === target);
+    const isDuplicate = list.some(
+      (p: ProductOption) => (p?.name || '').trim().toLowerCase() === target
+    );
     return { isDuplicate };
   } catch (e) {
     console.error('상품명 중복 체크 실패:', e);
@@ -100,24 +104,14 @@ export const checkProductNameExists = async (
   }
 };
 
-// 병합용 전체 데이터 조회 (모든 페이지)
+// 병합용 전체 데이터 조회 (큰 page_size로 최소한의 요청)
 export const fetchAllInventoriesForMerge = async (): Promise<ProductVariant[]> => {
   try {
-    let allData: ProductVariant[] = [];
-    let page = 1;
-    let hasMoreData = true;
-
-    while (hasMoreData) {
-      const response = await fetchInventories({ page });
-      const pageData = response.data.results || [];
-      allData = [...allData, ...pageData];
-
-      // 다음 페이지가 있는지 확인
-      hasMoreData = response.data.next !== null;
-      page++;
-    }
-
-    return allData;
+    console.log('🚀 병합용 전체 데이터 로드 시작... (export endpoint)');
+    const response = await fetchInventoriesForExport();
+    const data: ProductVariant[] = response.data || [];
+    console.log(`✅ 병합용 데이터 로드 완료: ${data.length}개`);
+    return data;
   } catch (error) {
     console.error('전체 데이터 로드 실패:', error);
     throw error;
@@ -136,22 +130,33 @@ interface InventoryExportFilters {
   page?: number;
 }
 
-export const fetchFilteredInventoriesForExport = async (appliedFilters: InventoryExportFilters): Promise<ProductVariant[]> => {
+export const fetchFilteredInventoriesForExport = async (
+  appliedFilters: InventoryExportFilters
+): Promise<ProductVariant[]> => {
   try {
-    let allData: ProductVariant[] = [];
-    let page = 1;
-    let hasMoreData = true;
+    console.log('🚀 엑셀 익스포트용 데이터 한 번에 로드 시작...');
 
-    // 백엔드 필터 (상태 필터 제외)
+    // 백엔드 필터 (상태 필터와 페이지 관련 제외)
     const backendFilters = { ...appliedFilters };
     delete backendFilters.status;
     delete backendFilters.page;
 
-    // 모든 페이지에서 데이터 수집
+    // 필터링된 모든 데이터를 페이지별로 수집
+    let allData: ProductVariant[] = [];
+    let page = 1;
+    let hasMoreData = true;
+
     while (hasMoreData) {
-      const response = await fetchInventories({ ...backendFilters, page });
+      const params =
+        Object.keys(backendFilters).length > 0
+          ? { ...backendFilters, page, page_size: 100 }
+          : { page, page_size: 100 };
+
+      const response = await fetchInventories(params);
       const pageData = response.data.results || [];
       allData = [...allData, ...pageData];
+
+      console.log(`📄 Export Page ${page} 로드됨: ${pageData.length}개 (총 ${allData.length}개)`);
 
       hasMoreData = response.data.next !== null;
       page++;
@@ -206,6 +211,7 @@ export const fetchFilteredInventoriesForExport = async (appliedFilters: Inventor
       return true;
     });
 
+    console.log(`✅ 엑셀 익스포트용 데이터 로드 완료: ${filteredData.length}개`);
     return filteredData;
   } catch (error) {
     console.error('필터링된 데이터 로드 실패:', error);
@@ -247,6 +253,45 @@ export const fetchStockAdjustments = (params?: { page?: number; variant_code?: s
     });
 };
 
+// 스냅샷 목록 조회
+export const fetchInventorySnapshots = (params?: { page?: number }) => {
+  return api
+    .get('/inventory/snapshot', { params })
+    .then((response) => {
+      return response;
+    })
+    .catch((error) => {
+      console.error('fetchInventorySnapshots - error:', error);
+      throw error;
+    });
+};
+
+// 스냅샷 상세 조회
+export const fetchInventorySnapshot = (id: number) => {
+  return api
+    .get(`/inventory/snapshot/${id}/`)
+    .then((response) => {
+      return response;
+    })
+    .catch((error) => {
+      console.error('fetchInventorySnapshot - error:', error);
+      throw error;
+    });
+};
+
+// 재고 롤백
+export const rollbackToSnapshot = (snapshotId: number, reason?: string) => {
+  return api
+    .post(`/inventory/rollback/${snapshotId}/`, { reason })
+    .then((response) => {
+      return response;
+    })
+    .catch((error) => {
+      console.error('rollbackToSnapshot - error:', error);
+      throw error;
+    });
+};
+
 // 상품 코드 병합
 export const mergeVariants = async (payload: {
   target_variant_code: string;
@@ -263,5 +308,3 @@ export const mergeVariants = async (payload: {
       throw error;
     });
 };
-
-// duplicate removed
