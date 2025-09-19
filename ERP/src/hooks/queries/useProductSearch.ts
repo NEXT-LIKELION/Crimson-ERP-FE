@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { api } from '../../api/axios';
 import { ProductOption, ProductVariant } from '../../types/product';
 import { useMemo } from 'react';
@@ -16,7 +16,6 @@ interface ProductSearchPageData {
 }
 
 export const useProductSearch = (filters?: ProductSearchFilters) => {
-  const queryClient = useQueryClient();
 
   // API 파라미터 준비 (product_name은 그대로 유지)
   const apiFilters: Record<string, unknown> = filters ? { ...filters } : {};

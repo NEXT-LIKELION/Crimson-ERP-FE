@@ -22,11 +22,12 @@ import StockAdjustmentModal from '../../components/modal/StockAdjustmentModal';
 import StockHistoryModal from '../../components/modal/StockHistoryModal';
 import InventoryRollbackModal from '../../components/modal/InventoryRollbackModal';
 import InventoryTabs from '../../components/tabs/InventoryTabs';
-import { Product, ProductVariant } from '../../types/product';
+import { Product } from '../../types/product';
 import { useQueryClient } from '@tanstack/react-query';
 import { uploadInventoryExcel } from '../../api/upload';
 import { usePermissions } from '../../hooks/usePermissions';
 import * as XLSX from 'xlsx';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { useAdjustStock } from '../../hooks/queries/useStockAdjustment';
 
 const InventoryPage = () => {
@@ -79,6 +80,7 @@ const InventoryPage = () => {
     max_stock?: number;
     min_sales?: number;
     max_sales?: number;
+    channel?: string;
   }>({});
 
   // URL에서 필터 파라미터 초기화 (초기 로드 시에만)
@@ -519,11 +521,11 @@ const InventoryPage = () => {
   // 모든 탭에서 동일한 API 기반 데이터 사용
   const tabData = data ?? [];
 
-  if (isLoading) return <p>로딩 중...</p>;
   if (error) return <p>에러가 발생했습니다!</p>;
 
   return (
-    <div className='p-6'>
+    <div className="p-6 relative">
+      {isLoading && <LoadingSpinner overlay text="재고 데이터를 불러오는 중..." />}
       <div className='mb-4 flex items-center justify-between'>
         <h1 className='text-2xl font-bold'>재고 관리</h1>
         <div className='flex space-x-2'>
