@@ -16,7 +16,7 @@ interface Step1Data {
   first_name: string;  // 이름 추가
   email: string;       // 이메일 추가
   contact: string;     // 연락처 추가
-  gender?: 'MALE' | 'FEMALE';  // 성별 추가
+  gender: 'MALE' | 'FEMALE';  // 성별 필수
 }
 
 interface Step2Data {
@@ -48,7 +48,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
     first_name: '',  // 이름 추가
     email: '',       // 이메일 추가
     contact: '',     // 연락처 추가
-    gender: undefined,  // 성별 추가 (선택 사항)
+    gender: 'MALE',  // 성별 기본값: 남성
   });
 
   // 2단계 데이터 (HR 정보)
@@ -136,8 +136,8 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
 
   // 1단계 검증 (기본 계정 생성 정보)
   const validateStep1 = (): boolean => {
-    if (!step1Data.username || !step1Data.password || !step1Data.confirmPassword || 
-        !step1Data.first_name || !step1Data.email || !step1Data.contact) {
+    if (!step1Data.username || !step1Data.password || !step1Data.confirmPassword ||
+        !step1Data.first_name || !step1Data.email || !step1Data.contact || !step1Data.gender) {
       setErrorMessage('모든 필드를 입력해주세요.');
       return false;
     }
@@ -222,6 +222,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
         password: step1Data.password,
         first_name: step1Data.first_name,
         contact: step1Data.contact,
+        gender: step1Data.gender,
       };
       
       let response;
@@ -636,15 +637,14 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
               {/* 성별 필드 추가 */}
               <div>
                 <label htmlFor='gender' className='mb-2 block text-sm font-medium text-gray-700'>
-                  성별
+                  성별 <span className='text-red-500'>*</span>
                 </label>
                 <select
                   id='gender'
                   name='gender'
-                  value={step1Data.gender || ''}
+                  value={step1Data.gender}
                   onChange={handleStep1Change}
                   className='w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'>
-                  <option value=''>선택 안함</option>
                   <option value='MALE'>남성</option>
                   <option value='FEMALE'>여성</option>
                 </select>

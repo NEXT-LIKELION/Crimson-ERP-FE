@@ -35,9 +35,11 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
   const { data: employeesData, isLoading: employeesLoading } = useEmployees();
   const reviewVacationMutation = useReviewVacation();
 
-  // 직원별 고유 색상 생성
+  // 재직중인 직원별 고유 색상 생성
   const employeeColors = useMemo(() => {
     const employees = employeesData?.data || [];
+    // 재직중인 직원만 필터링
+    const activeEmployees = employees.filter((emp) => emp.is_active && emp.status?.toLowerCase() === 'approved');
     const colors = [
       'bg-blue-500',
       'bg-green-500',
@@ -57,7 +59,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
     ];
     const colorMap: Record<number, string> = {};
 
-    employees.forEach((employee, index) => {
+    activeEmployees.forEach((employee, index) => {
       colorMap[employee.id] = colors[index % colors.length];
     });
 
@@ -67,8 +69,21 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
   // 필터링된 휴가 데이터
   const filteredVacations = useMemo(() => {
     const vacations: Vacation[] = vacationsData?.data || [];
-    
+    const employees = employeesData?.data || [];
+
+    // 재직중인 직원 ID 목록 생성
+    const activeEmployeeIds = new Set(
+      employees
+        .filter((emp) => emp.is_active && emp.status?.toLowerCase() === 'approved')
+        .map((emp) => emp.id)
+    );
+
     const filtered = vacations.filter((vacation) => {
+      // 퇴사한 직원의 휴가는 제외
+      if (!activeEmployeeIds.has(vacation.employee)) {
+        return false;
+      }
+
       // 관리 패널이 아닌 경우 (캘린더 보기)에는 승인된 휴가만 표시
       if (!showManagementPanel) {
         // 캘린더에서는 승인된 휴가만 표시
@@ -76,8 +91,8 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
           return false;
         }
       } else {
-        // 관리 패널에서는 취소/거절된 휴가만 제외
-        if (vacation.status === 'CANCELLED' || vacation.status === 'REJECTED') {
+        // 관리 패널에서는 취소된 휴가만 제외 (거절된 휴가는 표시)
+        if (vacation.status === 'CANCELLED') {
           return false;
         }
       }
@@ -99,7 +114,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
     });
     
     return filtered;
-  }, [vacationsData?.data, selectedEmployeeIds, selectedLeaveType, selectedStatus, showManagementPanel, isAdmin, currentUser?.id]);
+  }, [vacationsData?.data, employeesData?.data, selectedEmployeeIds, selectedLeaveType, selectedStatus, showManagementPanel, isAdmin, currentUser?.id]);
 
   // 날짜별 휴가 그룹화
   const vacationsByDate = useMemo(() => {
@@ -177,12 +192,41 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
 
     try {
       await reviewVacationMutation.mutateAsync({ vacationId, status: newStatus });
-      const statusText = VACATION_STATUS_OPTIONS.find((opt) => opt.value === newStatus)?.label;
-      alert(`휴가 상태가 "${statusText}"로 변경되었습니다.`);
+
+      // 자연스러운 메시지로 변경
+      let message = '';
+      switch (newStatus) {
+        case 'APPROVED':
+          message = '휴가가 승인되었습니다.';
+          break;
+        case 'REJECTED':
+          message = '휴가가 거절되었습니다.';
+          break;
+        case 'CANCELLED':
+          message = '휴가가 취소되었습니다.';
+          break;
+        default:
+          const statusText = VACATION_STATUS_OPTIONS.find((opt) => opt.value === newStatus)?.label;
+          message = `휴가 상태가 "${statusText}"로 변경되었습니다.`;
+      }
+      alert(message);
     } catch (error: unknown) {
       console.error('휴가 상태 변경 실패:', error);
       alert('상태 변경에 실패했습니다.');
     }
+  };
+
+  // 휴가 일수 계산 (반차는 0.5일)
+  const calculateVacationDays = (vacation: Vacation): number => {
+    if (vacation.leave_type === 'HALF_DAY_AM' || vacation.leave_type === 'HALF_DAY_PM') {
+      return 0.5;
+    }
+
+    const startDate = new Date(vacation.start_date);
+    const endDate = new Date(vacation.end_date);
+    const timeDiff = endDate.getTime() - startDate.getTime();
+    const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+    return dayDiff;
   };
 
   // 상태 뱃지 색상 가져오기
@@ -374,6 +418,9 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                     <div className='text-sm text-gray-600'>
                       <strong>기간:</strong> {formatDate(vacation.start_date)}
                       {vacation.start_date !== vacation.end_date && <> ~ {formatDate(vacation.end_date)}</>}
+                      <span className='ml-2 text-blue-600 font-medium'>
+                        ({calculateVacationDays(vacation)}일)
+                      </span>
                     </div>
                     <div className='text-sm text-gray-600'>
                       <strong>사유:</strong> {vacation.reason}
@@ -570,7 +617,9 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                   )}
                 </label>
                 <div className='max-h-32 overflow-y-auto rounded-lg border border-gray-200 bg-white p-2'>
-                  {(employeesData?.data || []).map((employee: EmployeeList) => (
+                  {(employeesData?.data || [])
+                    .filter((emp) => emp.is_active && emp.status?.toLowerCase() === 'approved')
+                    .map((employee: EmployeeList) => (
                     <label key={employee.id} className='flex items-center space-x-2 py-1'>
                       <input
                         type='checkbox'

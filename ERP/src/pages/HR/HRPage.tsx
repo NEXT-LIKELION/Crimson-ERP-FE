@@ -120,7 +120,7 @@ const mapEmployeeData = (emp: EmployeeList): MappedEmployee => ({
   hire_date: emp.hire_date || '',
   annual_leave_days: 0, // 목록 조회에서는 제공되지 않음
   allowed_tabs: [], // 목록 조회에서는 제공되지 않음
-  remaining_leave_days: parseInt(emp.remaining_leave_days) || 0,
+  remaining_leave_days: parseFloat(emp.remaining_leave_days) || 0,
   vacation_days: [], // 목록 조회에서는 제공되지 않음
   vacation_pending_days: [], // 목록 조회에서는 제공되지 않음
   gender: emp.gender,

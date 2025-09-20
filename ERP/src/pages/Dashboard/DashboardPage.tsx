@@ -84,6 +84,19 @@ const DashboardPage = () => {
     return option?.label || leaveType;
   };
 
+  // 휴가 일수 계산 (반차는 0.5일)
+  const calculateVacationDays = (vacation: Vacation): number => {
+    if (vacation.leave_type === 'HALF_DAY_AM' || vacation.leave_type === 'HALF_DAY_PM') {
+      return 0.5;
+    }
+
+    const startDate = new Date(vacation.start_date);
+    const endDate = new Date(vacation.end_date);
+    const timeDiff = endDate.getTime() - startDate.getTime();
+    const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+    return dayDiff;
+  };
+
   // 월 네비게이션
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentDate);
@@ -312,6 +325,9 @@ const DashboardPage = () => {
                     <p className='text-sm font-medium text-gray-900'>휴가 기간</p>
                     <p className='text-sm text-gray-600'>
                       {selectedVacation.start_date} ~ {selectedVacation.end_date}
+                      <span className='ml-2 text-blue-600 font-medium'>
+                        ({calculateVacationDays(selectedVacation)}일)
+                      </span>
                     </p>
                   </div>
                 </div>

@@ -57,7 +57,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
         annual_leave_days: apiData.annual_leave_days,
         allowed_tabs: apiData.allowed_tabs || [], // API 데이터 우선 사용
         hire_date: apiData.hire_date || '',
-        remaining_leave_days: parseInt(apiData.remaining_leave_days) || 0,
+        remaining_leave_days: parseFloat(apiData.remaining_leave_days) || 0,
         vacation_days: typeof apiData.vacation_days === 'string' ? [] as VacationDay[] : apiData.vacation_days as VacationDay[],
         vacation_pending_days: typeof apiData.vacation_pending_days === 'string' ? [] as VacationDay[] : apiData.vacation_pending_days as VacationDay[],
         gender: apiData.gender && ['MALE', 'FEMALE'].includes(apiData.gender)
@@ -313,7 +313,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                 <span className='text-gray-900'>
                   {currentEmployee.annual_leave_days}일 (남은 연차:{' '}
                   {typeof currentEmployee.remaining_leave_days === 'string'
-                    ? parseInt(currentEmployee.remaining_leave_days) || 0
+                    ? parseFloat(currentEmployee.remaining_leave_days) || 0
                     : currentEmployee.remaining_leave_days}
                   일)
                 </span>

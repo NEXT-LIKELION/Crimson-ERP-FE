@@ -60,6 +60,19 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
     return option?.label || leaveType;
   };
 
+  // 휴가 일수 계산 (반차는 0.5일)
+  const calculateVacationDays = (vacation: Vacation): number => {
+    if (vacation.leave_type === 'HALF_DAY_AM' || vacation.leave_type === 'HALF_DAY_PM') {
+      return 0.5;
+    }
+
+    const startDate = new Date(vacation.start_date);
+    const endDate = new Date(vacation.end_date);
+    const timeDiff = endDate.getTime() - startDate.getTime();
+    const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+    return dayDiff;
+  };
+
   // 상태 뱃지 색상 가져오기
   const getStatusBadgeTheme = (
     status: VacationStatus
@@ -91,8 +104,23 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
       const result = await reviewVacationMutation.mutateAsync({ vacationId, status: newStatus });
       console.log('휴가 상태 변경 성공:', result);
 
-      const statusText = VACATION_STATUS_OPTIONS.find((opt) => opt.value === newStatus)?.label;
-      alert(`휴가 상태가 "${statusText}"로 변경되었습니다.`);
+      // 자연스러운 메시지로 변경
+      let message = '';
+      switch (newStatus) {
+        case 'APPROVED':
+          message = '휴가가 승인되었습니다.';
+          break;
+        case 'REJECTED':
+          message = '휴가가 거절되었습니다.';
+          break;
+        case 'CANCELLED':
+          message = '휴가가 취소되었습니다.';
+          break;
+        default:
+          const statusText = VACATION_STATUS_OPTIONS.find((opt) => opt.value === newStatus)?.label;
+          message = `휴가 상태가 "${statusText}"로 변경되었습니다.`;
+      }
+      alert(message);
     } catch (error: unknown) {
       console.error('휴가 상태 변경 실패:', error);
       const apiError = error as ApiError;
@@ -166,6 +194,9 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
             <span>
               {formatDate(vacation.start_date)}
               {vacation.start_date !== vacation.end_date && <> ~ {formatDate(vacation.end_date)}</>}
+              <span className='ml-2 text-blue-600 font-medium'>
+                ({calculateVacationDays(vacation)}일)
+              </span>
             </span>
           </div>
 
