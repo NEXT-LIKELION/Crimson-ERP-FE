@@ -14,9 +14,11 @@ const DashboardPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedVacation, setSelectedVacation] = useState<Vacation | null>(null);
 
-  // 직원별 고유 색상 생성
+  // 재직중인 직원별 고유 색상 생성
   const employeeColors = useMemo(() => {
     const employees = employeesData?.data || [];
+    // 재직중인 직원만 필터링
+    const activeEmployees = employees.filter((emp: EmployeeList) => emp.is_active && emp.status?.toLowerCase() === 'approved');
     const colors = [
       'bg-blue-500',
       'bg-green-500',
@@ -29,20 +31,28 @@ const DashboardPage = () => {
       'bg-orange-500',
     ];
     const colorMap: Record<number, string> = {};
-    employees.forEach((employee: EmployeeList, index: number) => {
+    activeEmployees.forEach((employee: EmployeeList, index: number) => {
       colorMap[employee.id] = colors[index % colors.length];
     });
     return colorMap;
   }, [employeesData?.data]);
 
-  // 날짜별 휴가 그룹화 (취소, 대기중 제외)
+  // 날짜별 휴가 그룹화 (취소, 대기중, 퇴사자 휴가 제외)
   const vacationsByDate = useMemo(() => {
     const grouped: Record<string, Vacation[]> = {};
     const vacations = vacationsData?.data || [];
+    const employees = employeesData?.data || [];
 
-    // 승인된 휴가만 필터링
+    // 재직중인 직원 ID 목록 생성
+    const activeEmployeeIds = new Set(
+      employees
+        .filter((emp: EmployeeList) => emp.is_active && emp.status?.toLowerCase() === 'approved')
+        .map((emp: EmployeeList) => emp.id)
+    );
+
+    // 승인된 휴가 중 재직중인 직원의 휴가만 필터링
     const approvedVacations = vacations.filter(
-      (vacation) => vacation.status === 'APPROVED'
+      (vacation) => vacation.status === 'APPROVED' && activeEmployeeIds.has(vacation.employee)
     );
 
     approvedVacations.forEach((vacation) => {
@@ -59,7 +69,7 @@ const DashboardPage = () => {
     });
 
     return grouped;
-  }, [vacationsData?.data]);
+  }, [vacationsData?.data, employeesData?.data]);
 
   // 직원 이름 가져오기
   const getEmployeeName = (employeeId: number): string => {
@@ -126,19 +136,26 @@ const DashboardPage = () => {
           </div>
           <div className='space-y-1'>
             {dayVacations.map((vacation, index) => {
-              const employeeColor = employeeColors[vacation.employee] || 'bg-gray-500';
+              // 휴가 색상 확인 (재직중인 직원만 색상이 할당됨)
+              const employeeColor = employeeColors[vacation.employee];
+              if (!employeeColor) {
+                // 퇴사한 직원의 휴가는 표시하지 않음
+                return null;
+              }
+
               const leaveTypeLabel = getLeaveTypeLabel(vacation.leave_type);
+              const employeeName = getEmployeeName(vacation.employee);
 
               return (
                 <div
                   key={`${vacation.id}-${index}`}
                   className={`rounded px-1 py-0.5 text-xs text-white ${employeeColor} cursor-pointer hover:opacity-80 transition-opacity`}
-                  title={`${getEmployeeName(vacation.employee)} - ${leaveTypeLabel}`}
+                  title={`${employeeName} - ${leaveTypeLabel}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedVacation(vacation);
                   }}>
-                  <span className='truncate block'>{getEmployeeName(vacation.employee)}</span>
+                  <span className='truncate block'>{employeeName}</span>
                 </div>
               );
             })}
