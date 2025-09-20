@@ -20,28 +20,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 비밀번호 유효성 검사
-  const validatePassword = (pwd: string): string[] => {
-    const errors: string[] = [];
-
-    if (pwd.length < 8) {
-      errors.push('비밀번호는 최소 8자 이상이어야 합니다.');
-    }
-    if (!/[A-Z]/.test(pwd)) {
-      errors.push('대문자를 포함해야 합니다.');
-    }
-    if (!/[a-z]/.test(pwd)) {
-      errors.push('소문자를 포함해야 합니다.');
-    }
-    if (!/[0-9]/.test(pwd)) {
-      errors.push('숫자를 포함해야 합니다.');
-    }
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) {
-      errors.push('특수문자를 포함해야 합니다.');
-    }
-
-    return errors;
-  };
+  // 비밀번호 유효성 검사 제거
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,12 +42,6 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       return;
     }
 
-    // 비밀번호 강도 검증
-    const passwordErrors = validatePassword(password);
-    if (passwordErrors.length > 0) {
-      alert(`비밀번호 조건을 확인해주세요:\n${passwordErrors.join('\n')}`);
-      return;
-    }
 
     try {
       setIsLoading(true);
@@ -90,9 +63,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     }
   };
 
-  const passwordErrors = password ? validatePassword(password) : [];
-  const isPasswordValid = passwordErrors.length === 0 && password.length > 0;
-  const isFormValid = isPasswordValid && password === confirmPassword;
+  const isFormValid = password.length > 0 && password === confirmPassword;
 
   return (
     <div
@@ -137,15 +108,6 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                 {showPassword ? <FiEyeOff className='h-4 w-4' /> : <FiEye className='h-4 w-4' />}
               </button>
             </div>
-            {password && passwordErrors.length > 0 && (
-              <div className='mt-2 text-xs text-red-600'>
-                <ul className='list-disc list-inside space-y-1'>
-                  {passwordErrors.map((error, index) => (
-                    <li key={index}>{error}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
 
           {/* 비밀번호 확인 */}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { HiArchiveBox } from 'react-icons/hi2';
 import { IoClipboard } from 'react-icons/io5';
 import { IoPeopleSharp } from 'react-icons/io5';
@@ -108,7 +108,7 @@ const DashboardPage = () => {
 
     // 요일 헤더
     const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-    weekdays.forEach((day, index) => {
+    weekdays.forEach((day) => {
       days.push(
         <div key={`header-${day}`} className='bg-gray-100 p-2 text-center text-xs font-medium text-gray-600'>
           {day}
