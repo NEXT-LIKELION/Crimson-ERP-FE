@@ -436,8 +436,8 @@ const HRPage: React.FC = () => {
                 <FiEye className='mr-1 h-3 w-3' />
                 상세보기
               </button>
-              {/* 비밀번호 변경 버튼: 본인 또는 관리자만 볼 수 있음 */}
-              {(isCurrentUser || isAdmin) && employee.status === 'active' && (
+              {/* 비밀번호 변경 버튼: 본인만 볼 수 있음 */}
+              {isCurrentUser && employee.status === 'active' && (
                 <button
                   className='flex items-center rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100'
                   onClick={handleChangePasswordClick}>
@@ -579,19 +579,22 @@ const HRPage: React.FC = () => {
             <div className='rounded-xl border border-gray-200 bg-white p-6 shadow-sm'>
               <div className='mb-4 flex items-center justify-between'>
                 <h2 className='text-lg font-semibold text-gray-900'>개인 정보</h2>
-                <button
-                  onClick={() => {
-                    if (currentEmployeeData) {
-                      setChangePasswordEmployee(currentEmployeeData);
-                      setShowChangePasswordModal(true);
-                    } else {
-                      alert('직원 정보를 불러올 수 없습니다. 페이지를 새로고침해주세요.');
-                    }
-                  }}
-                  className='flex items-center rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 shadow-sm transition-all duration-200 hover:border-blue-300 hover:bg-blue-100'>
-                  <FiLock className='mr-2 h-4 w-4' />
-                  비밀번호 변경
-                </button>
+                {/* 대표 계정이 아닌 경우만 비밀번호 변경 버튼 표시 */}
+                {employee.role !== 'MANAGER' && (
+                  <button
+                    onClick={() => {
+                      if (currentEmployeeData) {
+                        setChangePasswordEmployee(currentEmployeeData);
+                        setShowChangePasswordModal(true);
+                      } else {
+                        alert('직원 정보를 불러올 수 없습니다. 페이지를 새로고침해주세요.');
+                      }
+                    }}
+                    className='flex items-center rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 shadow-sm transition-all duration-200 hover:border-blue-300 hover:bg-blue-100'>
+                    <FiLock className='mr-2 h-4 w-4' />
+                    비밀번호 변경
+                  </button>
+                )}
               </div>
 
               <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
