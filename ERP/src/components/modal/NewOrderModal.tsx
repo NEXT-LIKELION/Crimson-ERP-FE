@@ -237,7 +237,6 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
               await addSupplierVariantMapping(supplier, {
                 variant_code,
                 cost_price: item.unit_price,
-                lead_time_days: 3,
                 is_primary: false,
               });
             } catch (error) {

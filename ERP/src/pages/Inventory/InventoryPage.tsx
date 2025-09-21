@@ -41,7 +41,10 @@ const InventoryPage = () => {
   const { data: snapshotsData } = useInventorySnapshots({ page: 1 });
   const latestSnapshot = snapshotsData?.results?.[0];
   const lastUpdateDate = latestSnapshot?.created_at
-    ? format(new Date(latestSnapshot.created_at), 'yyyy-MM-dd', { locale: ko })
+    ? (() => {
+        const date = new Date(latestSnapshot.created_at);
+        return isNaN(date.getTime()) ? null : format(date, 'yyyy-MM-dd', { locale: ko });
+      })()
     : null;
   const [searchParams, setSearchParams] = useSearchParams();
   const [isAddModalOpen, setAddModalOpen] = useState(false);
