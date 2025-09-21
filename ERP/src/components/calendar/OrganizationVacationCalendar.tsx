@@ -205,9 +205,10 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
         case 'CANCELLED':
           message = '휴가가 취소되었습니다.';
           break;
-        default:
+        default: {
           const statusText = VACATION_STATUS_OPTIONS.find((opt) => opt.value === newStatus)?.label;
           message = `휴가 상태가 "${statusText}"로 변경되었습니다.`;
+        }
       }
       alert(message);
     } catch (error: unknown) {
