@@ -230,29 +230,23 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       // 발주 생성 성공 후 자동으로 상품 매핑 추가
       try {
         const itemsToMap = items.filter((item) => extractVariantCode(item, variantsByProduct) !== '');
-        console.log(`매핑할 상품 수: ${itemsToMap.length}`, itemsToMap);
 
         const mappingPromises = itemsToMap.map(async (item) => {
             const variant_code = extractVariantCode(item, variantsByProduct);
-            console.log(`매핑 시도: 공급업체 ${supplier}, 상품코드 ${variant_code}`);
             try {
-              const result = await addSupplierVariantMapping(supplier, {
+              await addSupplierVariantMapping(supplier, {
                 variant_code,
                 cost_price: item.unit_price,
                 lead_time_days: 3,
                 is_primary: false,
               });
-              console.log(`매핑 성공: ${variant_code}`, result.data);
-              return { success: true, variant_code };
             } catch (error) {
               // 이미 매핑된 경우는 무시 (409 에러 등)
               console.log(`매핑 건너뜀 (이미 존재하거나 오류): ${variant_code}`, error);
-              return { success: false, variant_code, error };
             }
           });
 
         await Promise.allSettled(mappingPromises);
-        console.log('상품 매핑 자동 추가 완료');
 
         // 공급업체 캐시 무효화 (매핑 업데이트 반영)
         queryClient.invalidateQueries({ queryKey: ['suppliers'] });

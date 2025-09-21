@@ -514,7 +514,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     try {
       const response = await axios.patch(`/orders/${orderDetail.id}/`, { status: newStatus });
       const { order, stock_changes } = response.data;
-      console.log('서버에서 내려온 order.status:', order.status);
       setOrderDetail(order); // 상세정보 갱신
 
       // React Query 캐시 무효화
