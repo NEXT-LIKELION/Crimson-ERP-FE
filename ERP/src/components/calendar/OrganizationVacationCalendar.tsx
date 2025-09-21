@@ -22,7 +22,7 @@ type ViewMode = 'monthly' | 'yearly';
 const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> = ({ onClose }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
-  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<number[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | ''>('');
   const [selectedLeaveType, setSelectedLeaveType] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<VacationStatus | ''>('');
   const [showManagementPanel, setShowManagementPanel] = useState(false);
@@ -98,7 +98,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
       }
 
       const employeeMatch =
-        selectedEmployeeIds.length === 0 || selectedEmployeeIds.includes(vacation.employee);
+        selectedEmployeeId === '' || vacation.employee === selectedEmployeeId;
       const leaveTypeMatch = selectedLeaveType === '' || vacation.leave_type === selectedLeaveType;
       const statusMatch = selectedStatus === '' || vacation.status === selectedStatus;
 
@@ -114,7 +114,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
     });
     
     return filtered;
-  }, [vacationsData?.data, employeesData?.data, selectedEmployeeIds, selectedLeaveType, selectedStatus, showManagementPanel, isAdmin, currentUser?.id]);
+  }, [vacationsData?.data, employeesData?.data, selectedEmployeeId, selectedLeaveType, selectedStatus, showManagementPanel, isAdmin, currentUser?.id]);
 
   // 날짜별 휴가 그룹화
   const vacationsByDate = useMemo(() => {
@@ -140,6 +140,18 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
   const getLeaveTypeLabel = (leaveType: string): string => {
     const option = LEAVE_TYPE_OPTIONS.find((opt) => opt.value === leaveType);
     return option?.label || leaveType;
+  };
+
+  // 근무/휴가 타입에 따른 스타일 결정
+  const getVacationTypeStyle = (leaveType: string) => {
+    if (leaveType === 'WORK') {
+      return {
+        className: 'border-2 border-orange-400 bg-orange-50 text-orange-800',
+      };
+    }
+    return {
+      className: '',
+    };
   };
 
   // 직원 이름 가져오기
@@ -176,12 +188,6 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
     setCurrentDate(newDate);
   };
 
-  // 직원 선택 토글
-  const toggleEmployeeSelection = (employeeId: number) => {
-    setSelectedEmployeeIds((prev) =>
-      prev.includes(employeeId) ? prev.filter((id) => id !== employeeId) : [...prev, employeeId]
-    );
-  };
 
   // 휴가 상태 변경
   const handleStatusChange = async (vacationId: number, newStatus: VacationStatus) => {
@@ -292,13 +298,24 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
             {dayVacations.map((vacation, index) => {
               const employeeColor = employeeColors[vacation.employee];
               const leaveTypeLabel = getLeaveTypeLabel(vacation.leave_type);
+              const typeStyle = getVacationTypeStyle(vacation.leave_type);
+              const isWork = vacation.leave_type === 'WORK';
+
               return (
                 <div
                   key={index}
-                  className={`rounded px-2 py-1 text-xs text-white ${employeeColor} flex items-center justify-between`}
-                  title={`${getEmployeeName(vacation.employee)} - ${leaveTypeLabel}`}>
-                  <span className='mr-1 flex-1 truncate'>{getEmployeeName(vacation.employee)}</span>
-                  <span className='text-xs whitespace-nowrap opacity-75'>{leaveTypeLabel}</span>
+                  className={`rounded px-2 py-1 text-xs flex items-center justify-between ${
+                    isWork
+                      ? `${typeStyle.className}`
+                      : `text-white ${employeeColor}`
+                  }`}
+                  title={`${getEmployeeName(vacation.employee)} - ${leaveTypeLabel}${isWork ? ' (근무)' : ''}`}>
+                  <span className='mr-1 flex-1 truncate'>
+                    {getEmployeeName(vacation.employee)}
+                  </span>
+                  <span className={`text-xs whitespace-nowrap ${isWork ? 'opacity-90' : 'opacity-75'}`}>
+                    {leaveTypeLabel}
+                  </span>
                 </div>
               );
             })}
@@ -345,9 +362,11 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
             <div className='space-y-1'>
               {monthVacations.slice(0, 5).map((vacation, index) => {
                 const employeeColor = employeeColors[vacation.employee];
+                const isWork = vacation.leave_type === 'WORK';
+
                 return (
                   <div key={index} className='flex items-center space-x-2'>
-                    <div className={`h-3 w-3 rounded ${employeeColor}`}></div>
+                    <div className={`h-3 w-3 rounded ${isWork ? 'border-2 border-orange-400 bg-orange-100' : employeeColor}`}></div>
                     <span className='truncate text-xs text-gray-700'>
                       {getEmployeeName(vacation.employee)} -{' '}
                       {getLeaveTypeLabel(vacation.leave_type)}
@@ -617,23 +636,20 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                     <span className='ml-1 text-xs text-gray-500'>(캘린더 뷰 전용)</span>
                   )}
                 </label>
-                <div className='max-h-32 overflow-y-auto rounded-lg border border-gray-200 bg-white p-2'>
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(Number(e.target.value) || '')}
+                  disabled={!isAdmin && showManagementPanel}
+                  className='w-full rounded-lg border border-gray-200 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none'>
+                  <option value=''>전체 직원</option>
                   {(employeesData?.data || [])
                     .filter((emp) => emp.is_active && emp.status?.toLowerCase() === 'approved')
                     .map((employee: EmployeeList) => (
-                    <label key={employee.id} className='flex items-center space-x-2 py-1'>
-                      <input
-                        type='checkbox'
-                        checked={selectedEmployeeIds.includes(employee.id)}
-                        onChange={() => toggleEmployeeSelection(employee.id)}
-                        className='rounded border-gray-300'
-                        disabled={!isAdmin && showManagementPanel}
-                      />
-                      <div className={`h-3 w-3 rounded ${employeeColors[employee.id]}`}></div>
-                      <span className='text-sm text-gray-700'>{employee.first_name}</span>
-                    </label>
-                  ))}
-                </div>
+                      <option key={employee.id} value={employee.id}>
+                        {employee.first_name}
+                      </option>
+                    ))}
+                </select>
               </div>
             )}
 
@@ -673,10 +689,11 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
           </div>
         </div>
 
+
         {/* 캘린더 콘텐츠 */}
         <div className='flex-1 overflow-y-auto p-6'>
-          {showManagementPanel 
-            ? renderManagementPanel() 
+          {showManagementPanel
+            ? renderManagementPanel()
             : (viewMode === 'monthly' ? renderMonthlyCalendar() : renderYearlyView())
           }
         </div>

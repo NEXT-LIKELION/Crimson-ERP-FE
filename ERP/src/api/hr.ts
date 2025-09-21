@@ -178,7 +178,7 @@ export type AllowedTab = (typeof ALLOWED_TABS_OPTIONS)[number]['value'];
 // ===== 휴가 관련 타입 정의 =====
 
 // 휴가 유형
-export type LeaveType = 'VACATION' | 'HALF_DAY_AM' | 'HALF_DAY_PM' | 'SICK' | 'OTHER';
+export type LeaveType = 'VACATION' | 'HALF_DAY_AM' | 'HALF_DAY_PM' | 'SICK' | 'OTHER' | 'WORK';
 
 // 휴가 상태
 export type VacationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
@@ -217,6 +217,7 @@ export const LEAVE_TYPE_OPTIONS = [
   { value: 'HALF_DAY_PM' as const, label: '오후 반차' },
   { value: 'SICK' as const, label: '병가' },
   { value: 'OTHER' as const, label: '기타' },
+  { value: 'WORK' as const, label: '근무' },
 ];
 
 // 휴가 상태 옵션

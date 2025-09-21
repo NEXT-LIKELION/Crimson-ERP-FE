@@ -143,7 +143,7 @@ const DashboardPage = () => {
       days.push(
         <div
           key={date}
-          className={`min-h-20 border-b border-r border-gray-200 p-1 ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
+          className={`min-h-24 border-b border-r border-gray-200 p-1 ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
           <div className={`mb-1 text-xs font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
             {date}
           </div>
@@ -159,16 +159,26 @@ const DashboardPage = () => {
               const leaveTypeLabel = getLeaveTypeLabel(vacation.leave_type);
               const employeeName = getEmployeeName(vacation.employee);
 
+              // 근무 타입인지 확인
+              const isWork = vacation.leave_type === 'WORK';
+
               return (
                 <div
                   key={`${vacation.id}-${index}`}
-                  className={`rounded px-1 py-0.5 text-xs text-white ${employeeColor} cursor-pointer hover:opacity-80 transition-opacity`}
-                  title={`${employeeName} - ${leaveTypeLabel}`}
+                  className={`rounded px-1 py-0.5 text-xs cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-between ${
+                    isWork
+                      ? 'border-2 border-orange-400 bg-orange-50 text-orange-800'
+                      : `text-white ${employeeColor}`
+                  }`}
+                  title={`${employeeName} - ${leaveTypeLabel}${isWork ? ' (근무)' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedVacation(vacation);
                   }}>
-                  <span className='truncate block'>{employeeName}</span>
+                  <span className='truncate flex-1'>{employeeName}</span>
+                  <span className={`text-xs whitespace-nowrap ml-1 ${isWork ? 'opacity-90' : 'opacity-75'}`}>
+                    {leaveTypeLabel}
+                  </span>
                 </div>
               );
             })}

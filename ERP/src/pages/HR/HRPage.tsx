@@ -8,6 +8,7 @@ import {
   FiEye,
   FiPlusCircle,
   FiLock,
+  FiClock,
 } from 'react-icons/fi';
 import StatusBadge from '../../components/common/StatusBadge';
 import EmployeeDetailsModal from '../../components/modal/EmployeeDetailsModal';
@@ -182,6 +183,7 @@ const HRPage: React.FC = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showEmployeeRegistrationModal, setShowEmployeeRegistrationModal] = useState(false);
   const [showVacationRequestModal, setShowVacationRequestModal] = useState(false);
+  const [showWorkAssignmentModal, setShowWorkAssignmentModal] = useState(false);
   const [showOrganizationVacationCalendar, setShowOrganizationVacationCalendar] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [changePasswordEmployee, setChangePasswordEmployee] = useState<MappedEmployee | null>(null);
@@ -563,6 +565,16 @@ const HRPage: React.FC = () => {
                   휴가신청
                 </button>
 
+                {/* 근무 등록 버튼 (관리자만) */}
+                {isAdmin && (
+                  <button
+                    onClick={() => setShowWorkAssignmentModal(true)}
+                    className='flex items-center rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-700'>
+                    <FiClock className='mr-2 h-4 w-4' />
+                    근무등록
+                  </button>
+                )}
+
                 {/* 내 휴가 보기 버튼 */}
                 <button
                   onClick={() => setShowOrganizationVacationCalendar(true)}
@@ -771,6 +783,18 @@ const HRPage: React.FC = () => {
           />
         )}
 
+        {/* 근무 등록 모달 (마이페이지용) */}
+        {showWorkAssignmentModal && isAdmin && (
+          <VacationRequestModal
+            initialMode="work"
+            onClose={() => setShowWorkAssignmentModal(false)}
+            onSuccess={() => {
+              setShowWorkAssignmentModal(false);
+              setShowOrganizationVacationCalendar(true);
+            }}
+          />
+        )}
+
         {/* 개인 휴가 캘린더 모달 */}
         {showOrganizationVacationCalendar && (
           <OrganizationVacationCalendar onClose={() => setShowOrganizationVacationCalendar(false)} />
@@ -837,6 +861,16 @@ const HRPage: React.FC = () => {
                   휴가신청
                 </button>
 
+                {/* 근무 등록 버튼 (관리자만) */}
+                {isAdmin && (
+                  <button
+                    onClick={() => setShowWorkAssignmentModal(true)}
+                    className='flex items-center rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-700'>
+                    <FiClock className='mr-2 h-4 w-4' />
+                    근무등록
+                  </button>
+                )}
+
                 {/* 휴가 관리/조직 캘린더 통합 버튼 */}
                 <button
                   onClick={() => setShowOrganizationVacationCalendar(true)}
@@ -902,6 +936,19 @@ const HRPage: React.FC = () => {
           onSuccess={() => {
             setShowVacationRequestModal(false);
             // 휴가 신청 성공 시 휴가 캘린더 열기
+            setShowOrganizationVacationCalendar(true);
+          }}
+        />
+      )}
+
+      {/* 근무 등록 모달 (관리자용) */}
+      {showWorkAssignmentModal && isAdmin && (
+        <VacationRequestModal
+          initialMode="work"
+          onClose={() => setShowWorkAssignmentModal(false)}
+          onSuccess={() => {
+            setShowWorkAssignmentModal(false);
+            // 근무 등록 성공 시 휴가 캘린더 열기
             setShowOrganizationVacationCalendar(true);
           }}
         />
