@@ -190,14 +190,18 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
             {/* 이름 */}
             <div>
               <label className='mb-1 block text-sm font-medium text-gray-700'>이름</label>
-              <div className='flex items-center justify-between'>
+              {isEditing && isAdmin ? (
+                <input
+                  type='text'
+                  name='name'
+                  value={editedEmployee.name}
+                  onChange={handleChange}
+                  className='w-full rounded-md border border-gray-300 px-3 py-2 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'
+                  placeholder='이름을 입력하세요'
+                />
+              ) : (
                 <span className='text-gray-900'>{currentEmployee.name}</span>
-                {isEditing && (
-                  <span className='rounded bg-gray-100 px-2 py-1 text-xs text-gray-500'>
-                    수정 불가
-                  </span>
-                )}
-              </div>
+              )}
             </div>
 
             {/* 직급 */}
