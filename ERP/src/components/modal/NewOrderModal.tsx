@@ -9,7 +9,7 @@ import AddSupplierModal from './AddSupplierModal';
 import ProductSearchInput from '../input/ProductSearchInput';
 import { Order } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
-import { fetchSuppliers, createSupplier } from '../../api/supplier';
+import { fetchSuppliers, createSupplier, addSupplierVariantMapping } from '../../api/supplier';
 import {
   fetchProductOptions,
   fetchVariantDetail,
@@ -17,6 +17,7 @@ import {
 } from '../../api/inventory';
 import { createOrder } from '../../api/orders';
 import { useEmployees } from '../../hooks/queries/useEmployees';
+import { useQueryClient } from '@tanstack/react-query';
 import { Supplier, ProductOption } from '../../types/product';
 import {
   calculateTotalAmount,
@@ -43,6 +44,7 @@ interface OrderItemPayload {
 }
 
 const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const queryClient = useQueryClient();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [supplier, setSupplier] = useState<number>(0);
@@ -224,6 +226,42 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
           .filter((item) => item.variant_code !== ''),
       };
       const res = await createOrder(payload);
+
+      // 발주 생성 성공 후 자동으로 상품 매핑 추가
+      try {
+        const itemsToMap = items.filter((item) => extractVariantCode(item, variantsByProduct) !== '');
+        console.log(`매핑할 상품 수: ${itemsToMap.length}`, itemsToMap);
+
+        const mappingPromises = itemsToMap.map(async (item) => {
+            const variant_code = extractVariantCode(item, variantsByProduct);
+            console.log(`매핑 시도: 공급업체 ${supplier}, 상품코드 ${variant_code}`);
+            try {
+              const result = await addSupplierVariantMapping(supplier, {
+                variant_code,
+                cost_price: item.unit_price,
+                lead_time_days: 3,
+                is_primary: false,
+              });
+              console.log(`매핑 성공: ${variant_code}`, result.data);
+              return { success: true, variant_code };
+            } catch (error) {
+              // 이미 매핑된 경우는 무시 (409 에러 등)
+              console.log(`매핑 건너뜀 (이미 존재하거나 오류): ${variant_code}`, error);
+              return { success: false, variant_code, error };
+            }
+          });
+
+        await Promise.allSettled(mappingPromises);
+        console.log('상품 매핑 자동 추가 완료');
+
+        // 공급업체 캐시 무효화 (매핑 업데이트 반영)
+        queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+        queryClient.invalidateQueries({ queryKey: ['supplier', supplier] });
+      } catch (error) {
+        console.error('상품 매핑 자동 추가 중 오류:', error);
+        // 매핑 오류는 발주 성공에 영향을 주지 않음
+      }
+
       alert('발주가 성공적으로 신청되었습니다.');
       if (onSuccess) onSuccess(res.data);
       onClose();
@@ -363,6 +401,11 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   // 신상품 추가 성공 핸들러
   const handleProductAdded = async () => {
     try {
+      // React Query 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['productOptions'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+
       // 상품 목록 다시 불러오기
       const res = await fetchProductOptions();
       const productData = Array.isArray(res.data) ? res.data : [];

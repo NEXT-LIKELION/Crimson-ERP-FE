@@ -23,22 +23,33 @@ import StockHistoryModal from '../../components/modal/StockHistoryModal';
 import InventoryRollbackModal from '../../components/modal/InventoryRollbackModal';
 import InventoryTabs from '../../components/tabs/InventoryTabs';
 import { Product } from '../../types/product';
+import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { useQueryClient } from '@tanstack/react-query';
 import { uploadInventoryExcel } from '../../api/upload';
 import { usePermissions } from '../../hooks/usePermissions';
 import * as XLSX from 'xlsx';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { useAdjustStock } from '../../hooks/queries/useStockAdjustment';
+import { useInventorySnapshots } from '../../hooks/queries/useInventorySnapshots';
 
 const InventoryPage = () => {
   const queryClient = useQueryClient();
   const permissions = usePermissions();
+
+  // POS 마지막 업데이트 날짜 조회
+  const { data: snapshotsData } = useInventorySnapshots({ page: 1 });
+  const latestSnapshot = snapshotsData?.results?.[0];
+  const lastUpdateDate = latestSnapshot?.created_at
+    ? format(new Date(latestSnapshot.created_at), 'yyyy-MM-dd', { locale: ko })
+    : null;
   const [searchParams, setSearchParams] = useSearchParams();
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isMergeModalOpen, setMergeModalOpen] = useState(false);
   const [isStockAdjustModalOpen, setStockAdjustModalOpen] = useState(false);
   const [isStockHistoryModalOpen, setStockHistoryModalOpen] = useState(false);
   const [isRollbackModalOpen, setRollbackModalOpen] = useState(false);
+  const [isPOSUploading, setIsPOSUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'offline' | 'online'>('all');
 
   const handleTabChange = (tab: 'all' | 'offline' | 'online') => {
@@ -50,8 +61,8 @@ const InventoryPage = () => {
       // 전체 탭이면 채널 필터 제거
       delete newFilters.channel;
     } else {
-      // TODO: 백엔드 구현 후 실제 채널 필터링 추가
-      // newFilters.channel = tab;
+      // 채널 필터링 활성화
+      newFilters.channel = tab;
     }
 
     setAppliedFilters(newFilters);
@@ -325,14 +336,19 @@ const InventoryPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsPOSUploading(true);
     try {
       await uploadInventoryExcel(file);
       alert('POS 데이터가 성공적으로 업로드되었습니다.');
+      // 재고 데이터와 스냅샷 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['inventories'] });
+      queryClient.invalidateQueries({ queryKey: ['inventorySnapshots'] });
       await refetch();
     } catch (err) {
       console.error('POS 업로드 오류:', err);
       alert('POS 데이터 업로드 중 오류 발생');
     } finally {
+      setIsPOSUploading(false);
       e.target.value = '';
     }
   };
@@ -526,6 +542,7 @@ const InventoryPage = () => {
   return (
     <div className="p-6 relative">
       {isLoading && <LoadingSpinner overlay text="재고 데이터를 불러오는 중..." />}
+      {isPOSUploading && <LoadingSpinner overlay text="POS 데이터를 업로드하는 중..." />}
       <div className='mb-4 flex items-center justify-between'>
         <h1 className='text-2xl font-bold'>재고 관리</h1>
         <div className='flex space-x-2'>
@@ -558,6 +575,7 @@ const InventoryPage = () => {
                 text='POS 데이터 업로드'
                 icon={<FaFileArrowUp size={16} />}
                 onClick={handlePOSButtonClick}
+                disabled={isPOSUploading}
               />
             </>
           )}
@@ -614,8 +632,7 @@ const InventoryPage = () => {
 
             // 채널 필터 (탭에 따라)
             if (activeTab !== 'all') {
-              // TODO: 백엔드 구현 후 실제 채널 필터링 추가
-              // newFilters.channel = activeTab;
+              newFilters.channel = activeTab;
             }
 
             // 상품명 필터
@@ -674,6 +691,7 @@ const InventoryPage = () => {
         inventories={tabData}
         onDelete={handleVariantDelete}
         onExportToExcel={handleExportToExcel}
+        lastUpdateDate={lastUpdateDate || undefined}
         // 무한 스크롤 관련 props
         fetchNextPage={fetchNextPage}
         hasNextPage={hasNextPage}

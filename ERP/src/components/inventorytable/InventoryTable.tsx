@@ -20,6 +20,7 @@ interface InventoryTableProps {
   inventories: Product[];
   onDelete: (productId: string) => Promise<void>;
   onExportToExcel: () => void;
+  lastUpdateDate?: string; // POS 마지막 업데이트 날짜
   // 무한 스크롤 관련 props
   fetchNextPage: () => void;
   hasNextPage: boolean;
@@ -71,6 +72,7 @@ const InventoryTable = ({
   inventories,
   onDelete,
   onExportToExcel,
+  lastUpdateDate,
   fetchNextPage,
   hasNextPage,
   isFetchingNextPage,
@@ -218,7 +220,14 @@ const InventoryTable = ({
     <div className='rounded-lg bg-white p-6 shadow-md'>
       {/* 헤더 */}
       <div className='mb-4 flex items-center justify-between'>
-        <h2 className='flex items-center text-lg font-semibold'>상품별 재고 현황</h2>
+        <h2 className='flex items-center text-lg font-semibold'>
+          상품별 재고 현황
+          {lastUpdateDate && (
+            <span className='ml-2 text-sm font-normal text-gray-500'>
+              ({lastUpdateDate} 업데이트)
+            </span>
+          )}
+        </h2>
         <div className='flex items-center space-x-3 text-gray-500'>
           <span className='text-sm'>
             총 {infiniteScroll.totalCount}개 상품 ({infiniteScroll.totalLoaded}개 로딩됨)

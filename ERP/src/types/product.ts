@@ -33,6 +33,15 @@ export interface ProductVariant {
   suppliers: string;      // readOnly, 표시용 텍스트 (string 타입)
 }
 
+// 스냅샷 관련 타입 정의
+export interface InventorySnapshot {
+  id: number;
+  created_at: string;
+  reason: string;
+  actor?: string;
+  meta?: Record<string, any>;
+}
+
 // ProductVariant 생성용
 export interface ProductVariantCreate {
   product_id: string;     // readOnly

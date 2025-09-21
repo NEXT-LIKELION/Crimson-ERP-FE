@@ -1013,7 +1013,6 @@ const OrdersPage: React.FC = () => {
           isOpen={isOrderDetailModalOpen}
           onClose={() => setIsOrderDetailModalOpen(false)}
           isManager={permissions.hasPermission('ORDER')}
-          onApproveSuccess={() => refetch()}
         />
       )}
 
@@ -1028,6 +1027,7 @@ const OrdersPage: React.FC = () => {
           }}
         />
       )}
+
     </div>
   );
 };
