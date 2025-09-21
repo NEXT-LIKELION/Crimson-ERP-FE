@@ -187,6 +187,23 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
   // 반차 여부 확인
   const isHalfDay = formData.leave_type === 'HALF_DAY_AM' || formData.leave_type === 'HALF_DAY_PM';
 
+  // 휴가 일수 계산 (반차는 0.5일)
+  const calculateVacationDays = (): number => {
+    if (isHalfDay) {
+      return 0.5;
+    }
+
+    if (!formData.start_date || !formData.end_date) {
+      return 0;
+    }
+
+    const startDate = new Date(formData.start_date);
+    const endDate = new Date(formData.end_date);
+    const timeDiff = endDate.getTime() - startDate.getTime();
+    const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+    return Math.max(0, dayDiff);
+  };
+
   // 배경 클릭 시 모달 닫기
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
@@ -288,6 +305,18 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
                   <FiCalendar className='absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 transform text-gray-400' />
                 </div>
                 {errors.end_date && <p className='mt-1 text-sm text-red-500'>{errors.end_date}</p>}
+              </div>
+            )}
+
+            {/* 예상 휴가 일수 표시 */}
+            {(formData.start_date && (isHalfDay || formData.end_date)) && (
+              <div className='rounded-lg bg-blue-50 p-3'>
+                <div className='flex items-center'>
+                  <FiCalendar className='mr-2 h-4 w-4 text-blue-600' />
+                  <span className='text-sm font-medium text-blue-900'>
+                    예상 휴가 일수: {calculateVacationDays()}일
+                  </span>
+                </div>
               </div>
             )}
 

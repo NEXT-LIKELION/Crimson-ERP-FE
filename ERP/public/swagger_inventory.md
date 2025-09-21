@@ -35,33 +35,121 @@ minLength: 1
  
 }]
 
-POST
-/inventory/upload/
-상품 XLSX 일괄 업로드
-inventory_upload_create
+GET
+/inventory/snapshot
+inventory_snapshot_list
 
-엑셀 파일을 업로드하여 상품 및 상세 품목 정보를 일괄 생성 또는 업데이트합니다.
+GET /snapshot : 스냅샷 목록(메타만; items 제외)
+POST /snapshot : 현재 재고 상태 스냅샷 생성
 
 Parameters
 Try it out
 Name	Description
-file *
-file
-(formData)
-업로드할 XLSX 파일
+page
+integer
+(query)
+A page number within the paginated result set.
 
-선택된 파일 없음
+page
 Responses
 Response content type
 
 application/json
 Code	Description
 200	
-성공
+Example Value
+Model
+{
+count*	integer
+next	string($uri)
+x-nullable: true
+previous	string($uri)
+x-nullable: true
+results*	[InventorySnapshot{
+id	ID[...]
+created_at	Created at[...]
+reason	Reason[...]
+actor_name	Actor name[...]
+meta	Meta{...}
+items	[...]
+ 
+}]
+ 
+}
 
-400	
-파일 에러 또는 유효성 오류
+POST
+/inventory/snapshot
+inventory_snapshot_create
 
+GET /snapshot : 스냅샷 목록(메타만; items 제외)
+POST /snapshot : 현재 재고 상태 스냅샷 생성
+
+Parameters
+Try it out
+Name	Description
+data *
+object
+(body)
+Example Value
+Model
+InventorySnapshot{
+created_at	string($date-time)
+title: Created at
+reason	string
+title: Reason
+maxLength: 200
+스냅샷 사유 (예: POS 덮어쓰기 전)
+
+meta	Meta{
+ 
+}
+ 
+}
+Responses
+Response content type
+
+application/json
+Code	Description
+201	
+Example Value
+Model
+InventorySnapshot{
+id	integer
+title: ID
+readOnly: true
+created_at	string($date-time)
+title: Created at
+reason	string
+title: Reason
+maxLength: 200
+스냅샷 사유 (예: POS 덮어쓰기 전)
+
+actor_name	string
+title: Actor name
+readOnly: true
+meta	Meta{
+ 
+}
+items	[
+readOnly: true
+InventorySnapshotItem{
+id	ID[...]
+variant	Variant[...]
+product_id	Product id[...]
+name	Name[...]
+category	Category[...]
+variant_code	Variant code[...]
+option	Option[...]
+stock	Stock[...]
+price	Price[...]
+cost_price	Cost price[...]
+order_count	Order count[...]
+return_count	Return count[...]
+sales	Sales[...]
+ 
+}]
+ 
+}
 
 POST
 /inventory/variants/merge/
@@ -141,111 +229,5 @@ title: Variants
 readOnly: true
  
 }
-404	
-Not Found
-
-inventory - Stock
-
-
-GET
-/inventory/adjustments/
-재고 조정 이력 조회
-inventory_adjustments_list
-
-variant_code 기준 필터링 및 페이지네이션 지원
-
-Parameters
-Try it out
-Name	Description
-ordering
-string
-(query)
-Which field to use when ordering the results.
-
-ordering
-page
-integer
-(query)
-페이지 번호 (기본=1)
-
-page
-variant_code
-string
-(query)
-조회할 variant_code (예: P00000YC000A)
-
-variant_code
-Responses
-Response content type
-
-application/json
-Code	Description
-200	
-Example Value
-Model
-{
-count*	integer
-next	string($uri)
-x-nullable: true
-previous	string($uri)
-x-nullable: true
-results*	[InventoryAdjustment{
-id	ID[...]
-variant_code	Variant code[...]
-product_id	Product id[...]
-product_name	Product name[...]
-delta	Delta[...]
-reason	Reason[...]
-created_by	Created by[...]
-created_at	Created at[...]
- 
-}]
- 
-}
-
-PUT
-/inventory/variants/stock/{variant_code}/
-재고량 수동 업데이트
-inventory_variants_stock_update
-
-실사 재고량을 입력하여 재고를 업데이트하고 조정 이력을 자동 생성합니다.
-
-Parameters
-Try it out
-Name	Description
-data *
-object
-(body)
-Example Value
-Model
-{
-actual_stock*	integer
-example: 125
-실사한 실제 재고량
-
-reason	string
-example: 2025년 2분기 실사
-조정 사유
-
-updated_by	string
-example: 유시진
-작업자
-
- 
-}
-variant_code *
-string
-(path)
-수정할 variant_code (예: P00000YC000A)
-
-variant_code
-Responses
-Response content type
-
-application/json
-Code	Description
-200	
-Stock updated successfully
-
 404	
 Not Found

@@ -3,10 +3,10 @@ authentication
 
 POST
 /authentication/approve/
-STAFF 계정 상태 전환
+직원 계정 상태 전환 (STAFF/INTERN)
 authentication_approve_create
 
-MANAGER가 STAFF 계정을 승인하거나 비활성화할 수 있습니다.
+MANAGER가 STAFF 또는 INTERN 계정을 승인(APPROVED)하거나 거절(DENIED)할 수 있습니다.
 
 Parameters
 Try it out
@@ -22,7 +22,7 @@ example: staff1
 STAFF 사용자 아이디
 
 status*	string
-example: denied
+example: APPROVED
 변경할 상태
 
 Enum:
@@ -44,7 +44,53 @@ Code	Description
 권한 없음
 
 404	
-STAFF 없음
+사용자 없음
+
+
+PUT
+/authentication/change-password/{employee_id}/
+비밀번호 변경 (본인 또는 매니저)
+authentication_change-password_update
+
+로그인한 본인의 비밀번호를 직접 변경하거나, 'MANAGER' 권한을 가진 사용자가 다른 직원의 비밀번호를 변경합니다.
+
+일반 사용자: URL의 employee_id에 자신의 ID를 넣어서 요청해야 합니다.
+매니저: URL의 employee_id에 대상 직원의 ID를 넣어 요청할 수 있습니다.
+Parameters
+Try it out
+Name	Description
+data *
+object
+(body)
+Example Value
+Model
+{
+password*	string
+example: new_strong_password!
+새 비밀번호
+
+ 
+}
+employee_id *
+string
+(path)
+employee_id
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+비밀번호가 성공적으로 변경되었습니다.
+
+400	
+Bad Request - 유효하지 않은 데이터
+
+403	
+Forbidden - 권한 없음
+
+404	
+Not Found - 직원을 찾을 수 없음
 
 
 POST

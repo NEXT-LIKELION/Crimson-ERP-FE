@@ -60,6 +60,11 @@ x-nullable: true
 remaining_leave_days	Remaining leave daysstring
 title: Remaining leave days
 readOnly: true
+gender	Genderstring
+title: Gender
+x-nullable: true
+Enum:
+Array [ 2 ]
  
 }]
 
@@ -137,6 +142,11 @@ readOnly: true
 vacation_pending_days	string
 title: Vacation pending days
 readOnly: true
+gender	string
+title: Gender
+x-nullable: true
+Enum:
+Array [ 2 ]
  
 }
 404	
@@ -148,7 +158,7 @@ PATCH
 직원 정보 수정 (HR 전용)
 hr_employees_partial_update
 
-직원의 이름, 이메일, 연락처, 퇴사 여부, 연차일수, 권한 탭, 입사일, 직무를 수정합니다.
+직원의 이름, 이메일, 연락처, 퇴사 여부, 연차일수, 권한 탭, 입사일, 직무, 삭제 여부를 수정합니다.
 
 Parameters
 Try it out
@@ -194,6 +204,16 @@ example: STAFF
 
 Enum:
 Array [ 3 ]
+is_deleted	boolean
+example: false
+삭제 여부(소프트 삭제)
+
+gender	string
+example: MALE
+성별
+
+Enum:
+Array [ 2 ]
  
 }
 employee_id *
@@ -260,6 +280,11 @@ readOnly: true
 vacation_pending_days	string
 title: Vacation pending days
 readOnly: true
+gender	string
+title: Gender
+x-nullable: true
+Enum:
+Array [ 2 ]
  
 }
 400	

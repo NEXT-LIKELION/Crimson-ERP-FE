@@ -137,40 +137,55 @@ object
 (body)
 Example Value
 Model
-ProductVariantCreate{
+{
+product_id*	string
+example: P00000YC
+상품 식별자
+
+name*	string
+example: 방패 필통
+상품명
+
 category	string
-title: Category
-minLength: 1
+example: 문구
+상품 카테고리
+
 option	string
-title: Option
-minLength: 1
+example: 색상 : 크림슨
+옵션
+
 stock	integer
-title: Stock
-maximum: 2147483647
-minimum: -2147483648
+example: 100
+초기 재고
+
 price	integer
-title: Price
-maximum: 2147483647
-minimum: 0
+example: 5900
+판매가
+
 min_stock	integer
-title: Min stock
-maximum: 2147483647
-minimum: 0
+example: 5
+최소 재고
+
 description	string
-title: Description
+example: 튼튼한 크림슨 컬러 방패 필통
+설명
+
 memo	string
-title: Memo
-name	string
-title: Name
-minLength: 1
-suppliers	[SupplierVariantUpdate{
-name*	Name[...]
-cost_price*	Cost price[...]
-is_primary*	Is primary[...]
+example: 23FW 신상품
+메모
+
+suppliers	[
+공급자 매핑 목록
+
+{
+name*	[...]
+cost_price*	[...]
+is_primary*	[...]
  
 }]
  
 }
+example: OrderedMap { "product_id": "P00000YC", "name": "방패 필통", "category": "문구", "option": "색상 : 크림슨", "stock": 100, "price": 5900, "min_stock": 5, "description": "튼튼한 크림슨 컬러 방패 필통", "memo": "23FW 신상품", "suppliers": List [ OrderedMap { "name": "넥스트물류", "cost_price": 3016, "is_primary": true } ] }
 Responses
 Response content type
 
@@ -551,4 +566,5 @@ Code	Description
 204	
 삭제 완료
 
-404	Not Found
+404	
+Not Found

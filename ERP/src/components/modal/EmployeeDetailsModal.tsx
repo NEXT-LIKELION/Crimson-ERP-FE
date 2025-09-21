@@ -1,6 +1,6 @@
 // src/components/modals/EmployeeDetailsModal.tsx
 import React, { useState } from 'react';
-import { FiX, FiEdit, FiCheck, FiXCircle, FiFileText, FiCalendar } from 'react-icons/fi';
+import { FiX, FiEdit, FiCheck, FiXCircle, FiCalendar } from 'react-icons/fi';
 import { MappedEmployee } from '../../pages/HR/HRPage';
 import { ALLOWED_TABS_OPTIONS, parseVacationDays, VacationDay } from '../../api/hr';
 import { useEmployee } from '../../hooks/queries/useEmployees';
@@ -9,7 +9,6 @@ import VacationCalendar from '../calendar/VacationCalendar';
 interface EmployeeDetailsModalProps {
   employee: MappedEmployee;
   onClose: () => void;
-  onViewContract: () => void;
   onUpdateEmployee: (updatedEmployee: MappedEmployee) => Promise<void>;
   isAdmin: boolean;
 }
@@ -30,7 +29,6 @@ const formatDateToKorean = (dateString: string): string => {
 const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
   employee,
   onClose,
-  onViewContract,
   onUpdateEmployee,
   isAdmin,
 }) => {
@@ -59,9 +57,12 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
         annual_leave_days: apiData.annual_leave_days,
         allowed_tabs: apiData.allowed_tabs || [], // API 데이터 우선 사용
         hire_date: apiData.hire_date || '',
-        remaining_leave_days: parseInt(apiData.remaining_leave_days) || 0,
+        remaining_leave_days: parseFloat(apiData.remaining_leave_days) || 0,
         vacation_days: typeof apiData.vacation_days === 'string' ? [] as VacationDay[] : apiData.vacation_days as VacationDay[],
         vacation_pending_days: typeof apiData.vacation_pending_days === 'string' ? [] as VacationDay[] : apiData.vacation_pending_days as VacationDay[],
+        gender: apiData.gender && ['MALE', 'FEMALE'].includes(apiData.gender)
+          ? apiData.gender
+          : undefined, // gender 필드 타입 검증
       };
       
       return mappedEmployee;
@@ -122,10 +123,6 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
       return;
     }
 
-    if (!editedEmployee.hire_date?.trim()) {
-      alert('입사일을 입력해주세요.');
-      return;
-    }
 
     // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -227,6 +224,27 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
               )}
             </div>
 
+            {/* 성별 */}
+            <div>
+              <label className='mb-1 block text-sm font-medium text-gray-700'>성별</label>
+              {isEditing && isAdmin ? (
+                <select
+                  name='gender'
+                  value={editedEmployee.gender || ''}
+                  onChange={handleChange}
+                  className='w-full rounded-md border border-gray-300 px-3 py-2 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'>
+                  <option value=''>선택 안함</option>
+                  <option value='MALE'>남성</option>
+                  <option value='FEMALE'>여성</option>
+                </select>
+              ) : (
+                <span className='text-gray-900'>
+                  {currentEmployee.gender === 'MALE' ? '남성' :
+                   currentEmployee.gender === 'FEMALE' ? '여성' : '미입력'}
+                </span>
+              )}
+            </div>
+
             {/* 입사일 */}
             <div>
               <label className='mb-1 block text-sm font-medium text-gray-700'>입사일</label>
@@ -239,7 +257,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                   className='w-full rounded-md border border-gray-300 px-3 py-2 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'
                 />
               ) : (
-                <span className='text-gray-900'>{formatDateToKorean(employee.hire_date)}</span>
+                <span className='text-gray-900'>{formatDateToKorean(currentEmployee.hire_date)}</span>
               )}
             </div>
 
@@ -295,7 +313,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                 <span className='text-gray-900'>
                   {currentEmployee.annual_leave_days}일 (남은 연차:{' '}
                   {typeof currentEmployee.remaining_leave_days === 'string'
-                    ? parseInt(currentEmployee.remaining_leave_days) || 0
+                    ? parseFloat(currentEmployee.remaining_leave_days) || 0
                     : currentEmployee.remaining_leave_days}
                   일)
                 </span>
@@ -378,15 +396,6 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
               {employeeDetailLoading ? '로딩 중...' : '휴가 캘린더 보기'}
             </button>
 
-            {/* 근로계약서 버튼 */}
-            {isAdmin && (
-              <button
-                onClick={onViewContract}
-                className='flex w-full items-center justify-center rounded-md bg-gray-100 px-4 py-2 text-sm text-gray-700 hover:bg-gray-200'>
-                <FiFileText className='mr-2 h-4 w-4' />
-                근로계약서 보기
-              </button>
-            )}
 
             {/* 수정 관련 버튼들 */}
             {isAdmin &&
