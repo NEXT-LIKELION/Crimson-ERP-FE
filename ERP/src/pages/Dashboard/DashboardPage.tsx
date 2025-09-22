@@ -14,28 +14,6 @@ const DashboardPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedVacation, setSelectedVacation] = useState<Vacation | null>(null);
 
-  // 재직중인 직원별 고유 색상 생성
-  const employeeColors = useMemo(() => {
-    const employees = employeesData?.data || [];
-    // 재직중인 직원만 필터링
-    const activeEmployees = employees.filter((emp: EmployeeList) => emp.is_active && emp.status?.toLowerCase() === 'approved');
-    const colors = [
-      'bg-blue-500',
-      'bg-green-500',
-      'bg-purple-500',
-      'bg-red-500',
-      'bg-yellow-500',
-      'bg-indigo-500',
-      'bg-pink-500',
-      'bg-teal-500',
-      'bg-orange-500',
-    ];
-    const colorMap: Record<number, string> = {};
-    activeEmployees.forEach((employee: EmployeeList, index: number) => {
-      colorMap[employee.id] = colors[index % colors.length];
-    });
-    return colorMap;
-  }, [employeesData?.data]);
 
   // 날짜별 휴가 그룹화 (취소, 대기중, 퇴사자 휴가 제외)
   const vacationsByDate = useMemo(() => {
