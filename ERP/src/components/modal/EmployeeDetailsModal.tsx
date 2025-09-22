@@ -161,18 +161,11 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
     setIsEditing(false);
   };
 
-  // 배경 클릭 시 모달 닫기
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
 
   return (
     <div
       className='fixed inset-0 z-50 flex items-center justify-center p-4'
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-      onClick={handleBackdropClick}>
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
       <div
         className='flex h-full max-h-[90vh] w-full max-w-md flex-col rounded-lg border border-gray-200 bg-white shadow-lg'
         onClick={(e) => e.stopPropagation()}>
@@ -207,7 +200,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
             {/* 직급 */}
             <div>
               <label className='mb-1 block text-sm font-medium text-gray-700'>직급</label>
-              {isEditing && isAdmin ? (
+              {isEditing && isAdmin && currentEmployee.role !== 'MANAGER' ? (
                 <select
                   name='role'
                   value={editedEmployee.role}
@@ -219,11 +212,11 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
               ) : (
                 <div className='flex items-center justify-between'>
                   <span className='text-gray-900'>{employee.position}</span>
-                  {isEditing && !isAdmin && (
+                  {isEditing && !isAdmin && currentEmployee.role !== 'MANAGER' ? (
                     <span className='rounded bg-gray-100 px-2 py-1 text-xs text-gray-500'>
                       수정 불가
                     </span>
-                  )}
+                  ) : null}
                 </div>
               )}
             </div>
@@ -341,9 +334,6 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                         <span className='text-sm text-gray-700'>{tab.label}</span>
                       </label>
                     ))}
-                    <p className='text-xs text-gray-500 mt-2'>
-                      * HR 관리 권한은 Manager에게만 제공됩니다.
-                    </p>
                   </div>
                 ) : (
                   <div className='flex flex-wrap gap-1'>

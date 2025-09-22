@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FiX, FiCalendar, FiFileText, FiSend, FiUsers } from 'react-icons/fi';
-import { useCreateVacation } from '../../hooks/queries/useVacations';
+import { useCreateVacation, useVacations } from '../../hooks/queries/useVacations';
 import { VacationCreateData, LEAVE_TYPE_OPTIONS, LeaveType, fetchEmployees, EmployeeList } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
 import { useEmployees } from '../../hooks/queries/useEmployees';
@@ -15,6 +15,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
   const currentUser = useAuthStore((state) => state.user);
   const createVacationMutation = useCreateVacation();
   const { data: employeesData } = useEmployees();
+  const { data: vacationsData } = useVacations();
 
   const [formData, setFormData] = useState<Omit<VacationCreateData, 'employee'>>({
     leave_type: initialMode === 'work' ? 'WORK' : 'VACATION',
@@ -54,6 +55,31 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
     }
   };
 
+  // 날짜 범위 겹침 확인 함수
+  const checkDateOverlap = (employeeId: number, startDate: string, endDate: string): boolean => {
+    if (!vacationsData?.data) return false;
+
+    const newStart = new Date(startDate);
+    const newEnd = new Date(endDate);
+
+    return vacationsData.data.some(vacation => {
+      // 같은 직원의 승인된 휴가만 확인
+      if (vacation.employee !== employeeId || vacation.status !== 'APPROVED') {
+        return false;
+      }
+
+      const existingStart = new Date(vacation.start_date);
+      const existingEnd = new Date(vacation.end_date);
+
+      // 날짜 범위 겹침 확인
+      return (
+        (newStart >= existingStart && newStart <= existingEnd) ||
+        (newEnd >= existingStart && newEnd <= existingEnd) ||
+        (newStart <= existingStart && newEnd >= existingEnd)
+      );
+    });
+  };
+
   // 폼 검증
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
@@ -83,6 +109,30 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
     // 휴가 모드에서만 사유 필수
     if (!isWorkMode && !formData?.reason?.trim()) {
       newErrors.reason = '사유를 입력해주세요.';
+    }
+
+    // 중복 날짜 검증 (휴가 모드일 때만)
+    if (!isWorkMode && formData.start_date && formData.end_date && currentUser) {
+      let targetEmployeeId: number | null = null;
+
+      if (isWorkMode && selectedEmployee) {
+        targetEmployeeId = selectedEmployee;
+      } else if (currentUser.id && typeof currentUser.id === 'number') {
+        targetEmployeeId = currentUser.id;
+      } else if (employeesData?.data) {
+        // 현재 사용자의 ID를 직원 목록에서 찾기
+        const currentEmployee = employeesData.data.find(
+          (emp: EmployeeList) => emp.username === currentUser.username
+        );
+        if (currentEmployee) {
+          targetEmployeeId = currentEmployee.id;
+        }
+      }
+
+      if (targetEmployeeId && checkDateOverlap(targetEmployeeId, formData.start_date, formData.end_date)) {
+        newErrors.start_date = '이미 승인된 휴가와 날짜가 겹칩니다.';
+        newErrors.end_date = '이미 승인된 휴가와 날짜가 겹칩니다.';
+      }
     }
 
     setErrors(newErrors);
@@ -402,7 +452,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
                 <div className='flex items-center'>
                   <FiCalendar className='mr-2 h-4 w-4 text-blue-600' />
                   <span className='text-sm font-medium text-blue-900'>
-                    예상 {isWorkMode ? '근무' : '휴가'} 일수: {calculateVacationDays()}일
+                    {isWorkMode ? '근무' : '휴가'} 일수: {calculateVacationDays()}일
                   </span>
                 </div>
               </div>
