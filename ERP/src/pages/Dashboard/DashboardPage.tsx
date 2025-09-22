@@ -143,6 +143,7 @@ const DashboardPage = () => {
       days.push(
         <div
           key={date}
+          // Increased min-h from min-h-20 to min-h-24 to accommodate the new work assignment display layout
           className={`min-h-24 border-b border-r border-gray-200 p-1 ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
           <div className={`mb-1 text-xs font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
             {date}
