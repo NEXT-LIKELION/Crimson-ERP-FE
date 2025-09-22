@@ -37,7 +37,7 @@ maxLength: 254
 role	Rolestring
 title: Role
 Enum:
-Array [ 3 ]
+[ MANAGER, STAFF, INTERN ]
 contact	Contactstring
 title: Contact
 maxLength: 20
@@ -45,7 +45,7 @@ x-nullable: true
 status	Statusstring
 title: Status
 Enum:
-Array [ 2 ]
+[ APPROVED, DENIED ]
 first_name	First namestring
 title: First name
 maxLength: 150
@@ -64,7 +64,7 @@ gender	Genderstring
 title: Gender
 x-nullable: true
 Enum:
-Array [ 2 ]
+[ MALE, FEMALE ]
  
 }]
 
@@ -107,7 +107,7 @@ maxLength: 254
 role	string
 title: Role
 Enum:
-Array [ 3 ]
+[ MANAGER, STAFF, INTERN ]
 contact	string
 title: Contact
 maxLength: 20
@@ -115,7 +115,7 @@ x-nullable: true
 status	string
 title: Status
 Enum:
-Array [ 2 ]
+[ APPROVED, DENIED ]
 first_name	string
 title: First name
 maxLength: 150
@@ -146,7 +146,7 @@ gender	string
 title: Gender
 x-nullable: true
 Enum:
-Array [ 2 ]
+[ MALE, FEMALE ]
  
 }
 404	
@@ -203,7 +203,7 @@ example: STAFF
 직무 구분
 
 Enum:
-Array [ 3 ]
+[ MANAGER, STAFF, INTERN ]
 is_deleted	boolean
 example: false
 삭제 여부(소프트 삭제)
@@ -213,7 +213,7 @@ example: MALE
 성별
 
 Enum:
-Array [ 2 ]
+[ MALE, FEMALE ]
  
 }
 employee_id *
@@ -245,7 +245,7 @@ maxLength: 254
 role	string
 title: Role
 Enum:
-Array [ 3 ]
+[ MANAGER, STAFF, INTERN ]
 contact	string
 title: Contact
 maxLength: 20
@@ -253,7 +253,7 @@ x-nullable: true
 status	string
 title: Status
 Enum:
-Array [ 2 ]
+[ APPROVED, DENIED ]
 first_name	string
 title: First name
 maxLength: 150
@@ -284,7 +284,7 @@ gender	string
 title: Gender
 x-nullable: true
 Enum:
-Array [ 2 ]
+[ MALE, FEMALE ]
  
 }
 400	
@@ -299,12 +299,35 @@ GET
 휴가 신청 목록 조회
 hr_vacations_list
 
-휴가 신청 전체 조회
+휴가 신청 및 근무 배정 목록을 조회합니다. 쿼리 파라미터로 필터링 가능합니다.
 
 Parameters
 Try it out
-No parameters
+Name	Description
+leave_type
+string
+(query)
+휴가 유형 필터 (예: VACATION, WORK)
 
+leave_type
+employee
+integer
+(query)
+직원 ID 필터
+
+employee
+start_date
+string($date)
+(query)
+시작일 필터 (YYYY-MM-DD)
+
+start_date
+end_date
+string($date)
+(query)
+종료일 필터 (YYYY-MM-DD)
+
+end_date
 Responses
 Response content type
 
@@ -331,14 +354,14 @@ leave_type	Leave typestring
 title: Leave type
 readOnly: true
 Enum:
-Array [ 5 ]
+[ VACATION, HALF_DAY_AM, HALF_DAY_PM, SICK, OTHER, WORK ]
 reason	Reasonstring
 title: Reason
 x-nullable: true
 status	Statusstring
 title: Status
 Enum:
-Array [ 4 ]
+[ PENDING, APPROVED, REJECTED, CANCELLED ]
 status_display	Status displaystring
 title: Status display
 readOnly: true
@@ -358,7 +381,7 @@ POST
 휴가 신청 등록
 hr_vacations_create
 
-휴가 신청 등록
+휴가 신청을 등록합니다. WORK 타입은 관리자만 생성 가능하며 자동으로 승인됩니다.
 
 Parameters
 Try it out
@@ -375,10 +398,10 @@ example: 168
 
 leave_type*	string
 example: VACATION
-휴가 유형
+휴가 유형 (WORK는 관리자만 생성 가능)
 
 Enum:
-Array [ 5 ]
+[ VACATION, HALF_DAY_AM, HALF_DAY_PM, SICK, OTHER, WORK ]
 start_date*	string($date)
 example: 2025-08-01
 end_date*	string($date)
@@ -415,14 +438,14 @@ leave_type	string
 title: Leave type
 readOnly: true
 Enum:
-Array [ 5 ]
+[ VACATION, HALF_DAY_AM, HALF_DAY_PM, SICK, OTHER, WORK ]
 reason	string
 title: Reason
 x-nullable: true
 status	string
 title: Status
 Enum:
-Array [ 4 ]
+[ PENDING, APPROVED, REJECTED, CANCELLED ]
 status_display	string
 title: Status display
 readOnly: true
@@ -439,13 +462,16 @@ x-nullable: true
 400	
 Bad Request
 
+403	
+Forbidden
+
 
 PATCH
 /hr/vacations/review/{id}/
 휴가 신청 취소/승인/거절
 hr_vacations_review_partial_update
 
-휴가 신청 상태를 승인(APPROVED), 거절(REJECTED), 대기중(PENDING), 취소(CANCELLED) 중 하나로 변경합니다.
+휴가 신청 상태를 승인(APPROVED), 거절(REJECTED), 대기중(PENDING), 취소(CANCELLED) 중 하나로 변경합니다. WORK 타입은 생성 시 자동 승인되므로 일반적으로 이 API를 사용할 필요가 없습니다.
 
 Parameters
 Try it out
@@ -461,7 +487,7 @@ example: APPROVED
 변경할 상태값
 
 Enum:
-Array [ 2 ]
+[ APPROVED, REJECTED ]
  
 }
 id *
@@ -494,7 +520,7 @@ leave_type	string
 title: Leave type
 readOnly: true
 Enum:
-Array [ 5 ]
+Array [ 6 ]
 reason	string
 title: Reason
 x-nullable: true
