@@ -212,12 +212,12 @@ export interface VacationCreateData {
 
 // 휴가 유형 옵션
 export const LEAVE_TYPE_OPTIONS = [
-  { value: 'VACATION' as const, label: '연차' },
-  { value: 'HALF_DAY_AM' as const, label: '오전 반차' },
-  { value: 'HALF_DAY_PM' as const, label: '오후 반차' },
-  { value: 'SICK' as const, label: '병가' },
-  { value: 'OTHER' as const, label: '기타' },
-  { value: 'WORK' as const, label: '근무' },
+  { value: 'VACATION' as const, label: '연차', adminOnly: false },
+  { value: 'HALF_DAY_AM' as const, label: '오전 반차', adminOnly: false },
+  { value: 'HALF_DAY_PM' as const, label: '오후 반차', adminOnly: false },
+  { value: 'SICK' as const, label: '병가', adminOnly: false },
+  { value: 'OTHER' as const, label: '기타', adminOnly: false },
+  { value: 'WORK' as const, label: '근무', adminOnly: true },
 ];
 
 // 휴가 상태 옵션

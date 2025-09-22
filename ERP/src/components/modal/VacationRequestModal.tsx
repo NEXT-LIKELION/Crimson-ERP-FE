@@ -306,7 +306,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
                   className={`w-full rounded-lg border px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
                     errors.leave_type ? 'border-red-300' : 'border-gray-300'
                   }`}>
-                  {LEAVE_TYPE_OPTIONS.filter(option => option.value !== 'WORK').map((option) => (
+                  {LEAVE_TYPE_OPTIONS.filter(option => !option.adminOnly).map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
