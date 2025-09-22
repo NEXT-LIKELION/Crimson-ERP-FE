@@ -49,7 +49,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
       const mappedEmployee = {
         ...employee, // 기본 데이터
         // API에서 받은 최신 데이터로 업데이트
-        name: apiData.first_name,
+        first_name: apiData.first_name,
         email: apiData.email,
         phone: apiData.contact || '',
         role: apiData.role,
@@ -118,7 +118,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
       return;
     }
 
-    if (!editedEmployee.name?.trim()) {
+    if (!editedEmployee.first_name?.trim()) {
       alert('이름을 입력해주세요.');
       return;
     }
@@ -193,14 +193,14 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
               {isEditing && isAdmin ? (
                 <input
                   type='text'
-                  name='name'
-                  value={editedEmployee.name}
+                  name='first_name'
+                  value={editedEmployee.first_name}
                   onChange={handleChange}
                   className='w-full rounded-md border border-gray-300 px-3 py-2 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'
                   placeholder='이름을 입력하세요'
                 />
               ) : (
-                <span className='text-gray-900'>{currentEmployee.name}</span>
+                <span className='text-gray-900'>{currentEmployee.first_name}</span>
               )}
             </div>
 
@@ -443,7 +443,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
           vacationDays={vacationDays}
           vacationPendingDays={vacationPendingDays}
           onClose={() => setShowVacationCalendar(false)}
-          employeeName={employee.name}
+          employeeName={employee.first_name}
         />
       )}
     </div>

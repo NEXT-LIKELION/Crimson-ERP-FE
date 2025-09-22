@@ -390,7 +390,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
       // 2단계 PATCH 완료 후 새 직원 데이터 구성
       const newEmployee: MappedEmployee = {
         id: newEmployeeId, // 1단계에서 생성된 직원 ID
-        name: newEmployeeAccount.first_name,      // 1단계에서 가져옴
+        first_name: newEmployeeAccount.first_name,      // 1단계에서 가져옴
         username: newEmployeeAccount.username, // API 호출 시 사용할 실제 username
         role: employeeHRInfo.position as 'MANAGER' | 'STAFF' | 'INTERN',
         position:
