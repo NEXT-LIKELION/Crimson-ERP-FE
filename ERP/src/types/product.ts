@@ -181,6 +181,7 @@ export interface ProductFormData {
   min_stock: number;
   description: string;
   memo: string;
+  channels: string[];
   suppliers: ProductSupplierData[];
 }
 
