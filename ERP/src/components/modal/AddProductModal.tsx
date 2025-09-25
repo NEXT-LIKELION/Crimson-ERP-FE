@@ -9,6 +9,7 @@ import {
   createProductWithVariant,
   fetchAllInventoriesForMerge,
   checkProductNameExists,
+  fetchCategories,
 } from '../../api/inventory';
 import { ProductSupplierData } from '../../types/product';
 import { useSuppliers } from '../../hooks/queries/useSuppliers';
@@ -25,6 +26,9 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
   const { data: suppliersData } = useSuppliers();
   const supplierOptions = suppliersData?.data?.map((s: Supplier) => s.name) || [];
 
+  // 상태 선언
+  const [productType, setProductType] = useState<'new' | 'existing'>('new');
+
   // 기존 상품 목록 조회
   const { data: productsData } = useQuery({
     queryKey: ['productOptions'],
@@ -37,22 +41,25 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
       label: `${p.product_id} - ${p.name}`,
     })) || [];
 
-  // 기존 데이터에서 카테고리 목록 추출
-  const { data: allInventoriesData } = useQuery({
-    queryKey: ['allInventories'],
-    queryFn: fetchAllInventoriesForMerge,
+  // 카테고리 목록 조회
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
     enabled: isOpen,
   });
 
+  // 기존 데이터에서 카테고리 목록 추출 (기존 상품의 카테고리 확인용)
+  const { data: allInventoriesData } = useQuery({
+    queryKey: ['allInventories'],
+    queryFn: fetchAllInventoriesForMerge,
+    enabled: isOpen && productType === 'existing',
+  });
+
   // 동적 카테고리 옵션 생성 + 새 카테고리 추가 옵션
-  const existingCategories = allInventoriesData
-    ? Array.from(new Set(allInventoriesData.map((item: ProductVariant) => item.category).filter(Boolean)))
-    : ['일반', '한정', '신상품']; // 로딩 중일 때 기본 카테고리
+  const existingCategories = categoriesData?.data || ['일반', '한정', '신상품'];
   const categoryOptions = [...existingCategories, '직접 입력'];
 
   const [isCustomCategory, setIsCustomCategory] = useState(false);
-
-  const [productType, setProductType] = useState<'new' | 'existing'>('new'); // 신상품 vs 기존상품 옵션 추가
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [form, setForm] = useState<ProductFormData>({
     name: '',
@@ -147,7 +154,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
       if (!selectedProductId) errs.push('기존 상품을 선택해주세요.');
     }
     if (errs.length > 0) {
-      setErrors(errs);
+      alert(errs.join('\n'));
       return;
     }
 
@@ -237,7 +244,6 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
       onSave(newProduct);
       onClose();
     } catch (err: unknown) {
-      console.error('상품 생성 실패:', err);
       alert('상품 생성 중 오류가 발생했습니다.');
     }
   };

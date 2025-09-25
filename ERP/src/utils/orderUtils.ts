@@ -20,10 +20,10 @@ export const calculateVATPrice = (price: number, includesTax: boolean): number =
  * @returns 총액
  */
 export const calculateTotalAmount = (
-  items: Array<{ quantity: number; unit_price: number }>,
+  items: Array<{ quantity: number; cost_price: number }>,
   includesTax: boolean
 ): number => {
-  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.cost_price, 0);
   return calculateVATPrice(subtotal, includesTax);
 };
 
@@ -90,9 +90,6 @@ export const validateOrderItem = (
     errors.push(`${itemNum}번 항목의 품목 코드가 누락되었습니다.`);
   }
 
-  if (!item.spec || !item.spec.trim()) {
-    errors.push(`${itemNum}번 항목의 규격을 입력해주세요.`);
-  }
 
   if (item.quantity <= 0) {
     errors.push(`${itemNum}번 항목의 수량은 0보다 커야 합니다.`);
