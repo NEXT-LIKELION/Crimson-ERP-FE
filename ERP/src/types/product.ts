@@ -54,6 +54,7 @@ export interface ProductVariantCreate {
   description: string;
   memo: string;
   name: string;
+  channels: string[];
   suppliers: SupplierVariantUpdate[]; // 실제 매핑 정보 배열
 }
 
