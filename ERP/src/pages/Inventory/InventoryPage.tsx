@@ -3,8 +3,8 @@ import GreenButton from '../../components/button/GreenButton';
 import PrimaryButton from '../../components/button/PrimaryButton';
 import SecondaryButton from '../../components/button/SecondaryButton';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { FaPlus, FaFileArrowUp } from 'react-icons/fa6';
-import { FaCodeBranch, FaHistory, FaUndo } from 'react-icons/fa';
+import { FaPlus, FaFileArrowUp, FaCodePullRequest } from 'react-icons/fa6';
+import { FaHistory, FaUndo } from 'react-icons/fa';
 import InputField from '../../components/inputfield/InputField';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import { useInventories } from '../../hooks/queries/useInventories';
@@ -616,7 +616,7 @@ const InventoryPage = () => {
               />
               <SecondaryButton
                 text='상품 병합'
-                icon={<FaCodeBranch size={16} />}
+                icon={<FaCodePullRequest size={16} />}
                 onClick={async () => {
                   await loadMergeData(); // 병합 데이터 로드
                   setMergeModalOpen(true);
