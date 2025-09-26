@@ -24,9 +24,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <div>
                 <span className='text-xl leading-7 font-medium text-black'>스토어 ERP 시스템</span>
               </div>
-              <div className='flex items-center'>
+              <div className='flex items-center flex-shrink-0'>
                 <div className='h-8 w-8 rounded-full bg-gray-200' />
-                <span className='pl-2 text-base leading-normal font-normal text-black'>
+                <span className='pl-2 text-base leading-normal font-normal text-black whitespace-nowrap'>
                   {user ? `${user.first_name}님` : '사용자'}
                 </span>
               </div>

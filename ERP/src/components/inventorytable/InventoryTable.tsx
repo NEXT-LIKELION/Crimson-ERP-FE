@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MdOutlineEdit, MdOutlineDelete } from 'react-icons/md';
 import { MdOutlineDownload } from 'react-icons/md';
 import { RxCaretSort } from 'react-icons/rx';
@@ -20,6 +20,7 @@ interface InventoryTableProps {
   inventories: Product[];
   onDelete: (productId: string) => Promise<void>;
   onExportToExcel: () => void;
+  lastUpdateDate?: string | { onlineDate?: string; offlineDate?: string }; // POS 마지막 업데이트 날짜 (채널별 구분)
   // 무한 스크롤 관련 props
   fetchNextPage: () => void;
   hasNextPage: boolean;
@@ -71,6 +72,7 @@ const InventoryTable = ({
   inventories,
   onDelete,
   onExportToExcel,
+  lastUpdateDate,
   fetchNextPage,
   hasNextPage,
   isFetchingNextPage,
@@ -121,26 +123,45 @@ const InventoryTable = ({
     setData(rows);
   }, [inventories]);
 
-  // 스크롤 기반 무한 스크롤 - 사용자가 실제 스크롤할 때만 작동
+  // 스크롤 기반 무한 스크롤 - 강화된 중복 호출 방지
+  const isLoadingRef = useRef(false);
+  const lastRequestTimeRef = useRef(0);
+
   useEffect(() => {
     const observerTarget = document.getElementById('infinite-scroll-trigger');
     if (!observerTarget) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        // 사용자가 실제로 스크롤한 후에만 트리거되도록 함
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage && hasScrolled) {
-          console.log('🔄 Intersection triggered - Loading next page');
+        const isIntersecting = entries[0].isIntersecting;
+        const now = Date.now();
+
+        // 조건 체크: 교차 + 다음 페이지 있음 + 로딩 중 아님 + 스크롤 한 적 있음 + 최소 간격 보장
+        const canTrigger =
+          isIntersecting &&
+          hasNextPage &&
+          !isFetchingNextPage &&
+          hasScrolled &&
+          !isLoadingRef.current &&
+          (now - lastRequestTimeRef.current) > 150; // 최소 150ms 간격
+
+        if (canTrigger) {
+          isLoadingRef.current = true;
+          lastRequestTimeRef.current = now;
+
           fetchNextPage();
-        } else if (entries[0].isIntersecting && !hasScrolled) {
-          console.log('⏸️ Intersection detected but user has not scrolled yet');
+
+          // 로딩 완료 후 상태 초기화
+          setTimeout(() => {
+            isLoadingRef.current = false;
+          }, 200);
         }
       },
       {
-        // 요소가 살짝 보이기 시작할 때 트리거 (더 부드러운 로딩)
-        threshold: 0.1,
-        // 화면 아래 200px 전에 미리 로드 시작
-        rootMargin: '200px',
+        // 더 정확한 트리거를 위해 threshold 설정
+        threshold: 0.5,
+        // rootMargin을 더 줄여서 정확한 위치에서만 트리거
+        rootMargin: '50px',
       }
     );
 
@@ -160,7 +181,6 @@ const InventoryTable = ({
     const handleScroll = () => {
       // 스크롤이 시작되면 hasScrolled를 true로 설정
       if (mainContainer.scrollTop > 0 && !hasScrolled) {
-        console.log('📜 User started scrolling - Enabling infinite scroll');
         setHasScrolled(true);
       }
     };
@@ -214,11 +234,41 @@ const InventoryTable = ({
   // 백엔드에서 이미 페이지네이션된 데이터를 받으므로 슬라이싱하지 않음
   const paginatedData = data;
 
+  // 업데이트 날짜 렌더링 함수
+  const renderUpdateDate = () => {
+    if (!lastUpdateDate) return null;
+
+    if (typeof lastUpdateDate === 'string') {
+      // 단일 탭 (온라인 또는 오프라인)
+      return `(${lastUpdateDate} 업데이트)`;
+    }
+
+    if (typeof lastUpdateDate === 'object') {
+      // 전체 탭 (온라인/오프라인 구분 표시)
+      const { onlineDate, offlineDate } = lastUpdateDate;
+      const parts = [];
+
+      if (onlineDate) parts.push(`온라인: ${onlineDate}`);
+      if (offlineDate) parts.push(`오프라인: ${offlineDate}`);
+
+      return parts.length > 0 ? `(${parts.join(', ')} 업데이트)` : null;
+    }
+
+    return null;
+  };
+
   return (
     <div className='rounded-lg bg-white p-6 shadow-md'>
       {/* 헤더 */}
       <div className='mb-4 flex items-center justify-between'>
-        <h2 className='flex items-center text-lg font-semibold'>상품별 재고 현황</h2>
+        <h2 className='flex items-center text-lg font-semibold'>
+          상품별 재고 현황
+          {renderUpdateDate() && (
+            <span className='ml-2 text-sm font-normal text-gray-500'>
+              {renderUpdateDate()}
+            </span>
+          )}
+        </h2>
         <div className='flex items-center space-x-3 text-gray-500'>
           <span className='text-sm'>
             총 {infiniteScroll.totalCount}개 상품 ({infiniteScroll.totalLoaded}개 로딩됨)

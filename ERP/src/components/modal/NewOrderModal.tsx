@@ -9,7 +9,7 @@ import AddSupplierModal from './AddSupplierModal';
 import ProductSearchInput from '../input/ProductSearchInput';
 import { Order } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
-import { fetchSuppliers, createSupplier } from '../../api/supplier';
+import { fetchSuppliers, createSupplier, addSupplierVariantMapping } from '../../api/supplier';
 import {
   fetchProductOptions,
   fetchVariantDetail,
@@ -17,6 +17,7 @@ import {
 } from '../../api/inventory';
 import { createOrder } from '../../api/orders';
 import { useEmployees } from '../../hooks/queries/useEmployees';
+import { useQueryClient } from '@tanstack/react-query';
 import { Supplier, ProductOption } from '../../types/product';
 import {
   calculateTotalAmount,
@@ -36,6 +37,7 @@ interface OrderItemPayload {
   variant: string | null;
   variant_code: string;
   quantity: number;
+  cost_price: number;
   unit_price: number;
   unit?: string;
   remark?: string;
@@ -43,6 +45,7 @@ interface OrderItemPayload {
 }
 
 const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const queryClient = useQueryClient();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [supplier, setSupplier] = useState<number>(0);
@@ -55,6 +58,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       variant: null,
       variant_code: '',
       quantity: 1,
+      cost_price: 0,
       unit_price: 0,
       unit: 'EA',
       remark: '',
@@ -127,6 +131,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         variant: null,
         variant_code: '',
         quantity: 1,
+        cost_price: 0,
         unit_price: 0,
         unit: 'EA',
         remark: '',
@@ -151,6 +156,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         variant: null,
         variant_code: '',
         quantity: 1,
+        cost_price: 0,
         unit_price: 0,
         unit: 'EA',
         remark: '',
@@ -215,7 +221,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             return {
               variant_code,
               quantity: item.quantity,
-              unit_price: calculateVATPrice(item.unit_price, includesTax),
+              unit_price: calculateVATPrice(item.cost_price, includesTax),
               unit: item.unit || undefined,
               remark: item.remark || undefined,
               spec: item.spec || undefined,
@@ -224,6 +230,34 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
           .filter((item) => item.variant_code !== ''),
       };
       const res = await createOrder(payload);
+
+      // 발주 생성 성공 후 자동으로 상품 매핑 추가
+      try {
+        const itemsToMap = items.filter((item) => extractVariantCode(item, variantsByProduct) !== '');
+
+        const mappingPromises = itemsToMap.map(async (item) => {
+            const variant_code = extractVariantCode(item, variantsByProduct);
+            try {
+              await addSupplierVariantMapping(supplier, {
+                variant_code,
+                cost_price: item.cost_price,
+                is_primary: false,
+              });
+            } catch (error) {
+              // 이미 매핑된 경우는 무시 (409 에러 등)
+            }
+          });
+
+        await Promise.allSettled(mappingPromises);
+
+        // 공급업체 캐시 무효화 (매핑 업데이트 반영)
+        queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+        queryClient.invalidateQueries({ queryKey: ['supplier', supplier] });
+      } catch (error) {
+        alert('오류가 발생했습니다.');
+        // 매핑 오류는 발주 성공에 영향을 주지 않음
+      }
+
       alert('발주가 성공적으로 신청되었습니다.');
       if (onSuccess) onSuccess(res.data);
       onClose();
@@ -241,19 +275,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     const supplierId = found ? found.id : 0;
     setSupplier(supplierId);
 
-    // 기존 선택된 상품들 초기화
-    setItems([
-      {
-        product_id: null,
-        variant: null,
-        variant_code: '',
-        quantity: 1,
-        unit_price: 0,
-        unit: 'EA',
-        remark: '',
-        spec: '',
-      },
-    ]);
+    // 공급업체 변경 시에도 기존 선택사항 모두 유지
   };
 
   // 검색을 통한 상품 선택 핸들러 (기존 방식으로 복원)
@@ -336,6 +358,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                   ...currentItem,
                   variant: option,
                   variant_code: selectedVariant.variant_code,
+                  cost_price: variantDetail.cost_price || 0,
                   unit_price: variantDetail.price || 0,
                   // spec은 사용자가 직접 입력하도록 자동 입력 제거
                 }
@@ -363,6 +386,11 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   // 신상품 추가 성공 핸들러
   const handleProductAdded = async () => {
     try {
+      // React Query 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['productOptions'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+
       // 상품 목록 다시 불러오기
       const res = await fetchProductOptions();
       const productData = Array.isArray(res.data) ? res.data : [];
@@ -619,7 +647,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                     </div>
                     <div className='flex w-32 items-center px-3 py-2'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>
-                        규격 <span className='text-red-500'>*</span>
+                        규격
                       </span>
                     </div>
                     <div className='flex w-20 items-center px-3 py-2'>
@@ -630,9 +658,14 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                         수량 <span className='text-red-500'>*</span>
                       </span>
                     </div>
-                    <div className='flex w-32 items-center px-3 py-2'>
+                    <div className='flex w-28 items-center px-3 py-2'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>
-                        단가 <span className='text-red-500'>*</span>
+                        매입가 <span className='text-red-500'>*</span>
+                      </span>
+                    </div>
+                    <div className='flex w-28 items-center px-3 py-2'>
+                      <span className='text-xs font-medium text-gray-500 uppercase'>
+                        판매가
                       </span>
                     </div>
                     <div className='flex w-20 items-center px-3 py-2'>
@@ -722,26 +755,38 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-32 items-center px-3 py-2'>
+                      <div className='flex w-28 items-center px-3 py-2'>
+                        <input
+                          type='number'
+                          value={item.cost_price}
+                          onChange={(e) =>
+                            handleItemChange(idx, 'cost_price', parseInt(e.target.value) || 0)
+                          }
+                          className={`w-24 rounded-md border border-gray-300 px-2 py-1 text-sm ${
+                            item.cost_price > 0 && item.variant ? 'border-blue-300 bg-blue-50' : ''
+                          }`}
+                          min='0'
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div className='flex w-28 items-center px-3 py-2'>
                         <input
                           type='number'
                           value={item.unit_price}
                           onChange={(e) =>
                             handleItemChange(idx, 'unit_price', parseInt(e.target.value) || 0)
                           }
-                          className={`w-28 rounded-md border border-gray-300 px-2 py-1 text-sm ${
-                            item.unit_price > 0 && item.variant ? 'border-blue-300 bg-blue-50' : ''
-                          }`}
+                          className='w-24 rounded-md border border-gray-300 px-2 py-1 text-sm'
                           min='0'
                           disabled={isSubmitting}
                         />
                       </div>
                       <div className='flex w-20 items-center justify-center px-3 py-2'>
                         <div className='text-sm leading-tight font-normal text-gray-900'>
-                          {(item.quantity && item.unit_price
+                          {(item.quantity && item.cost_price
                             ? includesTax
-                              ? item.quantity * item.unit_price
-                              : Math.round(item.quantity * item.unit_price * 1.1)
+                              ? item.quantity * item.cost_price
+                              : Math.round(item.quantity * item.cost_price * 1.1)
                             : 0
                           ).toLocaleString()}
                           원

@@ -33,9 +33,6 @@ export const updateInventoryVariant = (variantId: string, data: Partial<ProductV
       return response;
     })
     .catch((error) => {
-      console.error('updateInventoryVariant - error:', error);
-      console.error('updateInventoryVariant - error response:', error.response?.data);
-      console.error('updateInventoryVariant - error status:', error.response?.status);
       throw error;
     });
 };
@@ -96,7 +93,6 @@ export const checkProductNameExists = async (
     );
     return { isDuplicate };
   } catch (e) {
-    console.error('상품명 중복 체크 실패:', e);
     return {
       isDuplicate: false,
       error: '상품명 중복 확인 중 오류가 발생했습니다. 네트워크 연결을 확인해주세요.',
@@ -107,13 +103,10 @@ export const checkProductNameExists = async (
 // 병합용 전체 데이터 조회 (큰 page_size로 최소한의 요청)
 export const fetchAllInventoriesForMerge = async (): Promise<ProductVariant[]> => {
   try {
-    console.log('🚀 병합용 전체 데이터 로드 시작... (export endpoint)');
     const response = await fetchInventoriesForExport();
     const data: ProductVariant[] = response.data || [];
-    console.log(`✅ 병합용 데이터 로드 완료: ${data.length}개`);
     return data;
   } catch (error) {
-    console.error('전체 데이터 로드 실패:', error);
     throw error;
   }
 };
@@ -134,7 +127,6 @@ export const fetchFilteredInventoriesForExport = async (
   appliedFilters: InventoryExportFilters
 ): Promise<ProductVariant[]> => {
   try {
-    console.log('🚀 엑셀 익스포트용 데이터 한 번에 로드 시작...');
 
     // 백엔드 필터 (상태 필터와 페이지 관련 제외)
     const backendFilters = { ...appliedFilters };
@@ -156,7 +148,6 @@ export const fetchFilteredInventoriesForExport = async (
       const pageData = response.data.results || [];
       allData = [...allData, ...pageData];
 
-      console.log(`📄 Export Page ${page} 로드됨: ${pageData.length}개 (총 ${allData.length}개)`);
 
       hasMoreData = response.data.next !== null;
       page++;
@@ -211,10 +202,8 @@ export const fetchFilteredInventoriesForExport = async (
       return true;
     });
 
-    console.log(`✅ 엑셀 익스포트용 데이터 로드 완료: ${filteredData.length}개`);
     return filteredData;
   } catch (error) {
-    console.error('필터링된 데이터 로드 실패:', error);
     throw error;
   }
 };
@@ -234,8 +223,6 @@ export const adjustStock = (
       return response;
     })
     .catch((error) => {
-      console.error('adjustStock - error:', error);
-      console.error('adjustStock - error response:', error.response?.data);
       throw error;
     });
 };
@@ -248,7 +235,6 @@ export const fetchStockAdjustments = (params?: { page?: number; variant_code?: s
       return response;
     })
     .catch((error) => {
-      console.error('fetchStockAdjustments - error:', error);
       throw error;
     });
 };
@@ -261,7 +247,6 @@ export const fetchInventorySnapshots = (params?: { page?: number }) => {
       return response;
     })
     .catch((error) => {
-      console.error('fetchInventorySnapshots - error:', error);
       throw error;
     });
 };
@@ -274,7 +259,6 @@ export const fetchInventorySnapshot = (id: number) => {
       return response;
     })
     .catch((error) => {
-      console.error('fetchInventorySnapshot - error:', error);
       throw error;
     });
 };
@@ -287,7 +271,6 @@ export const rollbackToSnapshot = (snapshotId: number, reason?: string) => {
       return response;
     })
     .catch((error) => {
-      console.error('rollbackToSnapshot - error:', error);
       throw error;
     });
 };
@@ -303,8 +286,9 @@ export const mergeVariants = async (payload: {
       return response;
     })
     .catch((error) => {
-      console.error('mergeVariants - error:', error);
-      console.error('mergeVariants - error response:', error.response?.data);
       throw error;
     });
 };
+
+// 카테고리 목록 조회
+export const fetchCategories = () => api.get('/inventory/category/');

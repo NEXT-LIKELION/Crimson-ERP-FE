@@ -33,6 +33,15 @@ export interface ProductVariant {
   suppliers: string;      // readOnly, 표시용 텍스트 (string 타입)
 }
 
+// 스냅샷 관련 타입 정의
+export interface InventorySnapshot {
+  id: number;
+  created_at: string;
+  reason: string;
+  actor?: string;
+  meta?: Record<string, any>;
+}
+
 // ProductVariant 생성용
 export interface ProductVariantCreate {
   product_id: string;     // readOnly
@@ -45,6 +54,7 @@ export interface ProductVariantCreate {
   description: string;
   memo: string;
   name: string;
+  channels: string[];
   suppliers: SupplierVariantUpdate[]; // 실제 매핑 정보 배열
 }
 
@@ -172,6 +182,7 @@ export interface ProductFormData {
   min_stock: number;
   description: string;
   memo: string;
+  channels: string[];
   suppliers: ProductSupplierData[];
 }
 

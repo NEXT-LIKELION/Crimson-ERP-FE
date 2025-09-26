@@ -1,9 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import {
   fetchInventorySnapshots,
   fetchInventorySnapshot,
   rollbackToSnapshot
 } from '../../api/inventory';
+import { detectUploadChannel, getAllChannelUpdateDates } from '../../utils/snapshotAnalyzer';
 
 // 스냅샷 목록 조회
 export const useInventorySnapshots = ({ page = 1 }: { page?: number } = {}) => {
@@ -21,6 +23,41 @@ export const useInventorySnapshot = (id: number) => {
     queryFn: () => fetchInventorySnapshot(id),
     enabled: !!id,
   });
+};
+
+// 채널 정보가 포함된 스냅샷 목록 조회
+export const useSnapshotsWithChannelInfo = ({ page = 1 }: { page?: number } = {}) => {
+  const { data: snapshotsData, ...rest } = useInventorySnapshots({ page });
+
+  const snapshotsWithChannel = useMemo(() => {
+    if (!snapshotsData?.results || snapshotsData.results.length === 0) {
+      return [];
+    }
+
+    const snapshots = snapshotsData.results;
+
+    return snapshots.map((snapshot: any, index: number) => {
+      const previousSnapshot = snapshots[index + 1];
+      const detectedChannel = previousSnapshot
+        ? detectUploadChannel(snapshot, previousSnapshot)
+        : null;
+
+      return {
+        ...snapshot,
+        detectedChannel
+      };
+    });
+  }, [snapshotsData]);
+
+  const channelUpdateDates = useMemo(() => {
+    return getAllChannelUpdateDates(snapshotsWithChannel);
+  }, [snapshotsWithChannel]);
+
+  return {
+    snapshots: snapshotsWithChannel,
+    channelUpdateDates,
+    ...rest
+  };
 };
 
 // 롤백 실행
