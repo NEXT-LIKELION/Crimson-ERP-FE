@@ -233,7 +233,6 @@ const InventoryPage = () => {
     if (allMergeData.length === 0) {
       setIsMergeDataLoading(true);
       try {
-        console.log('🔄 Loading merge data...');
         const allData = await fetchAllInventoriesForMerge();
         setAllMergeData(allData);
       } catch (error) {
@@ -725,7 +724,6 @@ const InventoryPage = () => {
               newFilters.max_sales = maxSalesValue;
             }
 
-            console.log('🔍 Setting applied filters:', newFilters);
             setAppliedFilters(newFilters);
             updateURL(newFilters);
           }}

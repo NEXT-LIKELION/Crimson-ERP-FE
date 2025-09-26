@@ -245,7 +245,6 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
               });
             } catch (error) {
               // 이미 매핑된 경우는 무시 (409 에러 등)
-              console.log(`매핑 건너뜀 (이미 존재하거나 오류): ${variant_code}`, error);
             }
           });
 

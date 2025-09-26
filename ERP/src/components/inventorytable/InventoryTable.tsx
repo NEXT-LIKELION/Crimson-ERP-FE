@@ -181,7 +181,6 @@ const InventoryTable = ({
     const handleScroll = () => {
       // 스크롤이 시작되면 hasScrolled를 true로 설정
       if (mainContainer.scrollTop > 0 && !hasScrolled) {
-        console.log('📜 User started scrolling - Enabling infinite scroll');
         setHasScrolled(true);
       }
     };
