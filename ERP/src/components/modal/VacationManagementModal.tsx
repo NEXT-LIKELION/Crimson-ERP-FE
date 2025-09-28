@@ -99,7 +99,7 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
     }
 
     try {
-      const result = await reviewVacationMutation.mutateAsync({ vacationId, status: newStatus });
+      await reviewVacationMutation.mutateAsync({ vacationId, status: newStatus });
 
       // 자연스러운 메시지로 변경
       let message = '';

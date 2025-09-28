@@ -14,10 +14,19 @@ interface Snapshot {
   created_at: string;
   reason: string;
   items?: SnapshotItem[];
+  meta?: {
+    upload_channel?: 'online' | 'offline';
+    upload_type?: string;
+    upload_reason?: string;
+    filename?: string;
+    filesize?: number;
+    [key: string]: any;
+  };
 }
 
 /**
- * 두 스냅샷 간 변경된 제품들을 찾는 함수
+ * 두 스냅샷 간 변경된 제품들을 찾는 함수 (필요시 사용)
+ * 현재는 meta.upload_channel을 직접 사용하므로 사용하지 않음
  */
 export const findChangedProducts = (
   currentItems: SnapshotItem[],
@@ -54,15 +63,19 @@ export const findChangedProducts = (
 };
 
 /**
- * 스냅샷 reason을 분석하여 온라인/오프라인 중 어떤 채널이 업데이트되었는지 추론
+ * 스냅샷에서 채널 정보를 추출 (백엔드 meta.upload_channel 우선 사용)
  */
 export const detectUploadChannel = (
-  currentSnapshot: Snapshot,
-  previousSnapshot: Snapshot
+  currentSnapshot: Snapshot
 ): 'online' | 'offline' | null => {
+  // 1️⃣ 최우선: 백엔드에서 제공하는 명확한 채널 정보
+  if (currentSnapshot.meta?.upload_channel) {
+    return currentSnapshot.meta.upload_channel;
+  }
+
+  // 2️⃣ Fallback: reason 필드에서 키워드 검색 (기존 데이터 호환성)
   const reason = currentSnapshot.reason || '';
 
-  // reason 필드에서 키워드 검색
   if (reason.includes('온라인') || reason.includes('online')) {
     return 'online';
   }
@@ -71,43 +84,8 @@ export const detectUploadChannel = (
     return 'offline';
   }
 
-  // POS 데이터 업로드인 경우 (백엔드에서 reason을 변경하지 않았으므로)
-  if (reason.includes('POS') || reason.includes('업로드')) {
-    // 임시로 온라인으로 간주 (실제로는 더 정교한 로직 필요)
-    return 'online';
-  }
-
-  // 기존 items 기반 분석 로직 (items가 있는 경우)
-  const currentItems = currentSnapshot.items || [];
-  const previousItems = previousSnapshot.items || [];
-
-  if (currentItems.length === 0 || previousItems.length === 0) {
-    return null;
-  }
-
-  const changedProducts = findChangedProducts(currentItems, previousItems);
-
-  if (changedProducts.length === 0) return null;
-
-  // 변경된 제품들의 채널 분포 분석
-  let onlineCount = 0;
-  let offlineCount = 0;
-
-  for (const product of changedProducts) {
-    const channels = product.channels || [];
-
-    if (channels.includes('online')) {
-      onlineCount++;
-    }
-    if (channels.includes('offline')) {
-      offlineCount++;
-    }
-  }
-
-  // POS는 무조건 하나의 채널만 업데이트하므로 더 많은 쪽으로 판단
-  if (onlineCount === 0 && offlineCount === 0) return null;
-
-  return onlineCount >= offlineCount ? 'online' : 'offline';
+  // 3️⃣ 알 수 없는 경우
+  return null;
 };
 
 /**
@@ -128,7 +106,7 @@ export const getLatestUpdateByChannel = (
 };
 
 /**
- * 모든 채널의 최신 업데이트 날짜를 반환
+ * 모든 채널의 최신 업데이트 날짜를 반환 (최적화된 버전)
  */
 export const getAllChannelUpdateDates = (
   snapshots: (Snapshot & { detectedChannel?: 'online' | 'offline' | null })[]
@@ -137,9 +115,48 @@ export const getAllChannelUpdateDates = (
   offlineDate: string | null;
   allDate: string | null;
 } => {
+  if (!snapshots || snapshots.length === 0) {
+    return {
+      onlineDate: null,
+      offlineDate: null,
+      allDate: null,
+    };
+  }
+
+  let onlineDate: string | null = null;
+  let offlineDate: string | null = null;
+  const allDate = snapshots[0]?.created_at || null;
+
+  // 한 번의 순회로 온라인/오프라인 최신 날짜 찾기
+  for (const snapshot of snapshots) {
+    if (snapshot.detectedChannel === 'online' && !onlineDate) {
+      onlineDate = snapshot.created_at;
+    }
+    if (snapshot.detectedChannel === 'offline' && !offlineDate) {
+      offlineDate = snapshot.created_at;
+    }
+
+    // 둘 다 찾았으면 조기 종료
+    if (onlineDate && offlineDate) {
+      break;
+    }
+  }
+
   return {
-    onlineDate: getLatestUpdateByChannel(snapshots, 'online'),
-    offlineDate: getLatestUpdateByChannel(snapshots, 'offline'),
-    allDate: getLatestUpdateByChannel(snapshots, 'all'),
+    onlineDate,
+    offlineDate,
+    allDate,
   };
+};
+
+/**
+ * 스냅샷이 유효한 업로드 스냅샷인지 확인
+ */
+export const isValidUploadSnapshot = (snapshot: Snapshot): boolean => {
+  // POS 데이터 업로드 관련 스냅샷만 고려
+  const reason = snapshot.reason || '';
+  const hasUploadKeyword = reason.includes('업로드') || reason.includes('POS');
+  const hasChannelInfo = !!snapshot.meta?.upload_channel;
+
+  return hasUploadKeyword || hasChannelInfo;
 };

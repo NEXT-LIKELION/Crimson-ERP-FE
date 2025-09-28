@@ -41,6 +41,7 @@ interface EditForm {
   description?: string;
   memo?: string;
   suppliers: SupplierForm[];
+  channels: string[];
 }
 
 const EditProductModal = ({
@@ -55,9 +56,10 @@ const EditProductModal = ({
   const [form, setForm] = useState<EditForm>({
     ...product,
     stock: product.stock ?? 0,
-    suppliers: Array.isArray(product.suppliers) 
+    suppliers: Array.isArray(product.suppliers)
       ? product.suppliers.map(s => ({ supplier_name: s.name, cost_price: s.cost_price, is_primary: s.is_primary }))
       : [{ supplier_name: '', cost_price: 0, is_primary: false }],
+    channels: product.channels || [],
   });
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -77,7 +79,7 @@ const EditProductModal = ({
     });
   };
 
-  const handleChange = (field: string, value: string | number) => {
+  const handleChange = (field: string, value: string | number | string[]) => {
     setForm((prev: EditForm) => ({ ...prev, [field]: value }));
   };
 
@@ -98,6 +100,7 @@ const EditProductModal = ({
     const errs = [];
     if (!form.name?.trim()) errs.push('상품명을 입력해주세요.');
     if (!form.price || isNaN(Number(form.price))) errs.push('판매가는 숫자여야 합니다.');
+    if (!form.channels || form.channels.length === 0) errs.push('판매 채널을 최소 하나 이상 선택해주세요.');
     // 원가 데이터 유효성 검사 - 빈 값이면 0으로 처리
     const costPrice =
       form.cost_price === '' || form.cost_price === undefined ? 0 : Number(form.cost_price);
@@ -123,6 +126,7 @@ const EditProductModal = ({
       min_stock: Number(form.min_stock) || 0, // 최소재고가 없는 경우 0으로 설정
       description: form.description || '',
       memo: form.memo || '',
+      channels: form.channels, // 판매 채널 추가
       suppliers: filteredSuppliers.map((s) => ({
         name: s.supplier_name, // 백엔드가 기대하는 'name' 필드로 변경
         cost_price: Number(s.cost_price) || 0, // 원가 데이터가 없는 경우 0으로 설정
@@ -144,6 +148,7 @@ const EditProductModal = ({
         memo: product.memo || '',
         min_stock: product.min_stock || 0, // 최소재고가 없는 경우 0으로 설정
         cost_price: product.cost_price || 0, // 원가 데이터가 없는 경우 0으로 설정
+        channels: product.channels || [], // 채널 데이터 로딩
         suppliers: Array.isArray(product.suppliers)
             ? product.suppliers.map((s: { name: string; cost_price?: number; is_primary?: boolean }) => ({
                 supplier_name: s.name,
@@ -258,6 +263,46 @@ const EditProductModal = ({
                 <p className='mt-1 text-xs text-gray-500'>
                   재고가 이 수준 이하로 떨어지면 경고가 표시됩니다.
                 </p>
+
+                {/* 판매 채널 선택 */}
+                <div className='mt-4'>
+                  <label className='mb-2 block text-sm font-medium text-gray-700'>
+                    판매 채널 <span className='text-red-500'>*</span>
+                  </label>
+                  <div className='flex gap-4'>
+                    <label className='flex items-center'>
+                      <input
+                        type='checkbox'
+                        checked={form.channels.includes('online')}
+                        onChange={(e) => {
+                          const channels = e.target.checked
+                            ? [...form.channels, 'online']
+                            : form.channels.filter((c) => c !== 'online');
+                          handleChange('channels', channels);
+                        }}
+                        className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                      />
+                      온라인
+                    </label>
+                    <label className='flex items-center'>
+                      <input
+                        type='checkbox'
+                        checked={form.channels.includes('offline')}
+                        onChange={(e) => {
+                          const channels = e.target.checked
+                            ? [...form.channels, 'offline']
+                            : form.channels.filter((c) => c !== 'offline');
+                          handleChange('channels', channels);
+                        }}
+                        className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                      />
+                      오프라인
+                    </label>
+                  </div>
+                  <p className='mt-1 text-xs text-gray-500'>
+                    온라인, 오프라인 중 최소 하나 이상 선택해야 합니다. 중복 선택도 가능합니다.
+                  </p>
+                </div>
               </div>
             </section>
           </div>

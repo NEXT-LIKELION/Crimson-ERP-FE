@@ -24,7 +24,7 @@ import StockAdjustmentModal from '../../components/modal/StockAdjustmentModal';
 import StockHistoryModal from '../../components/modal/StockHistoryModal';
 import InventoryRollbackModal from '../../components/modal/InventoryRollbackModal';
 import InventoryTabs from '../../components/tabs/InventoryTabs';
-import { Product } from '../../types/product';
+import { Product, InventorySnapshot } from '../../types/product';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useQueryClient } from '@tanstack/react-query';
@@ -59,12 +59,8 @@ const InventoryPage = () => {
 
     const snapshots = snapshotsData.results;
 
-    return snapshots.map((snapshot: any, index: number) => {
-      const previousSnapshot = snapshots[index + 1];
-      const detectedChannel = previousSnapshot
-        ? detectUploadChannel(snapshot, previousSnapshot)
-        : null;
-
+    return snapshots.map((snapshot: InventorySnapshot) => {
+      const detectedChannel = detectUploadChannel(snapshot);
 
       return {
         ...snapshot,
@@ -301,6 +297,13 @@ const InventoryPage = () => {
 
   const handleAddSave = async () => {
     try {
+      // React Query 캐시 무효화 - 상품 관련 모든 쿼리 새로고침
+      await queryClient.invalidateQueries({ queryKey: ['inventories'] });
+      await queryClient.invalidateQueries({ queryKey: ['productOptions'] });
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.invalidateQueries({ queryKey: ['inventory'] });
+
+      // 데이터 새로고침
       await refetch();
       alert('상품이 성공적으로 추가되었습니다.');
     } catch (err) {

@@ -26,11 +26,12 @@ export interface ProductVariant {
   min_stock: number;
   description: string;
   memo: string;
-  cost_price: string;     // readOnly, 계산된 값 (string 타입)
+  cost_price: number;     // readOnly, 기본 원가 (number 타입)
   order_count: number;    // readOnly
   return_count: number;   // readOnly
   sales: string;          // readOnly, 계산된 값 (string 타입)
   suppliers: string;      // readOnly, 표시용 텍스트 (string 타입)
+  channels: string[];     // 판매 채널 목록
 }
 
 // 스냅샷 관련 타입 정의
@@ -39,7 +40,14 @@ export interface InventorySnapshot {
   created_at: string;
   reason: string;
   actor?: string;
-  meta?: Record<string, any>;
+  meta?: {
+    upload_channel?: 'online' | 'offline';
+    upload_type?: string;
+    upload_reason?: string;
+    filename?: string;
+    filesize?: number;
+    [key: string]: any;
+  };
 }
 
 // ProductVariant 생성용
@@ -70,10 +78,11 @@ export interface Product {
   option?: string;
   price?: number | string;
   stock?: number;
-  cost_price?: number | string;    // API: string, 프론트: number 허용
+  cost_price?: number | string;    // API: number, 프론트: number/string 허용
   min_stock?: number;
   variant_id?: number | string;
   variant_code?: string;
+  channels?: string[];             // 판매 채널
   orderCount?: number;
   returnCount?: number;
   order_count?: number;

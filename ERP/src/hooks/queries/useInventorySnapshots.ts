@@ -6,6 +6,7 @@ import {
   rollbackToSnapshot
 } from '../../api/inventory';
 import { detectUploadChannel, getAllChannelUpdateDates } from '../../utils/snapshotAnalyzer';
+import { InventorySnapshot } from '../../types/product';
 
 // 스냅샷 목록 조회
 export const useInventorySnapshots = ({ page = 1 }: { page?: number } = {}) => {
@@ -36,11 +37,8 @@ export const useSnapshotsWithChannelInfo = ({ page = 1 }: { page?: number } = {}
 
     const snapshots = snapshotsData.results;
 
-    return snapshots.map((snapshot: any, index: number) => {
-      const previousSnapshot = snapshots[index + 1];
-      const detectedChannel = previousSnapshot
-        ? detectUploadChannel(snapshot, previousSnapshot)
-        : null;
+    return snapshots.map((snapshot: InventorySnapshot) => {
+      const detectedChannel = detectUploadChannel(snapshot);
 
       return {
         ...snapshot,
