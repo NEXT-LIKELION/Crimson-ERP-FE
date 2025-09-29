@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FiSearch, FiLoader } from 'react-icons/fi';
 import { useProductSearch } from '../../hooks/queries/useProductSearch';
 import { ProductOption } from '../../types/product';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
 interface ProductSearchInputProps {
   placeholder?: string;
@@ -17,12 +18,14 @@ const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
   disabled = false,
 }) => {
   const [query, setQuery] = useState(value);
-  const [searchQuery, setSearchQuery] = useState(''); // 실제 검색에 사용되는 쿼리
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // 디바운스된 검색어
+  const debouncedQuery = useDebouncedValue(query.trim(), 300);
 
   // useProductSearch 훅 사용
   const {
@@ -32,7 +35,7 @@ const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
     fetchNextPage,
     isFetchingNextPage,
   } = useProductSearch({
-    product_name: searchQuery || undefined, // 빈 문자열이면 undefined로 전체 검색
+    product_name: debouncedQuery || undefined, // 빈 문자열이면 undefined로 전체 검색
   });
 
   // 검색 결과가 있으면 드롭다운 열기
@@ -97,10 +100,13 @@ const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
     }
   };
 
-  // 검색 실행 함수
+  // 검색 실행 함수 (디바운스로 자동 실행되므로 단순화)
   const handleSearch = () => {
-    setSearchQuery(query.trim());
     setSelectedIndex(-1);
+    // 검색 결과가 있으면 드롭다운 열기
+    if (searchResults && searchResults.length > 0) {
+      setIsDropdownOpen(true);
+    }
   };
 
   const handleSelect = (product: ProductOption) => {
@@ -160,7 +166,7 @@ const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
           }}>
           {searchResults.length === 0 && !isSearching ? (
             <div className='px-3 py-2 text-sm text-gray-500'>
-              {searchQuery ? '검색 결과가 없습니다' : 'Enter키를 눌러 검색하세요'}
+              {debouncedQuery ? '검색 결과가 없습니다' : '상품명을 입력하세요'}
             </div>
           ) : (
             <>

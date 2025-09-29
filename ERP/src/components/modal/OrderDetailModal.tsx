@@ -522,9 +522,14 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
       // 상태 변경 메시지 생성
       const statusText = getStatusDisplayName(newStatus);
 
-      if (stock_changes && stock_changes.length > 0) {
-        // 재고 변경이 있는 경우
-        const stockMessage = stock_changes
+      // 실제 재고 변경이 있는 항목만 필터링
+      const actualStockChanges = stock_changes?.filter(
+        (s: { stock_before: number; stock_after: number }) => s.stock_before !== s.stock_after
+      ) || [];
+
+      if (actualStockChanges.length > 0) {
+        // 실제 재고 변경이 있는 경우
+        const stockMessage = actualStockChanges
           .map(
             (s: { name: string; option: string; stock_before: number; stock_after: number; quantity: number }) =>
               `${s.name}(${s.option}): ${s.stock_before} → ${s.stock_after} (+${s.quantity})`

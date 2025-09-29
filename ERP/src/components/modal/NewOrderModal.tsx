@@ -629,52 +629,50 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
               </div>
             </div>
             <div className='overflow-visible rounded-md border border-gray-200'>
-              <div className='min-w-[1000px]'>
-                {' '}
-                {/* 기존보다 100px 넓힘 */}
+              <div className='min-w-[1100px] table-fixed'>
                 {/* Table Header */}
-                <div className='h-8 bg-gray-50'>
-                  <div className='flex h-8'>
-                    <div className='flex w-32 items-center px-3 py-2'>
+                <div className='h-12 bg-gray-50 border-b border-gray-200'>
+                  <div className='flex h-12 items-center'>
+                    <div className='flex w-36 items-center justify-start px-3 py-2 flex-shrink-0'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>
                         상품 <span className='text-red-500'>*</span>
                       </span>
                     </div>
-                    <div className='flex w-32 items-center px-3 py-2'>
+                    <div className='flex w-36 items-center justify-start px-3 py-2 flex-shrink-0'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>
                         상세 <span className='text-red-500'>*</span>
                       </span>
                     </div>
-                    <div className='flex w-32 items-center px-3 py-2'>
+                    <div className='flex w-32 items-center justify-start px-3 py-2 flex-shrink-0'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>
                         규격
                       </span>
                     </div>
-                    <div className='flex w-20 items-center px-3 py-2'>
+                    <div className='flex w-20 items-center justify-center px-3 py-2 flex-shrink-0'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>단위</span>
                     </div>
-                    <div className='flex w-24 items-center px-3 py-2'>
+                    <div className='flex w-24 items-center justify-center px-3 py-2 flex-shrink-0'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>
                         수량 <span className='text-red-500'>*</span>
                       </span>
                     </div>
-                    <div className='flex w-28 items-center px-3 py-2'>
+                    <div className='flex w-28 items-center justify-center px-3 py-2 flex-shrink-0'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>
                         매입가 <span className='text-red-500'>*</span>
                       </span>
                     </div>
-                    <div className='flex w-28 items-center px-3 py-2'>
+                    <div className='flex w-28 items-center justify-center px-3 py-2 flex-shrink-0'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>
                         판매가
                       </span>
                     </div>
-                    <div className='flex w-20 items-center px-3 py-2'>
+                    <div className='flex w-24 items-center justify-center px-3 py-2 flex-shrink-0'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>금액</span>
                     </div>
-                    <div className='flex w-32 items-center px-3 py-2'>
+                    <div className='flex w-32 items-center justify-start px-3 py-2 flex-shrink-0'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>비고</span>
                     </div>
-                    <div className='flex w-14 items-center justify-center px-4 py-2'>
+                    <div className='flex w-16 items-center justify-center px-2 py-2 flex-shrink-0'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>삭제</span>
                     </div>
                   </div>
@@ -682,10 +680,10 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 {/* Table Body */}
                 <div className='bg-white'>
                   {items.map((item, idx) => (
-                    <div key={idx} className='flex h-24 border-t border-gray-200'>
+                    <div key={idx} className='flex h-24 border-t border-gray-200 items-center'>
                       {/* 상품 검색 및 드롭다운 */}
-                      <div className='flex w-32 items-start px-3 py-2'>
-                        <div className='flex w-full flex-col gap-1'>
+                      <div className='flex w-36 items-center px-3 py-2 flex-shrink-0'>
+                        <div className='flex w-full flex-col gap-2'>
                           {/* 상품 검색 */}
                           <ProductSearchInput
                             placeholder='기존 상품 검색...'
@@ -707,7 +705,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                         </div>
                       </div>
                       {/* 품목 드롭다운 */}
-                      <div className='flex w-32 items-center px-3 py-2'>
+                      <div className='flex w-36 items-center px-3 py-2 flex-shrink-0'>
                         <SelectInput
                           defaultText='품목 선택'
                           options={
@@ -722,7 +720,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting || !item.product_id}
                         />
                       </div>
-                      <div className='flex w-32 items-center px-3 py-2'>
+                      <div className='flex w-32 items-center px-3 py-2 flex-shrink-0'>
                         <input
                           type='text'
                           value={item.spec}
@@ -734,7 +732,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-20 items-center px-3 py-2'>
+                      <div className='flex w-20 items-center justify-center px-3 py-2 flex-shrink-0'>
                         <input
                           type='text'
                           value={item.unit}
@@ -743,46 +741,46 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-24 items-center px-3 py-2'>
+                      <div className='flex w-24 items-center justify-center px-3 py-2 flex-shrink-0'>
                         <input
                           type='number'
                           value={item.quantity}
                           onChange={(e) =>
                             handleItemChange(idx, 'quantity', parseInt(e.target.value) || 0)
                           }
-                          className='w-20 rounded-md border border-gray-300 px-2 py-1 text-sm'
+                          className='w-full rounded-md border border-gray-300 px-2 py-1 text-center text-sm'
                           min='1'
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-28 items-center px-3 py-2'>
+                      <div className='flex w-28 items-center justify-center px-3 py-2 flex-shrink-0'>
                         <input
                           type='number'
                           value={item.cost_price}
                           onChange={(e) =>
                             handleItemChange(idx, 'cost_price', parseInt(e.target.value) || 0)
                           }
-                          className={`w-24 rounded-md border border-gray-300 px-2 py-1 text-sm ${
+                          className={`w-full rounded-md border border-gray-300 px-2 py-1 text-center text-sm ${
                             item.cost_price > 0 && item.variant ? 'border-blue-300 bg-blue-50' : ''
                           }`}
                           min='0'
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-28 items-center px-3 py-2'>
+                      <div className='flex w-28 items-center justify-center px-3 py-2 flex-shrink-0'>
                         <input
                           type='number'
                           value={item.unit_price}
                           onChange={(e) =>
                             handleItemChange(idx, 'unit_price', parseInt(e.target.value) || 0)
                           }
-                          className='w-24 rounded-md border border-gray-300 px-2 py-1 text-sm'
+                          className='w-full rounded-md border border-gray-300 px-2 py-1 text-center text-sm'
                           min='0'
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-20 items-center justify-center px-3 py-2'>
-                        <div className='text-sm leading-tight font-normal text-gray-900'>
+                      <div className='flex w-24 items-center justify-center px-3 py-2 flex-shrink-0'>
+                        <div className='text-sm font-medium text-gray-900 text-center'>
                           {(item.quantity && item.cost_price
                             ? includesTax
                               ? item.quantity * item.cost_price
@@ -792,7 +790,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           원
                         </div>
                       </div>
-                      <div className='flex w-32 items-center px-3 py-2'>
+                      <div className='flex w-32 items-center px-3 py-2 flex-shrink-0'>
                         <input
                           type='text'
                           value={item.remark}
@@ -802,28 +800,29 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-14 items-center justify-center px-3 py-2'>
+                      <div className='flex w-16 items-center justify-center px-2 py-2 flex-shrink-0'>
                         <button
                           type='button'
-                          className='text-red-500 hover:text-red-700'
+                          className='text-red-500 hover:text-red-700 p-1'
                           onClick={() => handleRemoveItem(idx)}
                           disabled={isSubmitting}>
-                          <FiTrash2 className='h-5 w-5' />
+                          <FiTrash2 className='h-4 w-4' />
                         </button>
                       </div>
                     </div>
                   ))}
 
                   {/* Total Row */}
-                  <div className='flex h-9 border-t border-gray-200 bg-gray-50'>
-                    <div className='flex w-[577px] items-center justify-end px-3 py-2'>
-                      <span className='text-sm font-medium text-gray-900'>합계</span>
+                  <div className='flex h-12 border-t-2 border-gray-300 bg-gray-50 items-center'>
+                    <div className='flex w-[624px] items-center justify-end px-3 py-2'>
+                      <span className='text-sm font-semibold text-gray-900'>합계</span>
                     </div>
-                    <div className='flex w-72 items-center px-3 py-2'>
+                    <div className='flex w-24 items-center justify-center px-3 py-2'>
                       <span className='text-sm font-bold text-gray-900'>
                         {calculateTotal().toLocaleString()}원
                       </span>
                     </div>
+                    <div className='flex w-[452px] items-center px-3 py-2'></div>
                   </div>
                 </div>
               </div>
