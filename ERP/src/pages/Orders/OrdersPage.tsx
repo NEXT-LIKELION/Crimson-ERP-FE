@@ -108,7 +108,6 @@ const OrdersPage: React.FC = () => {
 
   useEffect(() => {
     if (error) {
-      console.error('Order fetch error:', error);
       setDebugInfo((prev) => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -118,7 +117,6 @@ const OrdersPage: React.FC = () => {
 
   useEffect(() => {
     if (data?.data) {
-      console.log('Setting orders data:', data.data);
       if (data.data.results) {
         // 페이지네이션된 응답
         setOrders(Array.isArray(data.data.results) ? data.data.results : []);
@@ -144,8 +142,7 @@ const OrdersPage: React.FC = () => {
           );
         });
       })
-      .catch((error) => {
-        console.error('Failed to fetch inventories:', error);
+      .catch(() => {
         alert('상품 데이터를 불러오는데 실패했습니다.');
       });
   }, []);
@@ -159,8 +156,7 @@ const OrdersPage: React.FC = () => {
           mapping[supplier.name] = supplier.id;
         });
       })
-      .catch((error) => {
-        console.error('Failed to fetch suppliers:', error);
+      .catch(() => {
         alert('공급업체 데이터를 불러오는데 실패했습니다.');
       });
   }, []);
@@ -169,19 +165,16 @@ const OrdersPage: React.FC = () => {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        console.warn('Invalid date string:', dateString);
         return '날짜 없음';
       }
       return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
     } catch (error) {
-      console.error('Date formatting error:', error);
+      return '날짜 오류';
     }
   }, []);
 
   const filteredOrders = useMemo(() => {
-    console.log('Filtering orders:', { orders, searchFilters }); // 디버깅 로그
     if (!Array.isArray(orders)) {
-      console.warn('orders is not an array:', orders);
       return [];
     }
     let result = [...orders];
@@ -283,7 +276,6 @@ const OrdersPage: React.FC = () => {
         }) as Order
     );
 
-    console.log('Filtered results:', result); // 디버깅 로그
     return result;
   }, [orders, searchFilters, formatDate]);
 
@@ -305,14 +297,10 @@ const OrdersPage: React.FC = () => {
 
   const handleDownloadOrderExcel = async (order: Order) => {
     try {
-      console.log('주문 상세 요청 시작');
       const res = await axios.get(`/orders/${order.id}`);
-      console.log('주문 상세 응답', res.data);
       const orderDetail = res.data;
       // 2. 전체 공급업체 목록 fetch
-      console.log('공급업체 목록 요청');
       const suppliersRes = await fetchSuppliers();
-      console.log('공급업체 목록 응답', suppliersRes.data);
       const suppliers = suppliersRes.data;
       // 3. orderDetail.supplier(이름)과 suppliers의 name을 비교해 매칭
       const supplierDetail = suppliers.find(
@@ -323,14 +311,10 @@ const OrdersPage: React.FC = () => {
         manager: '',
         email: '',
       };
-      console.log('엑셀 템플릿 fetch');
       const response = await fetch('/data/template.xlsx');
-      console.log('엑셀 템플릿 fetch 완료', response);
       const arrayBuffer = await response.arrayBuffer();
-      console.log('xlsx-populate import');
       const XlsxPopulate = (await import('xlsx-populate/browser/xlsx-populate-no-encryption'))
         .default;
-      console.log('xlsx-populate import 완료', XlsxPopulate);
       const workbook = await XlsxPopulate.fromDataAsync(arrayBuffer);
       const sheet = workbook.sheet(0);
       // 4. 셀 값 매핑 (OrderDetailModal.tsx와 동일)
@@ -406,15 +390,11 @@ const OrdersPage: React.FC = () => {
         }
       }
       // 5. 파일 저장
-      console.log('saveAs import');
       const saveAs = (await import('file-saver')).saveAs;
-      console.log('saveAs import 완료', saveAs);
       const blob = await workbook.outputAsync();
       saveAs(blob, `(주)고대미래_발주서_${orderDetail.id}.xlsx`);
-      console.log('엑셀 파일 저장 완료');
     } catch (error) {
-      console.error('엑셀 다운로드 중 오류 발생:', error);
-      alert('엑셀 생성 중 오류가 발생했습니다. 콘솔을 확인해 주세요.');
+      alert('엑셀 파일 생성 중 오류가 발생했습니다.');
     }
   };
 
@@ -432,11 +412,6 @@ const OrdersPage: React.FC = () => {
 
   const handleSearch = () => {
     // 유효성 검사 및 확인용 - 실제 필터링은 useEffect가 자동으로 처리
-    console.log('검색 버튼 클릭 - 자동 필터링이 이미 적용됨', {
-      searchInputs,
-      debouncedOrderId,
-      debouncedSupplier,
-    });
   };
 
   // 자동 적용: 텍스트 입력은 디바운스 후 즉시 필터 반영
@@ -515,7 +490,6 @@ const OrdersPage: React.FC = () => {
 
   const formatCurrency = useCallback((amount: string | number | undefined) => {
     if (amount === undefined || amount === null) {
-      console.warn('Attempted to format undefined amount');
       return '0원';
     }
     try {
@@ -523,7 +497,6 @@ const OrdersPage: React.FC = () => {
       const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
       return `${numAmount.toLocaleString('ko-KR')}원`;
     } catch (error) {
-      console.error('Currency formatting error:', error);
       return '0원';
     }
   }, []);
@@ -654,7 +627,6 @@ const OrdersPage: React.FC = () => {
       const today = new Date().toISOString().split('T')[0];
       XLSX.writeFile(wb, `발주목록_${today}.xlsx`);
     } catch (error) {
-      console.error('Excel export error:', error);
       alert('엑셀 파일 생성 중 오류가 발생했습니다.');
     } finally {
       setIsExporting(false);
@@ -1013,7 +985,6 @@ const OrdersPage: React.FC = () => {
           isOpen={isOrderDetailModalOpen}
           onClose={() => setIsOrderDetailModalOpen(false)}
           isManager={permissions.hasPermission('ORDER')}
-          onApproveSuccess={() => refetch()}
         />
       )}
 
@@ -1028,6 +999,7 @@ const OrdersPage: React.FC = () => {
           }}
         />
       )}
+
     </div>
   );
 };

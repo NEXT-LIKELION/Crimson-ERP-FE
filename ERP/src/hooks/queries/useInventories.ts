@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { fetchInventories } from '../../api/inventory';
 import { Product, ProductVariant } from '../../types/product';
 
@@ -61,12 +61,14 @@ export const useInventories = (filters?: {
         page: pageParam,
         page_size: 20, // 항상 page_size 포함
       };
-      console.log('🔍 API Request Parameters:', finalParams);
       const response = await fetchInventories(finalParams);
       return response.data;
     },
-    getNextPageParam: () => {
-      // 항상 undefined 반환해서 자동 프리페치 완전 차단
+    getNextPageParam: (lastPage, allPages) => {
+      // 다음 페이지가 있는지 확인
+      if (lastPage.next) {
+        return allPages.length + 1;
+      }
       return undefined;
     },
     initialPageParam: 1,
@@ -79,11 +81,6 @@ export const useInventories = (filters?: {
     refetchOnReconnect: false,
   });
 
-  useEffect(() => {
-    if (query.isError) {
-      console.error('❌ 재고 목록 불러오기 실패:', query.error);
-    }
-  }, [query.isSuccess, query.isError, query.data, query.error]);
 
   // useInfiniteQuery 데이터 처리
   const allData = useMemo(() => {

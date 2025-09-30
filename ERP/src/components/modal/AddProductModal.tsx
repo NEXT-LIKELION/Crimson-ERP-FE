@@ -9,6 +9,7 @@ import {
   createProductWithVariant,
   fetchAllInventoriesForMerge,
   checkProductNameExists,
+  fetchCategories,
 } from '../../api/inventory';
 import { ProductSupplierData } from '../../types/product';
 import { useSuppliers } from '../../hooks/queries/useSuppliers';
@@ -25,6 +26,9 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
   const { data: suppliersData } = useSuppliers();
   const supplierOptions = suppliersData?.data?.map((s: Supplier) => s.name) || [];
 
+  // 상태 선언
+  const [productType, setProductType] = useState<'new' | 'existing'>('new');
+
   // 기존 상품 목록 조회
   const { data: productsData } = useQuery({
     queryKey: ['productOptions'],
@@ -37,22 +41,25 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
       label: `${p.product_id} - ${p.name}`,
     })) || [];
 
-  // 기존 데이터에서 카테고리 목록 추출
-  const { data: allInventoriesData } = useQuery({
-    queryKey: ['allInventories'],
-    queryFn: fetchAllInventoriesForMerge,
+  // 카테고리 목록 조회
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
     enabled: isOpen,
   });
 
+  // 기존 데이터에서 카테고리 목록 추출 (기존 상품의 카테고리 확인용)
+  const { data: allInventoriesData } = useQuery({
+    queryKey: ['allInventories'],
+    queryFn: fetchAllInventoriesForMerge,
+    enabled: isOpen && productType === 'existing',
+  });
+
   // 동적 카테고리 옵션 생성 + 새 카테고리 추가 옵션
-  const existingCategories = allInventoriesData
-    ? Array.from(new Set(allInventoriesData.map((item: ProductVariant) => item.category).filter(Boolean)))
-    : ['일반', '한정', '신상품']; // 로딩 중일 때 기본 카테고리
+  const existingCategories = categoriesData?.data || ['일반', '한정', '신상품'];
   const categoryOptions = [...existingCategories, '직접 입력'];
 
   const [isCustomCategory, setIsCustomCategory] = useState(false);
-
-  const [productType, setProductType] = useState<'new' | 'existing'>('new'); // 신상품 vs 기존상품 옵션 추가
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [form, setForm] = useState<ProductFormData>({
     name: '',
@@ -63,6 +70,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     min_stock: 0,
     description: '',
     memo: '',
+    channels: [],
     suppliers: [{ supplier_name: '', cost_price: 0, is_primary: true }],
   });
   const [errors, setErrors] = useState<string[]>([]);
@@ -89,13 +97,14 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
         min_stock: 0,
         description: '',
         memo: '',
+        channels: [],
         suppliers: [{ supplier_name: '', cost_price: 0, is_primary: true }],
       });
       setErrors([]);
     }
   }, [isOpen]);
 
-  const handleChange = (field: keyof ProductFormData, value: string | number) => {
+  const handleChange = (field: keyof ProductFormData, value: string | number | string[]) => {
     setForm((prev: ProductFormData) => ({ ...prev, [field]: value }));
   };
 
@@ -138,6 +147,8 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     if (!form.price || isNaN(Number(form.price))) errs.push('판매가는 숫자여야 합니다.');
     if (!form.suppliers || !form.suppliers[0]?.supplier_name)
       errs.push('공급업체 정보는 필수입니다.');
+    if (!form.channels || form.channels.length === 0)
+      errs.push('판매 채널을 최소 하나 이상 선택해주세요.');
 
     // 상품 유형별 유효성 검사
     if (productType === 'new') {
@@ -147,7 +158,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
       if (!selectedProductId) errs.push('기존 상품을 선택해주세요.');
     }
     if (errs.length > 0) {
-      setErrors(errs);
+      alert(errs.join('\n'));
       return;
     }
 
@@ -188,6 +199,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
           min_stock: Number(form.min_stock) || 0,
           description: form.description || '',
           memo: form.memo || '',
+          channels: form.channels,
           suppliers: form.suppliers
             .filter((s: { supplier_name: string }) => s.supplier_name)
             .map((s: ProductSupplierData) => ({
@@ -217,6 +229,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
           min_stock: Number(form.min_stock) || 0,
           description: form.description || '',
           memo: form.memo || '',
+          channels: form.channels,
           suppliers: form.suppliers
             .filter((s: { supplier_name: string }) => s.supplier_name)
             .map((s: ProductSupplierData) => ({
@@ -237,7 +250,6 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
       onSave(newProduct);
       onClose();
     } catch (err: unknown) {
-      console.error('상품 생성 실패:', err);
       alert('상품 생성 중 오류가 발생했습니다.');
     }
   };
@@ -390,6 +402,45 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                 <p className='mt-1 text-xs text-gray-500'>
                   재고가 이 수준 이하로 떨어지면 경고가 표시됩니다.
                 </p>
+
+                <div className='mt-4'>
+                  <label className='mb-2 block text-sm font-medium text-gray-700'>
+                    판매 채널 <span className='text-red-500'>*</span>
+                  </label>
+                  <div className='flex gap-4'>
+                    <label className='flex items-center'>
+                      <input
+                        type='checkbox'
+                        checked={form.channels.includes('online')}
+                        onChange={(e) => {
+                          const channels = e.target.checked
+                            ? [...form.channels, 'online']
+                            : form.channels.filter((c) => c !== 'online');
+                          handleChange('channels', channels);
+                        }}
+                        className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                      />
+                      온라인
+                    </label>
+                    <label className='flex items-center'>
+                      <input
+                        type='checkbox'
+                        checked={form.channels.includes('offline')}
+                        onChange={(e) => {
+                          const channels = e.target.checked
+                            ? [...form.channels, 'offline']
+                            : form.channels.filter((c) => c !== 'offline');
+                          handleChange('channels', channels);
+                        }}
+                        className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                      />
+                      오프라인
+                    </label>
+                  </div>
+                  <p className='mt-1 text-xs text-gray-500'>
+                    온라인, 오프라인 중 최소 하나 이상 선택해야 합니다. 중복 선택도 가능합니다.
+                  </p>
+                </div>
               </div>
             </section>
           </div>
