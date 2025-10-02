@@ -3,6 +3,7 @@ import { FiX } from 'react-icons/fi';
 import { FaHistory } from 'react-icons/fa';
 import { useStockHistory } from '../../hooks/queries/useStockAdjustment';
 import Pagination from '../pagination/pagination';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface StockHistoryModalProps {
   isOpen: boolean;
@@ -58,6 +59,8 @@ const StockHistoryModal: React.FC<StockHistoryModalProps> = ({ isOpen, onClose }
     setVariantCodeFilter('');
     setCurrentPage(1);
   };
+
+  useEscapeKey(onClose, isOpen);
 
   if (!isOpen) return null;
 

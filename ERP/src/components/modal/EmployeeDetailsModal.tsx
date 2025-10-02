@@ -1,10 +1,13 @@
 // src/components/modals/EmployeeDetailsModal.tsx
 import React, { useState } from 'react';
-import { FiX, FiEdit, FiCheck, FiXCircle, FiCalendar } from 'react-icons/fi';
+import { FiX, FiEdit, FiCheck, FiXCircle, FiCalendar, FiClock, FiPlusCircle, FiTrash2 } from 'react-icons/fi';
 import { MappedEmployee } from '../../pages/HR/HRPage';
-import { ALLOWED_TABS_OPTIONS, parseVacationDays, VacationDay } from '../../api/hr';
+import { ALLOWED_TABS_OPTIONS, parseVacationDays, VacationDay, VacationRequest } from '../../api/hr';
 import { useEmployee } from '../../hooks/queries/useEmployees';
 import VacationCalendar from '../calendar/VacationCalendar';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { useVacations } from '../../hooks/queries/useVacations';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface EmployeeDetailsModalProps {
   employee: MappedEmployee;
@@ -35,9 +38,17 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedEmployee, setEditedEmployee] = useState<MappedEmployee>(employee);
   const [showVacationCalendar, setShowVacationCalendar] = useState(false);
+  const [isEditingWorkSchedule, setIsEditingWorkSchedule] = useState(false);
+  const [workScheduleForm, setWorkScheduleForm] = useState({ start_date: '', end_date: '' });
+
+  // React Query 클라이언트
+  const queryClient = useQueryClient();
 
   // 실시간 직원 상세 정보 조회
   const { data: employeeDetailData, isLoading: employeeDetailLoading } = useEmployee(employee.id);
+
+  // 전체 휴가 데이터 조회 (근무 일정 포함)
+  const { data: vacationsData } = useVacations();
   
 
   // 최신 직원 정보 (휴가 데이터 포함) - API 데이터 우선 사용
@@ -49,7 +60,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
       const mappedEmployee = {
         ...employee, // 기본 데이터
         // API에서 받은 최신 데이터로 업데이트
-        name: apiData.first_name,
+        first_name: apiData.first_name,
         email: apiData.email,
         phone: apiData.contact || '',
         role: apiData.role,
@@ -80,9 +91,21 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
     setIsEditing(false);
   }, [employee.id]);
 
+  useEscapeKey(onClose);
+
   // 휴가 데이터 파싱
   const vacationDays = parseVacationDays(currentEmployee.vacation_days as string | VacationDay[]);
   const vacationPendingDays = parseVacationDays(currentEmployee.vacation_pending_days as string | VacationDay[]);
+
+  // 근무 일정 필터링 (WORK 타입, 해당 직원, 승인된 것만)
+  const workSchedules = React.useMemo(() => {
+    if (!vacationsData?.data) return [];
+    return vacationsData.data.filter((vacation: VacationRequest) =>
+      vacation.employee === currentEmployee.id &&
+      vacation.leave_type === 'WORK' &&
+      vacation.status === 'APPROVED'
+    );
+  }, [vacationsData?.data, currentEmployee.id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -118,7 +141,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
       return;
     }
 
-    if (!editedEmployee.name?.trim()) {
+    if (!editedEmployee.first_name?.trim()) {
       alert('이름을 입력해주세요.');
       return;
     }
@@ -161,18 +184,79 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
     setIsEditing(false);
   };
 
-  // 배경 클릭 시 모달 닫기
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onClose();
+  // 근무 일정 추가/수정 핸들러
+  const handleWorkScheduleSubmit = async () => {
+    // 날짜 검증
+    if (!workScheduleForm.start_date || !workScheduleForm.end_date) {
+      alert('시작일과 종료일을 모두 선택해주세요.');
+      return;
+    }
+
+    // 과거 날짜 검증
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(workScheduleForm.start_date);
+    const endDate = new Date(workScheduleForm.end_date);
+
+    if (startDate < today) {
+      alert('과거 날짜는 선택할 수 없습니다.');
+      return;
+    }
+
+    if (startDate > endDate) {
+      alert('종료일은 시작일보다 늦어야 합니다.');
+      return;
+    }
+
+    try {
+      const { createVacation } = await import('../../api/hr');
+      await createVacation({
+        employee: currentEmployee.id,
+        leave_type: 'WORK',
+        start_date: workScheduleForm.start_date,
+        end_date: workScheduleForm.end_date,
+        reason: '근무 일정',
+      });
+
+      alert('근무 일정이 등록되었습니다.');
+      setIsEditingWorkSchedule(false);
+      setWorkScheduleForm({ start_date: '', end_date: '' });
+
+      // 데이터 새로고침
+      queryClient.invalidateQueries({ queryKey: ['vacations'] });
+      queryClient.invalidateQueries({ queryKey: ['employee', currentEmployee.id] });
+    } catch (error) {
+      console.error('근무 일정 등록 실패:', error);
+      alert('근무 일정 등록에 실패했습니다. 다시 시도해주세요.');
     }
   };
+
+  // 근무 일정 삭제 핸들러
+  const handleDeleteWorkSchedule = async (scheduleId: number) => {
+    if (!confirm('이 근무 일정을 삭제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      const { reviewVacation } = await import('../../api/hr');
+      await reviewVacation(scheduleId, 'CANCELLED');
+
+      alert('근무 일정이 삭제되었습니다.');
+
+      // 데이터 새로고침
+      queryClient.invalidateQueries({ queryKey: ['vacations'] });
+      queryClient.invalidateQueries({ queryKey: ['employee', currentEmployee.id] });
+    } catch (error) {
+      console.error('근무 일정 삭제 실패:', error);
+      alert('근무 일정 삭제에 실패했습니다.');
+    }
+  };
+
 
   return (
     <div
       className='fixed inset-0 z-50 flex items-center justify-center p-4'
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-      onClick={handleBackdropClick}>
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
       <div
         className='flex h-full max-h-[90vh] w-full max-w-md flex-col rounded-lg border border-gray-200 bg-white shadow-lg'
         onClick={(e) => e.stopPropagation()}>
@@ -190,20 +274,24 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
             {/* 이름 */}
             <div>
               <label className='mb-1 block text-sm font-medium text-gray-700'>이름</label>
-              <div className='flex items-center justify-between'>
-                <span className='text-gray-900'>{currentEmployee.name}</span>
-                {isEditing && (
-                  <span className='rounded bg-gray-100 px-2 py-1 text-xs text-gray-500'>
-                    수정 불가
-                  </span>
-                )}
-              </div>
+              {isEditing && isAdmin ? (
+                <input
+                  type='text'
+                  name='first_name'
+                  value={editedEmployee.first_name}
+                  onChange={handleChange}
+                  className='w-full rounded-md border border-gray-300 px-3 py-2 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'
+                  placeholder='이름을 입력하세요'
+                />
+              ) : (
+                <span className='text-gray-900'>{currentEmployee.first_name}</span>
+              )}
             </div>
 
             {/* 직급 */}
             <div>
               <label className='mb-1 block text-sm font-medium text-gray-700'>직급</label>
-              {isEditing && isAdmin ? (
+              {isEditing && isAdmin && currentEmployee.role !== 'MANAGER' ? (
                 <select
                   name='role'
                   value={editedEmployee.role}
@@ -215,11 +303,11 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
               ) : (
                 <div className='flex items-center justify-between'>
                   <span className='text-gray-900'>{employee.position}</span>
-                  {isEditing && !isAdmin && (
+                  {isEditing && !isAdmin && currentEmployee.role !== 'MANAGER' ? (
                     <span className='rounded bg-gray-100 px-2 py-1 text-xs text-gray-500'>
                       수정 불가
                     </span>
-                  )}
+                  ) : null}
                 </div>
               )}
             </div>
@@ -337,9 +425,6 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                         <span className='text-sm text-gray-700'>{tab.label}</span>
                       </label>
                     ))}
-                    <p className='text-xs text-gray-500 mt-2'>
-                      * HR 관리 권한은 Manager에게만 제공됩니다.
-                    </p>
                   </div>
                 ) : (
                   <div className='flex flex-wrap gap-1'>
@@ -380,6 +465,95 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                 )}
               </div>
             )}
+
+            {/* 근무 일정 관리 - 관리자만 표시 */}
+            {isAdmin && (
+              <div className='mt-6 border-t border-gray-200 pt-4'>
+                <div className='mb-3 flex items-center justify-between'>
+                  <label className='block text-sm font-medium text-gray-700'>근무 일정</label>
+                  {!isEditingWorkSchedule && (
+                    <button
+                      onClick={() => setIsEditingWorkSchedule(true)}
+                      className='flex items-center text-sm text-orange-600 hover:text-orange-700'>
+                      <FiPlusCircle className='mr-1 h-4 w-4' />
+                      {workSchedules.length > 0 ? '추가' : '등록'}
+                    </button>
+                  )}
+                </div>
+
+                {/* 근무 일정 목록 */}
+                {workSchedules.length > 0 ? (
+                  <div className='space-y-2'>
+                    {workSchedules.map((schedule: VacationRequest) => (
+                      <div
+                        key={schedule.id}
+                        className='flex items-center justify-between rounded-md border border-orange-200 bg-orange-50 px-3 py-2'>
+                        <div className='flex items-center'>
+                          <FiClock className='mr-2 h-4 w-4 text-orange-600' />
+                          <span className='text-sm text-gray-700'>
+                            {formatDateToKorean(schedule.start_date)} ~ {formatDateToKorean(schedule.end_date)}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteWorkSchedule(schedule.id)}
+                          className='text-red-500 hover:text-red-700'>
+                          <FiTrash2 className='h-4 w-4' />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : !isEditingWorkSchedule ? (
+                  <p className='text-sm text-gray-500'>근무 일정이 없습니다</p>
+                ) : null}
+
+                {/* 근무 일정 추가 폼 */}
+                {isEditingWorkSchedule && (
+                  <div className='mt-3 space-y-3 rounded-md border border-gray-200 bg-gray-50 p-3'>
+                    <div>
+                      <label className='mb-1 block text-xs font-medium text-gray-700'>시작일</label>
+                      <input
+                        type='date'
+                        value={workScheduleForm.start_date}
+                        onChange={(e) =>
+                          setWorkScheduleForm((prev) => ({ ...prev, start_date: e.target.value }))
+                        }
+                        min={new Date().toISOString().split('T')[0]}
+                        className='w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500 focus:outline-none'
+                      />
+                    </div>
+                    <div>
+                      <label className='mb-1 block text-xs font-medium text-gray-700'>종료일</label>
+                      <input
+                        type='date'
+                        value={workScheduleForm.end_date}
+                        onChange={(e) =>
+                          setWorkScheduleForm((prev) => ({ ...prev, end_date: e.target.value }))
+                        }
+                        min={new Date().toISOString().split('T')[0]}
+                        className='w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500 focus:outline-none'
+                      />
+                    </div>
+                    <div className='flex gap-2'>
+                      <button
+                        onClick={handleWorkScheduleSubmit}
+                        className='flex flex-1 items-center justify-center rounded-md bg-orange-600 px-3 py-1.5 text-sm text-white hover:bg-orange-700'>
+                        <FiCheck className='mr-1 h-3.5 w-3.5' />
+                        등록
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsEditingWorkSchedule(false);
+                          setWorkScheduleForm({ start_date: '', end_date: '' });
+                        }}
+                        className='flex flex-1 items-center justify-center rounded-md bg-gray-400 px-3 py-1.5 text-sm text-white hover:bg-gray-500'>
+                        <FiXCircle className='mr-1 h-3.5 w-3.5' />
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
         </div>
@@ -387,13 +561,13 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
         {/* 버튼 영역 - 고정 */}
         <div className='flex-shrink-0 border-t border-gray-200 px-6 py-4'>
           <div className='space-y-3'>
-            {/* 휴가 캘린더 버튼 */}
+            {/* 캘린더 버튼 */}
             <button
               onClick={() => setShowVacationCalendar(true)}
               disabled={employeeDetailLoading}
               className='flex w-full items-center justify-center rounded-md bg-blue-100 px-4 py-2 text-sm text-blue-700 hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50'>
               <FiCalendar className='mr-2 h-4 w-4' />
-              {employeeDetailLoading ? '로딩 중...' : '휴가 캘린더 보기'}
+              {employeeDetailLoading ? '로딩 중...' : '캘린더 보기'}
             </button>
 
 
@@ -433,13 +607,13 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
         </div>
       </div>
 
-      {/* 휴가 캘린더 모달 */}
+      {/* 캘린더 모달 */}
       {showVacationCalendar && (
         <VacationCalendar
           vacationDays={vacationDays}
           vacationPendingDays={vacationPendingDays}
           onClose={() => setShowVacationCalendar(false)}
-          employeeName={employee.name}
+          employeeName={employee.first_name}
         />
       )}
     </div>

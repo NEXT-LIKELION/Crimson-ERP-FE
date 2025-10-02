@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FiX, FiEye, FiEyeOff, FiLock } from 'react-icons/fi';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface ChangePasswordModalProps {
   employeeId: number;
@@ -19,6 +20,8 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEscapeKey(onClose);
 
   // 비밀번호 유효성 검사 제거
 

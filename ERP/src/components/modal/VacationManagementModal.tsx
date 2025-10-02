@@ -10,6 +10,7 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import StatusBadge from '../common/StatusBadge';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface VacationManagementModalProps {
   onClose: () => void;
@@ -97,6 +98,22 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
       alert('권한이 없습니다.');
       return;
     }
+
+    // 승인 시 과거 날짜 체크
+    if (newStatus === 'APPROVED') {
+      const vacation = vacations.find(v => v.id === vacationId);
+      if (vacation) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const startDate = new Date(vacation.start_date);
+
+        if (startDate < today) {
+          alert('과거 날짜의 휴가는 승인할 수 없습니다.');
+          return;
+        }
+      }
+    }
+
 
     try {
       await reviewVacationMutation.mutateAsync({ vacationId, status: newStatus });
@@ -257,6 +274,8 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
       onClose();
     }
   };
+
+  useEscapeKey(onClose);
 
   if (isLoading) {
     return (

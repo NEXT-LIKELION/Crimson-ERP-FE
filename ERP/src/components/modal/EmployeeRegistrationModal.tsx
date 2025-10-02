@@ -3,6 +3,7 @@ import { FiX, FiUser, FiChevronRight, FiUserCheck } from 'react-icons/fi';
 import { MappedEmployee } from '../../pages/HR/HRPage';
 import { registerEmployee, ALLOWED_TABS_OPTIONS, fetchEmployees, patchEmployee, checkUsernameAvailability } from '../../api/hr';
 import { getAccessToken } from '../../utils/localStorage';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface EmployeeRegistrationModalProps {
   onClose: () => void;
@@ -390,7 +391,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
       // 2단계 PATCH 완료 후 새 직원 데이터 구성
       const newEmployee: MappedEmployee = {
         id: newEmployeeId, // 1단계에서 생성된 직원 ID
-        name: newEmployeeAccount.first_name,      // 1단계에서 가져옴
+        first_name: newEmployeeAccount.first_name,      // 1단계에서 가져옴
         username: newEmployeeAccount.username, // API 호출 시 사용할 실제 username
         role: employeeHRInfo.position as 'MANAGER' | 'STAFF' | 'INTERN',
         position:
@@ -439,6 +440,8 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
   const handleBackdropClick = () => {
     // 배경 클릭으로 모달이 닫히지 않도록 비활성화
   };
+
+  useEscapeKey(onClose);
 
   return (
     <div

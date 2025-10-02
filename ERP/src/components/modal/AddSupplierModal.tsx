@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { FiX, FiAlertTriangle } from 'react-icons/fi';
 import TextInput from '../input/TextInput';
 import { formatPhoneNumber } from '../../utils/formatters';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface AddSupplierModalProps {
   isOpen: boolean;
@@ -38,6 +39,8 @@ const AddSupplierModal = ({
       setErrors([]);
     }
   }, [isOpen, initialData]);
+
+  useEscapeKey(onClose, isOpen);
 
   const handleChange = (field: string, value: string) => {
     if (field === 'contact') {

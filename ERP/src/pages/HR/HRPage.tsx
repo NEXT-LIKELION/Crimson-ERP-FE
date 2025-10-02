@@ -8,6 +8,7 @@ import {
   FiEye,
   FiPlusCircle,
   FiLock,
+  FiClock,
 } from 'react-icons/fi';
 import StatusBadge from '../../components/common/StatusBadge';
 import EmployeeDetailsModal from '../../components/modal/EmployeeDetailsModal';
@@ -67,7 +68,7 @@ const mapGenderToKorean = (gender?: string): string => {
 // 프론트엔드에서 사용할 통합 Employee 타입 (API 스펙 기반)
 export interface MappedEmployee {
   id: number;
-  name: string;                          // 화면 표시용 (실제: first_name)
+  first_name: string;                    // API 스키마와 일치
   username: string;                      // API 호출용
   role: 'MANAGER' | 'STAFF' | 'INTERN';   // 정확한 enum 타입
   position: string;                      // UI 표시용 한글 직책
@@ -109,7 +110,7 @@ const getEmployeeStatus = (status: string, isActive: boolean): 'active' | 'denie
 // 백엔드 EmployeeList를 프론트엔드 MappedEmployee로 변환
 const mapEmployeeData = (emp: EmployeeList): MappedEmployee => ({
   id: emp.id,
-  name: emp.first_name || emp.username, // 이름이 있으면 first_name, 없으면 username 사용
+  first_name: emp.first_name || emp.username, // 이름이 있으면 first_name, 없으면 username 사용
   username: emp.username, // API 호출 시 사용할 실제 username
   role: emp.role,
   position: mapRoleToKorean(emp.role),
@@ -182,6 +183,7 @@ const HRPage: React.FC = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showEmployeeRegistrationModal, setShowEmployeeRegistrationModal] = useState(false);
   const [showVacationRequestModal, setShowVacationRequestModal] = useState(false);
+  const [showWorkAssignmentModal, setShowWorkAssignmentModal] = useState(false);
   const [showOrganizationVacationCalendar, setShowOrganizationVacationCalendar] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [changePasswordEmployee, setChangePasswordEmployee] = useState<MappedEmployee | null>(null);
@@ -269,7 +271,7 @@ const HRPage: React.FC = () => {
     // 백엔드 API에 맞게 필드명 변경 (PATCH API 스펙에 맞춤)
     const updateData = {
       email: updatedEmployee.email?.trim() || undefined,
-      first_name: updatedEmployee.name?.trim() || undefined,
+      first_name: updatedEmployee.first_name?.trim() || undefined,
       contact: updatedEmployee.phone?.trim() || undefined,
       is_active: true, // 일반적인 정보 수정 시에는 항상 true (퇴사가 아닌 경우)
       annual_leave_days: Number(updatedEmployee.annual_leave_days) || 0,
@@ -344,7 +346,7 @@ const HRPage: React.FC = () => {
         return;
       }
 
-      if (window.confirm(`${employee.name} 직원을 퇴사 처리하시겠습니까?`)) {
+      if (window.confirm(`${employee.first_name} 직원을 퇴사 처리하시겠습니까?`)) {
         try {
           await terminateEmployee.mutateAsync(employee.id);
           alert('퇴사 처리가 완료되었습니다.');
@@ -369,7 +371,7 @@ const HRPage: React.FC = () => {
         return;
       }
 
-      if (window.confirm(`${employee.name} 직원을 완전히 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+      if (window.confirm(`${employee.first_name} 직원을 완전히 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
         try {
           await deleteEmployeeMutation.mutateAsync(employee.id);
           alert('직원이 삭제되었습니다.');
@@ -404,7 +406,7 @@ const HRPage: React.FC = () => {
               className={`truncate text-base font-semibold ${textOpacity} ${
                 isTerminated ? 'line-through' : ''
               }`}>
-              {employee.name}
+              {employee.first_name}
             </h3>
             {getStatusBadge(employee.status as EmployeeStatus)}
           </div>
@@ -550,7 +552,7 @@ const HRPage: React.FC = () => {
                 <div>
                   <h1 className='text-2xl font-bold text-gray-900'>마이페이지</h1>
                   <p className='mt-1 text-gray-600'>
-                    안녕하세요, <span className='font-semibold text-blue-600'>{employee.name}</span>님
+                    안녕하세요, <span className='font-semibold text-blue-600'>{employee.first_name}</span>님
                   </p>
                 </div>
               </div>
@@ -563,12 +565,22 @@ const HRPage: React.FC = () => {
                   휴가신청
                 </button>
 
-                {/* 내 휴가 보기 버튼 */}
+                {/* 근무 등록 버튼 (관리자만) */}
+                {isAdmin && (
+                  <button
+                    onClick={() => setShowWorkAssignmentModal(true)}
+                    className='flex items-center rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-700'>
+                    <FiClock className='mr-2 h-4 w-4' />
+                    근무등록
+                  </button>
+                )}
+
+                {/* 내 캘린더 보기 버튼 */}
                 <button
                   onClick={() => setShowOrganizationVacationCalendar(true)}
                   className='flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700'>
                   <FiCalendar className='mr-2 h-4 w-4' />
-                  내 휴가
+                  내 캘린더
                 </button>
               </div>
             </div>
@@ -600,7 +612,7 @@ const HRPage: React.FC = () => {
               <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
                 <div>
                   <label className='block text-sm font-medium text-gray-700 mb-2'>이름</label>
-                  <p className='text-gray-900'>{employee.name}</p>
+                  <p className='text-gray-900'>{employee.first_name}</p>
                 </div>
                 <div>
                   <label className='block text-sm font-medium text-gray-700 mb-2'>사용자명</label>
@@ -771,7 +783,19 @@ const HRPage: React.FC = () => {
           />
         )}
 
-        {/* 개인 휴가 캘린더 모달 */}
+        {/* 근무 등록 모달 (마이페이지용) */}
+        {showWorkAssignmentModal && isAdmin && (
+          <VacationRequestModal
+            initialMode="work"
+            onClose={() => setShowWorkAssignmentModal(false)}
+            onSuccess={() => {
+              setShowWorkAssignmentModal(false);
+              setShowOrganizationVacationCalendar(true);
+            }}
+          />
+        )}
+
+        {/* 개인 캘린더 모달 */}
         {showOrganizationVacationCalendar && (
           <OrganizationVacationCalendar onClose={() => setShowOrganizationVacationCalendar(false)} />
         )}
@@ -780,7 +804,7 @@ const HRPage: React.FC = () => {
         {showChangePasswordModal && changePasswordEmployee && (
           <ChangePasswordModal
             employeeId={changePasswordEmployee.id}
-            employeeName={changePasswordEmployee.name}
+            employeeName={changePasswordEmployee.first_name}
             onClose={() => {
               setShowChangePasswordModal(false);
               setChangePasswordEmployee(null);
@@ -837,12 +861,22 @@ const HRPage: React.FC = () => {
                   휴가신청
                 </button>
 
+                {/* 근무 등록 버튼 (관리자만) */}
+                {isAdmin && (
+                  <button
+                    onClick={() => setShowWorkAssignmentModal(true)}
+                    className='flex items-center rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-700'>
+                    <FiClock className='mr-2 h-4 w-4' />
+                    근무등록
+                  </button>
+                )}
+
                 {/* 휴가 관리/조직 캘린더 통합 버튼 */}
                 <button
                   onClick={() => setShowOrganizationVacationCalendar(true)}
                   className='flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700'>
                   <FiCalendar className='mr-2 h-4 w-4' />
-                  {isAdmin ? '휴가 관리/캘린더' : '내 휴가'}
+                  {isAdmin ? '캘린더' : '내 캘린더'}
                 </button>
               </div>
 
@@ -901,14 +935,27 @@ const HRPage: React.FC = () => {
           onClose={() => setShowVacationRequestModal(false)}
           onSuccess={() => {
             setShowVacationRequestModal(false);
-            // 휴가 신청 성공 시 휴가 캘린더 열기
+            // 휴가 신청 성공 시 캘린더 열기
+            setShowOrganizationVacationCalendar(true);
+          }}
+        />
+      )}
+
+      {/* 근무 등록 모달 (관리자용) */}
+      {showWorkAssignmentModal && isAdmin && (
+        <VacationRequestModal
+          initialMode="work"
+          onClose={() => setShowWorkAssignmentModal(false)}
+          onSuccess={() => {
+            setShowWorkAssignmentModal(false);
+            // 근무 등록 성공 시 캘린더 열기
             setShowOrganizationVacationCalendar(true);
           }}
         />
       )}
 
 
-      {/* 조직 휴가 캘린더 모달 */}
+      {/* 조직 캘린더 모달 */}
       {showOrganizationVacationCalendar && (
         <OrganizationVacationCalendar onClose={() => setShowOrganizationVacationCalendar(false)} />
       )}
@@ -917,7 +964,7 @@ const HRPage: React.FC = () => {
       {showChangePasswordModal && changePasswordEmployee && (
         <ChangePasswordModal
           employeeId={changePasswordEmployee.id}
-          employeeName={changePasswordEmployee.name}
+          employeeName={changePasswordEmployee.first_name}
           onClose={() => {
             setShowChangePasswordModal(false);
             setChangePasswordEmployee(null);

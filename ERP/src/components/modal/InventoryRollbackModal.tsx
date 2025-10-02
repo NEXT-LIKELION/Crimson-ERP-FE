@@ -3,6 +3,7 @@ import { FiX, FiAlertTriangle } from 'react-icons/fi';
 import { FaHistory, FaUndo } from 'react-icons/fa';
 import { useInventorySnapshots, useRollbackInventory } from '../../hooks/queries/useInventorySnapshots';
 import Pagination from '../pagination/pagination';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface InventoryRollbackModalProps {
   isOpen: boolean;
@@ -96,6 +97,8 @@ const InventoryRollbackModal: React.FC<InventoryRollbackModalProps> = ({
     setSelectedSnapshot(null);
     setRollbackReason('');
   };
+
+  useEscapeKey(onClose, isOpen);
 
   if (!isOpen) return null;
 

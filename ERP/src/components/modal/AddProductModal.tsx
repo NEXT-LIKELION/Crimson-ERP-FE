@@ -15,6 +15,7 @@ import { ProductSupplierData } from '../../types/product';
 import { useSuppliers } from '../../hooks/queries/useSuppliers';
 import { useQuery } from '@tanstack/react-query';
 import { ProductFormData, ProductVariant, ProductVariantCreate, Supplier, ProductOption, CreatedProductData } from '../../types/product';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -103,6 +104,9 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
       setErrors([]);
     }
   }, [isOpen]);
+
+
+  useEscapeKey(onClose, isOpen);
 
   const handleChange = (field: keyof ProductFormData, value: string | number | string[]) => {
     setForm((prev: ProductFormData) => ({ ...prev, [field]: value }));

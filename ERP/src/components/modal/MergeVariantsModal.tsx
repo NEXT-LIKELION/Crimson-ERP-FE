@@ -4,6 +4,7 @@ import PrimaryButton from '../button/PrimaryButton';
 import SecondaryButton from '../button/SecondaryButton';
 import { FaExclamationTriangle } from 'react-icons/fa';
 import { precheckMergeConflicts } from '../../utils/mergePrecheck';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface MergeVariantsModalProps {
   isOpen: boolean;
@@ -93,6 +94,8 @@ const MergeVariantsModal: React.FC<MergeVariantsModalProps> = ({
 
   const availableForTarget = variants.filter((v) => !sourceVariants.includes(v.variant_code || ''));
   const availableForSource = variants.filter((v) => v.variant_code !== targetVariant);
+
+  useEscapeKey(onClose, isOpen);
 
   if (!isOpen) return null;
 
