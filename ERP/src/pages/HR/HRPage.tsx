@@ -575,12 +575,12 @@ const HRPage: React.FC = () => {
                   </button>
                 )}
 
-                {/* 내 휴가 보기 버튼 */}
+                {/* 내 캘린더 보기 버튼 */}
                 <button
                   onClick={() => setShowOrganizationVacationCalendar(true)}
                   className='flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700'>
                   <FiCalendar className='mr-2 h-4 w-4' />
-                  내 휴가
+                  내 캘린더
                 </button>
               </div>
             </div>
@@ -795,7 +795,7 @@ const HRPage: React.FC = () => {
           />
         )}
 
-        {/* 개인 휴가 캘린더 모달 */}
+        {/* 개인 캘린더 모달 */}
         {showOrganizationVacationCalendar && (
           <OrganizationVacationCalendar onClose={() => setShowOrganizationVacationCalendar(false)} />
         )}
@@ -876,7 +876,7 @@ const HRPage: React.FC = () => {
                   onClick={() => setShowOrganizationVacationCalendar(true)}
                   className='flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700'>
                   <FiCalendar className='mr-2 h-4 w-4' />
-                  {isAdmin ? '휴가 관리/캘린더' : '내 휴가'}
+                  {isAdmin ? '캘린더' : '내 캘린더'}
                 </button>
               </div>
 
@@ -935,7 +935,7 @@ const HRPage: React.FC = () => {
           onClose={() => setShowVacationRequestModal(false)}
           onSuccess={() => {
             setShowVacationRequestModal(false);
-            // 휴가 신청 성공 시 휴가 캘린더 열기
+            // 휴가 신청 성공 시 캘린더 열기
             setShowOrganizationVacationCalendar(true);
           }}
         />
@@ -948,14 +948,14 @@ const HRPage: React.FC = () => {
           onClose={() => setShowWorkAssignmentModal(false)}
           onSuccess={() => {
             setShowWorkAssignmentModal(false);
-            // 근무 등록 성공 시 휴가 캘린더 열기
+            // 근무 등록 성공 시 캘린더 열기
             setShowOrganizationVacationCalendar(true);
           }}
         />
       )}
 
 
-      {/* 조직 휴가 캘린더 모달 */}
+      {/* 조직 캘린더 모달 */}
       {showOrganizationVacationCalendar && (
         <OrganizationVacationCalendar onClose={() => setShowOrganizationVacationCalendar(false)} />
       )}
