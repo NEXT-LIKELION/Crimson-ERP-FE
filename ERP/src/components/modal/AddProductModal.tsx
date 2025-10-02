@@ -98,7 +98,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
 
   useEscapeKey(onClose, isOpen);
 
-  const handleChange = (field: keyof ProductFormData, value: string | number) => {
+  const handleChange = (field: keyof ProductFormData, value: string | number | string[]) => {
     setForm((prev: ProductFormData) => ({ ...prev, [field]: value }));
   };
 
