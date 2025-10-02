@@ -5,6 +5,7 @@ import { MappedEmployee } from '../../pages/HR/HRPage';
 import { ALLOWED_TABS_OPTIONS, parseVacationDays, VacationDay } from '../../api/hr';
 import { useEmployee } from '../../hooks/queries/useEmployees';
 import VacationCalendar from '../calendar/VacationCalendar';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface EmployeeDetailsModalProps {
   employee: MappedEmployee;
@@ -79,6 +80,8 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
   React.useEffect(() => {
     setIsEditing(false);
   }, [employee.id]);
+
+  useEscapeKey(onClose);
 
   // 휴가 데이터 파싱
   const vacationDays = parseVacationDays(currentEmployee.vacation_days as string | VacationDay[]);

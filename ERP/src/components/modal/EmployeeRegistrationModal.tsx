@@ -3,6 +3,7 @@ import { FiX, FiUser, FiChevronRight, FiUserCheck } from 'react-icons/fi';
 import { MappedEmployee } from '../../pages/HR/HRPage';
 import { registerEmployee, ALLOWED_TABS_OPTIONS, fetchEmployees, patchEmployee, checkUsernameAvailability } from '../../api/hr';
 import { getAccessToken } from '../../utils/localStorage';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface EmployeeRegistrationModalProps {
   onClose: () => void;
@@ -439,6 +440,8 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
   const handleBackdropClick = () => {
     // 배경 클릭으로 모달이 닫히지 않도록 비활성화
   };
+
+  useEscapeKey(onClose);
 
   return (
     <div

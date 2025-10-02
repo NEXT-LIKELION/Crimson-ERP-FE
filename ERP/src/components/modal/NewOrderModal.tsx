@@ -24,6 +24,7 @@ import {
   validateOrderForm,
   calculateVATPrice,
 } from '../../utils/orderUtils';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface NewOrderModalProps {
   isOpen: boolean;
@@ -399,6 +400,8 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       setFormErrors((prev) => [...prev, '공급업체 추가에 실패했습니다. 다시 시도해주세요.']);
     }
   };
+
+  useEscapeKey(onClose, isOpen);
 
   if (!isOpen) return null;
 

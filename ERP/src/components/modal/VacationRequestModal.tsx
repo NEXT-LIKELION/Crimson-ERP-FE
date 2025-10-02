@@ -4,6 +4,7 @@ import { useCreateVacation, useVacations } from '../../hooks/queries/useVacation
 import { VacationCreateData, LEAVE_TYPE_OPTIONS, LeaveType, fetchEmployees, EmployeeList } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
 import { useEmployees } from '../../hooks/queries/useEmployees';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface VacationRequestModalProps {
   onClose: () => void;
@@ -304,6 +305,8 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
       onClose();
     }
   };
+
+  useEscapeKey(onClose);
 
   return (
     <div

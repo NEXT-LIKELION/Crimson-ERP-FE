@@ -6,6 +6,7 @@ import { FaBoxArchive, FaClipboardList } from 'react-icons/fa6';
 import { BsCoin } from 'react-icons/bs';
 import { useSuppliers } from '../../hooks/queries/useSuppliers';
 import { Product, Supplier } from '../../types/product';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface EditProductModalProps {
   isOpen: boolean;
@@ -155,6 +156,8 @@ const EditProductModal = ({
       setErrors([]);
     }
   }, [isOpen, product]);
+
+  useEscapeKey(onClose, isOpen);
 
   if (!isOpen || !product || isLoadingSuppliers) return null;
 

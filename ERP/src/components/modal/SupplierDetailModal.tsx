@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { FiX, FiLoader, FiAlertTriangle } from 'react-icons/fi';
 import { useSupplierById, useUpdateSupplierVariant } from '../../hooks/queries/useSuppliers';
 import { EnrichedSupplierVariant } from '../../types/product';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface SupplierDetailModalProps {
   isOpen: boolean;
@@ -111,6 +112,8 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
       onClose();
     }
   };
+
+  useEscapeKey(onClose, isOpen);
 
   if (!isOpen || !supplierId) return null;
 

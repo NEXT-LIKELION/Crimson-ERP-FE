@@ -10,6 +10,7 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import StatusBadge from '../common/StatusBadge';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface VacationManagementModalProps {
   onClose: () => void;
@@ -260,6 +261,8 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
       onClose();
     }
   };
+
+  useEscapeKey(onClose);
 
   if (isLoading) {
     return (

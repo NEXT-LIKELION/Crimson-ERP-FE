@@ -7,6 +7,7 @@ import { fetchSuppliers } from '../../api/supplier';
 import XlsxPopulate from 'xlsx-populate/browser/xlsx-populate';
 import { saveAs } from 'file-saver';
 import { getStatusDisplayName } from '../../utils/orderUtils';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface ApiError {
   response?: {
@@ -156,6 +157,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     }
   }, [orderDetail, suppliers]);
 
+  useEscapeKey(onClose, isOpen);
 
   const handleApprove = async () => {
     if (!orderDetail) return;

@@ -5,6 +5,7 @@ import TextInput from '../input/TextInput';
 import PrimaryButton from '../button/PrimaryButton';
 import SecondaryButton from '../button/SecondaryButton';
 import { useAuthStore } from '../../store/authStore';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface StockAdjustmentModalProps {
   isOpen: boolean;
@@ -112,6 +113,8 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       setIsLoading(false);
     }
   };
+
+  useEscapeKey(onClose, isOpen);
 
   if (!isOpen || !variant) return null;
 
