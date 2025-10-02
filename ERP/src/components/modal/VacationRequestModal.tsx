@@ -103,6 +103,24 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
       newErrors.end_date = '종료일을 선택해주세요.';
     }
 
+    // 이전 날짜 검증
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (formData.start_date) {
+      const startDate = new Date(formData.start_date);
+      if (startDate < today) {
+        newErrors.start_date = '과거 날짜는 선택할 수 없습니다.';
+      }
+    }
+
+    if (formData.end_date) {
+      const endDate = new Date(formData.end_date);
+      if (endDate < today) {
+        newErrors.end_date = '과거 날짜는 선택할 수 없습니다.';
+      }
+    }
+
     if (formData.start_date && formData.end_date && formData.start_date > formData.end_date) {
       newErrors.end_date = '종료일은 시작일보다 늦어야 합니다.';
     }
@@ -415,6 +433,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
                   type='date'
                   value={formData.start_date}
                   onChange={handleStartDateChange}
+                  min={new Date().toISOString().split('T')[0]}
                   className={`w-full rounded-lg border px-3 py-2 pr-10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
                     errors.start_date ? 'border-red-300' : 'border-gray-300'
                   }`}
@@ -439,6 +458,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
                     type='date'
                     value={formData.end_date}
                     onChange={handleChange}
+                    min={new Date().toISOString().split('T')[0]}
                     className={`w-full rounded-lg border px-3 py-2 pr-10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
                       errors.end_date ? 'border-red-300' : 'border-gray-300'
                     }`}

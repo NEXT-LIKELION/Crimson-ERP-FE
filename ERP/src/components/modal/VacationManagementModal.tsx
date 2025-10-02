@@ -99,6 +99,21 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
       return;
     }
 
+    // 승인 시 과거 날짜 체크
+    if (newStatus === 'APPROVED') {
+      const vacation = vacations.find(v => v.id === vacationId);
+      if (vacation) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const startDate = new Date(vacation.start_date);
+
+        if (startDate < today) {
+          alert('과거 날짜의 휴가는 승인할 수 없습니다.');
+          return;
+        }
+      }
+    }
+
     console.log('휴가 상태 변경 시작:', { vacationId, newStatus, isAdmin });
 
     try {
