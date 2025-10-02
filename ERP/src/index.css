@@ -8,3 +8,14 @@ input[type='number'].no-spin::-webkit-inner-spin-button {
 input[type='number'].no-spin {
   -moz-appearance: textfield;
 }
+
+/* Hide default calendar icon for date inputs and make entire input clickable */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
