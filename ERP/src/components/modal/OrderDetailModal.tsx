@@ -1,13 +1,15 @@
 // src/components/modal/OrderDetailModal.tsx
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { FiX, FiPrinter, FiDownload, FiCheck } from 'react-icons/fi';
-import { useOrdersStore, OrderItem as StoreOrderItem } from '../../store/ordersStore';
+import { FiX, FiPrinter, FiDownload } from 'react-icons/fi';
+import { OrderItem as StoreOrderItem } from '../../store/ordersStore';
 import axios from '../../api/axios';
 import { fetchSuppliers } from '../../api/supplier';
 import XlsxPopulate from 'xlsx-populate/browser/xlsx-populate';
 import { saveAs } from 'file-saver';
 import { getStatusDisplayName } from '../../utils/orderUtils';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { useQueryClient } from '@tanstack/react-query';
+
 
 interface ApiError {
   response?: {
@@ -22,7 +24,6 @@ interface OrderDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   isManager: boolean;
-  onApproveSuccess?: () => void;
 }
 
 interface OrderDetailItem {
@@ -83,12 +84,12 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   isOpen,
   onClose,
   isManager,
-  onApproveSuccess,
 }) => {
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const { updateOrder } = useOrdersStore();
   const printRef = useRef<HTMLDivElement>(null);
+
+  const queryClient = useQueryClient();
   const [suppliers, setSuppliers] = useState<Array<{ id: number; name: string; contact: string; manager: string; email: string; address: string }>>([]);
   const [supplierDetail, setSupplierDetail] = useState<{ id: number; name: string; contact: string; manager: string; email: string; address: string } | null>(null);
 
@@ -159,36 +160,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
   useEscapeKey(onClose, isOpen);
 
-  const handleApprove = async () => {
-    if (!orderDetail) return;
-
-    // 승인 후 상태 변경 불가 경고
-    const confirmed = confirm(
-      '발주를 승인하시겠습니까?\n\n승인 후에는 상태를 다시 변경할 수 없습니다.'
-    );
-    
-    if (!confirmed) return;
-
-    try {
-      await axios.patch(`/orders/${orderDetail.id}/`, { status: 'APPROVED' });
-
-      // 로컬 상태 업데이트
-      updateOrder(orderDetail.id, { status: 'APPROVED' });
-
-      // 성공 메시지
-      alert('발주가 성공적으로 승인되었습니다.');
-
-      // 성공 콜백 호출
-      if (onApproveSuccess) {
-        onApproveSuccess();
-      }
-
-      onClose();
-    } catch (error) {
-      console.error('발주 승인 실패:', error);
-      alert('발주 승인 중 오류가 발생했습니다.');
-    }
-  };
 
   const handlePrintOrder = () => {
     // 인쇄 기능 구현
@@ -546,15 +517,22 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     try {
       const response = await axios.patch(`/orders/${orderDetail.id}/`, { status: newStatus });
       const { order, stock_changes } = response.data;
-      console.log('서버에서 내려온 order.status:', order.status);
       setOrderDetail(order); // 상세정보 갱신
+
+      // React Query 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
 
       // 상태 변경 메시지 생성
       const statusText = getStatusDisplayName(newStatus);
 
-      if (stock_changes && stock_changes.length > 0) {
-        // 재고 변경이 있는 경우
-        const stockMessage = stock_changes
+      // 실제 재고 변경이 있는 항목만 필터링
+      const actualStockChanges = stock_changes?.filter(
+        (s: { stock_before: number; stock_after: number }) => s.stock_before !== s.stock_after
+      ) || [];
+
+      if (actualStockChanges.length > 0) {
+        // 실제 재고 변경이 있는 경우
+        const stockMessage = actualStockChanges
           .map(
             (s: { name: string; option: string; stock_before: number; stock_after: number; quantity: number }) =>
               `${s.name}(${s.option}): ${s.stock_before} → ${s.stock_after} (+${s.quantity})`
@@ -822,14 +800,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
               <FiPrinter className='mr-2 h-6 w-6' />
               인쇄
             </button>
-            {isManager && orderDetail && orderDetail.id && (
-              <button
-                onClick={handleApprove}
-                className='flex items-center rounded bg-green-600 px-4 py-2 text-white'>
-                <FiCheck className='mr-2 h-6 w-6' />
-                승인
-              </button>
-            )}
           </div>
         </div>
       </div>

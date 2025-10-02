@@ -196,10 +196,10 @@ const InventoryRollbackModal: React.FC<InventoryRollbackModalProps> = ({
             <div className='flex items-start'>
               <FaHistory className='mt-1 mr-3 text-blue-600 flex-shrink-0' />
               <div className='text-sm text-blue-800'>
-                <p className='font-medium mb-1'>📄 POS 데이터 업로드 스냅샷</p>
+                <p className='font-medium mb-1'>📄 재고 백업 기록</p>
                 <p className='text-xs'>
-                  POS 데이터 업로드 전 자동으로 생성된 백업 스냅샷 목록입니다.
-                  잘못된 업로드나 데이터 문제가 발생한 경우 이전 상태로 롤백할 수 있습니다.
+                  데이터 업로드 전에 자동으로 저장된 재고 현황입니다.
+                  문제가 발생했을 때 이전 상태로 되돌릴 수 있습니다.
                 </p>
               </div>
             </div>

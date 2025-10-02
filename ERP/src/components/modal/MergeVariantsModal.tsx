@@ -69,7 +69,12 @@ const MergeVariantsModal: React.FC<MergeVariantsModalProps> = ({
       }
 
       // 2) 사용자 최종 확인
-      const confirmMessage = `다음 병합을 진행하시겠습니까?\n\nTarget: ${targetVariant}\nSources: ${sourceVariants.join(
+      const targetProductName = variants.find(v => v.variant_code === targetVariant)?.name || targetVariant;
+      const sourceProductNames = sourceVariants.map(code =>
+        variants.find(v => v.variant_code === code)?.name || code
+      );
+
+      const confirmMessage = `다음 병합을 진행하시겠습니까?\n\nTarget: ${targetProductName}\nSources: ${sourceProductNames.join(
         ', '
       )}\n\n⚠️ Source 상품들은 영구 삭제됩니다.`;
       if (!window.confirm(confirmMessage)) {
@@ -77,7 +82,7 @@ const MergeVariantsModal: React.FC<MergeVariantsModalProps> = ({
       }
 
       await onMerge(targetVariant, sourceVariants);
-      alert('상품 병합이 완료되었습니다.');
+      alert(`상품 병합이 완료되었습니다.\n병합된 상품: ${targetProductName}`);
       onClose();
     } catch (error) {
       console.error('병합 실패:', error);

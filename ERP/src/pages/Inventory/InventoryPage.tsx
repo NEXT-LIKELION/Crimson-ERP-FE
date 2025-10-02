@@ -2,8 +2,9 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import GreenButton from '../../components/button/GreenButton';
 import PrimaryButton from '../../components/button/PrimaryButton';
 import SecondaryButton from '../../components/button/SecondaryButton';
-import { FaPlus, FaFileArrowUp } from 'react-icons/fa6';
-import { FaCodeBranch, FaHistory, FaUndo } from 'react-icons/fa';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { FaPlus, FaFileArrowUp, FaCodePullRequest } from 'react-icons/fa6';
+import { FaHistory, FaUndo } from 'react-icons/fa';
 import InputField from '../../components/inputfield/InputField';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import { useInventories } from '../../hooks/queries/useInventories';
@@ -13,6 +14,7 @@ import {
   mergeVariants,
   fetchAllInventoriesForMerge,
   fetchFilteredInventoriesForExport,
+  fetchCategories,
 } from '../../api/inventory';
 import { useSearchParams } from 'react-router-dom';
 import EditProductModal from '../../components/modal/EditProductModal';
@@ -22,24 +24,87 @@ import StockAdjustmentModal from '../../components/modal/StockAdjustmentModal';
 import StockHistoryModal from '../../components/modal/StockHistoryModal';
 import InventoryRollbackModal from '../../components/modal/InventoryRollbackModal';
 import InventoryTabs from '../../components/tabs/InventoryTabs';
-import { Product } from '../../types/product';
+import { Product, InventorySnapshot } from '../../types/product';
+import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { useQueryClient } from '@tanstack/react-query';
 import { uploadInventoryExcel } from '../../api/upload';
 import { usePermissions } from '../../hooks/usePermissions';
 import * as XLSX from 'xlsx';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { useAdjustStock } from '../../hooks/queries/useStockAdjustment';
+import { useInventorySnapshots } from '../../hooks/queries/useInventorySnapshots';
+import { getAllChannelUpdateDates, detectUploadChannel } from '../../utils/snapshotAnalyzer';
 
 const InventoryPage = () => {
   const queryClient = useQueryClient();
   const permissions = usePermissions();
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isMergeModalOpen, setMergeModalOpen] = useState(false);
   const [isStockAdjustModalOpen, setStockAdjustModalOpen] = useState(false);
   const [isStockHistoryModalOpen, setStockHistoryModalOpen] = useState(false);
   const [isRollbackModalOpen, setRollbackModalOpen] = useState(false);
+  const [isPOSUploading, setIsPOSUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'offline' | 'online'>('all');
+
+  // POS 마지막 업데이트 날짜 조회 (기존 방식 유지)
+  const { data: snapshotsData } = useInventorySnapshots({ page: 1 });
+
+  // 스냅샷에 채널 정보 추가 (기존 데이터 활용)
+  const snapshotsWithChannel = useMemo(() => {
+    if (!snapshotsData?.results || snapshotsData.results.length === 0) {
+      return [];
+    }
+
+    const snapshots = snapshotsData.results;
+
+    return snapshots.map((snapshot: InventorySnapshot) => {
+      const detectedChannel = detectUploadChannel(snapshot);
+
+      return {
+        ...snapshot,
+        detectedChannel
+      };
+    });
+  }, [snapshotsData]);
+
+  const channelUpdateDates = useMemo(() => {
+    return getAllChannelUpdateDates(snapshotsWithChannel);
+  }, [snapshotsWithChannel]);
+
+
+  const lastUpdateDates = useMemo(() => {
+    const formatDate = (dateString: string | null) => {
+      if (!dateString) return null;
+      const date = new Date(dateString);
+      return isNaN(date.getTime()) ? null : format(date, 'yyyy-MM-dd', { locale: ko });
+    };
+
+    const result = {
+      onlineDate: formatDate(channelUpdateDates.onlineDate),
+      offlineDate: formatDate(channelUpdateDates.offlineDate),
+      allDate: formatDate(channelUpdateDates.allDate),
+    };
+
+    return result;
+  }, [channelUpdateDates]);
+
+  // 현재 탭에 따른 업데이트 날짜 결정
+  const currentUpdateDate = useMemo(() => {
+    if (activeTab === 'all') {
+      // 전체 탭인 경우 온라인/오프라인 날짜 객체 반환
+      const result: { onlineDate?: string; offlineDate?: string } = {};
+      if (lastUpdateDates.onlineDate) result.onlineDate = lastUpdateDates.onlineDate;
+      if (lastUpdateDates.offlineDate) result.offlineDate = lastUpdateDates.offlineDate;
+      return Object.keys(result).length > 0 ? result : undefined;
+    } else if (activeTab === 'online') {
+      return lastUpdateDates.onlineDate || undefined;
+    } else if (activeTab === 'offline') {
+      return lastUpdateDates.offlineDate || undefined;
+    }
+    return undefined;
+  }, [activeTab, lastUpdateDates]);
 
   const handleTabChange = (tab: 'all' | 'offline' | 'online') => {
     setActiveTab(tab);
@@ -50,8 +115,8 @@ const InventoryPage = () => {
       // 전체 탭이면 채널 필터 제거
       delete newFilters.channel;
     } else {
-      // TODO: 백엔드 구현 후 실제 채널 필터링 추가
-      // newFilters.channel = tab;
+      // 채널 필터링 활성화
+      newFilters.channel = tab;
     }
 
     setAppliedFilters(newFilters);
@@ -137,31 +202,39 @@ const InventoryPage = () => {
 
   // 병합 모달용 전체 데이터 (모든 페이지 데이터 합치기)
   const [allMergeData, setAllMergeData] = useState<unknown[]>([]);
+  const [isMergeDataLoading, setIsMergeDataLoading] = useState(false);
 
-  // 전체 데이터에서 카테고리 목록 추출 (병합용 데이터 사용)
-  const categoryOptions = useMemo(() => {
-    if (!allMergeData || allMergeData.length === 0) return ['모든 카테고리'];
+  // 카테고리 목록 상태 관리
+  const [categoryOptions, setCategoryOptions] = useState<string[]>(['모든 카테고리']);
 
-    const uniqueCategories = Array.from(
-      new Set(
-        (allMergeData as { category?: string }[])
-          .map((item) => item.category)
-          .filter(Boolean) as string[]
-      )
-    );
+  // 카테고리 목록 불러오기
+  const loadCategories = async () => {
+    try {
+      const response = await fetchCategories();
+      const categories = response.data || [];
+      setCategoryOptions(['모든 카테고리', ...categories.sort()]);
+    } catch (error) {
+      console.error('카테고리 목록 로드 실패:', error);
+      setCategoryOptions(['모든 카테고리']);
+    }
+  };
 
-    return ['모든 카테고리', ...uniqueCategories.sort()];
-  }, [allMergeData]);
+  // 컴포넌트 마운트 시 카테고리 목록 로드
+  useEffect(() => {
+    loadCategories();
+  }, []);
 
   // 병합 모달이 열릴 때만 데이터 로드 (lazy loading)
   const loadMergeData = async () => {
     if (allMergeData.length === 0) {
+      setIsMergeDataLoading(true);
       try {
-        console.log('🔄 Loading merge data...');
         const allData = await fetchAllInventoriesForMerge();
         setAllMergeData(allData);
       } catch (error) {
-        console.error('전체 데이터 로드 실패:', error);
+        alert('전체 데이터를 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        setIsMergeDataLoading(false);
       }
     }
   };
@@ -224,10 +297,16 @@ const InventoryPage = () => {
 
   const handleAddSave = async () => {
     try {
+      // React Query 캐시 무효화 - 상품 관련 모든 쿼리 새로고침
+      await queryClient.invalidateQueries({ queryKey: ['inventories'] });
+      await queryClient.invalidateQueries({ queryKey: ['productOptions'] });
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.invalidateQueries({ queryKey: ['inventory'] });
+
+      // 데이터 새로고침
       await refetch();
       alert('상품이 성공적으로 추가되었습니다.');
     } catch (err) {
-      console.error('상품 추가 실패:', err);
       alert('상품 추가 중 오류가 발생했습니다.');
     }
   };
@@ -276,7 +355,6 @@ const InventoryPage = () => {
       await queryClient.invalidateQueries({ queryKey: ['inventories'] });
       await refetch();
     } catch (err) {
-      console.error('상품 수정 실패:', err);
       alert('상품 수정 중 오류가 발생했습니다.');
     }
   };
@@ -299,7 +377,6 @@ const InventoryPage = () => {
       alert('품목이 삭제되었습니다.');
       refetch();
     } catch (err: unknown) {
-      console.error('품목 삭제 실패:', err);
       if ('response' in (err as object)) {
         const errorResponse = err as { response?: { status?: number } };
         if (errorResponse.response?.status === 500) {
@@ -325,14 +402,18 @@ const InventoryPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsPOSUploading(true);
     try {
       await uploadInventoryExcel(file);
       alert('POS 데이터가 성공적으로 업로드되었습니다.');
+      // 재고 데이터와 스냅샷 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['inventories'] });
+      queryClient.invalidateQueries({ queryKey: ['inventorySnapshots'] });
       await refetch();
     } catch (err) {
-      console.error('POS 업로드 오류:', err);
       alert('POS 데이터 업로드 중 오류 발생');
     } finally {
+      setIsPOSUploading(false);
       e.target.value = '';
     }
   };
@@ -372,7 +453,6 @@ const InventoryPage = () => {
       // 필터 초기화해서 최신 데이터 확인
       setAppliedFilters({});
     } catch (error) {
-      console.error('병합 실패:', error);
       throw error; // 모달에서 에러 처리하도록 re-throw
     }
   };
@@ -481,7 +561,6 @@ const InventoryPage = () => {
       // 파일 다운로드
       XLSX.writeFile(workbook, filename);
     } catch (error) {
-      console.error('엑셀 Export 오류:', error);
       alert('엑셀 파일 생성 중 오류가 발생했습니다.');
     }
   };
@@ -526,6 +605,7 @@ const InventoryPage = () => {
   return (
     <div className="p-6 relative">
       {isLoading && <LoadingSpinner overlay text="재고 데이터를 불러오는 중..." />}
+      {isPOSUploading && <LoadingSpinner overlay text="POS 데이터를 업로드하는 중..." />}
       <div className='mb-4 flex items-center justify-between'>
         <h1 className='text-2xl font-bold'>재고 관리</h1>
         <div className='flex space-x-2'>
@@ -538,7 +618,7 @@ const InventoryPage = () => {
               />
               <SecondaryButton
                 text='상품 병합'
-                icon={<FaCodeBranch size={16} />}
+                icon={<FaCodePullRequest size={16} />}
                 onClick={async () => {
                   await loadMergeData(); // 병합 데이터 로드
                   setMergeModalOpen(true);
@@ -558,6 +638,7 @@ const InventoryPage = () => {
                 text='POS 데이터 업로드'
                 icon={<FaFileArrowUp size={16} />}
                 onClick={handlePOSButtonClick}
+                disabled={isPOSUploading}
               />
             </>
           )}
@@ -614,8 +695,7 @@ const InventoryPage = () => {
 
             // 채널 필터 (탭에 따라)
             if (activeTab !== 'all') {
-              // TODO: 백엔드 구현 후 실제 채널 필터링 추가
-              // newFilters.channel = activeTab;
+              newFilters.channel = activeTab;
             }
 
             // 상품명 필터
@@ -647,7 +727,6 @@ const InventoryPage = () => {
               newFilters.max_sales = maxSalesValue;
             }
 
-            console.log('🔍 Setting applied filters:', newFilters);
             setAppliedFilters(newFilters);
             updateURL(newFilters);
           }}
@@ -655,25 +734,12 @@ const InventoryPage = () => {
         />
       </div>
 
-      {/* 탭 상태 표시 (임시) */}
-      <div className='mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4'>
-        <div className='flex items-center gap-2'>
-          <div className='h-2 w-2 rounded-full bg-blue-600'></div>
-          <span className='text-sm font-medium text-blue-800'>
-            현재 탭:{' '}
-            {activeTab === 'all' ? '전체' : activeTab === 'offline' ? '오프라인' : '온라인'}(
-            {tabData.length}개 상품)
-          </span>
-        </div>
-        {activeTab !== 'all' && (
-          <p className='mt-1 text-xs text-blue-600'>* 전체 데이터 사용 중</p>
-        )}
-      </div>
 
       <InventoryTable
         inventories={tabData}
         onDelete={handleVariantDelete}
         onExportToExcel={handleExportToExcel}
+        lastUpdateDate={currentUpdateDate}
         // 무한 스크롤 관련 props
         fetchNextPage={fetchNextPage}
         hasNextPage={hasNextPage}
@@ -727,6 +793,14 @@ const InventoryPage = () => {
           isOpen={isRollbackModalOpen}
           onClose={() => setRollbackModalOpen(false)}
           onSuccess={refetch}
+        />
+      )}
+
+      {/* 병합 데이터 로딩 스피너 */}
+      {isMergeDataLoading && (
+        <LoadingSpinner
+          overlay={true}
+          text="병합용 데이터를 불러오는 중..."
         />
       )}
     </div>

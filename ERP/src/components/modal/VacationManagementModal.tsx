@@ -114,11 +114,9 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
       }
     }
 
-    console.log('휴가 상태 변경 시작:', { vacationId, newStatus, isAdmin });
 
     try {
-      const result = await reviewVacationMutation.mutateAsync({ vacationId, status: newStatus });
-      console.log('휴가 상태 변경 성공:', result);
+      await reviewVacationMutation.mutateAsync({ vacationId, status: newStatus });
 
       // 자연스러운 메시지로 변경
       let message = '';
