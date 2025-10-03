@@ -442,7 +442,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                     </label>
                   </div>
                   <p className='mt-1 text-xs text-gray-500'>
-                    온라인, 오프라인 중 최소 하나 이상 선택해야 합니다. 중복 선택도 가능합니다.
+                    온라인, 오프라인 중 최소 하나 이상 선택해야 합니다.
                   </p>
                 </div>
               </div>
