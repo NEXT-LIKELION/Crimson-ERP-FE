@@ -18,7 +18,7 @@ import {
 import { createOrder } from '../../api/orders';
 import { useEmployees } from '../../hooks/queries/useEmployees';
 import { useQueryClient } from '@tanstack/react-query';
-import { Supplier, ProductOption } from '../../types/product';
+import { Supplier, ProductOption, CreatedProductData } from '../../types/product';
 import {
   calculateTotalAmount,
   extractVariantCode,
@@ -262,8 +262,12 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       alert('발주가 성공적으로 신청되었습니다.');
       if (onSuccess) onSuccess(res.data);
       onClose();
-    } catch {
-      setFormErrors(['발주 신청 중 오류가 발생했습니다. 다시 시도해주세요.']);
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message
+        || error?.response?.data?.error
+        || error?.message
+        || '발주 신청 중 오류가 발생했습니다.';
+      alert(`발주 실패: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -385,7 +389,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
   };
 
   // 신상품 추가 성공 핸들러
-  const handleProductAdded = async () => {
+  const handleProductAdded = async (newProduct: CreatedProductData) => {
     try {
       // React Query 캐시 무효화
       queryClient.invalidateQueries({ queryKey: ['productOptions'] });
@@ -395,7 +399,43 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       // 상품 목록 다시 불러오기
       const res = await fetchProductOptions();
       const productData = Array.isArray(res.data) ? res.data : [];
-      setProducts(productData);
+
+      // 신상품을 products 배열에 추가 (즉시 UI 반영)
+      const newProductOption = {
+        product_id: newProduct.product_id,
+        name: newProduct.name,
+      };
+      setProducts([...productData, newProductOption]);
+
+      // 발주 품목에 신상품 자동 추가
+      const primarySupplier = newProduct.suppliers.find((s) => s.is_primary);
+      const costPrice = primarySupplier?.cost_price || 0;
+
+      const newItem: OrderItemPayload = {
+        product_id: newProduct.product_id,
+        variant: newProduct.option,
+        variant_code: newProduct.variant_id,
+        quantity: 1,
+        cost_price: costPrice,
+        unit_price: newProduct.price || 0,
+        unit: 'EA',
+        remark: '',
+        spec: '',
+      };
+
+      // 신상품의 variants 정보도 캐시에 추가
+      const newVariant = {
+        variant_code: newProduct.variant_id,
+        option: newProduct.option,
+        price: newProduct.price || 0,
+        stock: newProduct.stock || 0,
+      };
+      setVariantsByProduct((prev) => ({
+        ...prev,
+        [newProduct.product_id]: [newVariant],
+      }));
+
+      setItems([newItem, ...items]);
       setIsAddProductModalOpen(false);
     } catch (error) {
       console.error('Failed to refresh products:', error);
@@ -565,6 +605,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                   placeholder='예상 납품일 선택'
                   value={deliveryDate}
                   onChange={setDeliveryDate}
+                  minDate={orderDate}
                 />
               </div>
             </div>
@@ -627,7 +668,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                   className='flex items-center rounded-md bg-indigo-600 px-3 py-1 text-sm font-medium text-white hover:bg-indigo-700'
                   disabled={isSubmitting}>
                   <FiPlus className='mr-1 h-3.5 w-3.5' />
-                  항목 추가
+                  발주 항목 추가
                 </button>
               </div>
             </div>
@@ -643,7 +684,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                     </div>
                     <div className='flex w-36 items-center justify-start px-3 py-2 flex-shrink-0'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>
-                        상세 <span className='text-red-500'>*</span>
+                        옵션 <span className='text-red-500'>*</span>
                       </span>
                     </div>
                     <div className='flex w-32 items-center justify-start px-3 py-2 flex-shrink-0'>
@@ -728,7 +769,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           type='text'
                           value={item.spec}
                           onChange={(e) => handleItemChange(idx, 'spec', e.target.value)}
-                          placeholder='규격'
+                          placeholder='ex) 38.5*28'
                           className={`w-full rounded-md border border-gray-300 px-2 py-1 text-sm placeholder-gray-400 ${
                             item.spec && item.variant ? 'border-blue-300 bg-blue-50' : ''
                           }`}
@@ -758,27 +799,27 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                       </div>
                       <div className='flex w-28 items-center justify-center px-3 py-2 flex-shrink-0'>
                         <input
-                          type='number'
+                          type='text'
+                          inputMode='numeric'
                           value={item.cost_price}
                           onChange={(e) =>
-                            handleItemChange(idx, 'cost_price', parseInt(e.target.value) || 0)
+                            handleItemChange(idx, 'cost_price', Number(e.target.value) || 0)
                           }
                           className={`w-full rounded-md border border-gray-300 px-2 py-1 text-center text-sm ${
                             item.cost_price > 0 && item.variant ? 'border-blue-300 bg-blue-50' : ''
                           }`}
-                          min='0'
                           disabled={isSubmitting}
                         />
                       </div>
                       <div className='flex w-28 items-center justify-center px-3 py-2 flex-shrink-0'>
                         <input
-                          type='number'
+                          type='text'
+                          inputMode='numeric'
                           value={item.unit_price}
                           onChange={(e) =>
-                            handleItemChange(idx, 'unit_price', parseInt(e.target.value) || 0)
+                            handleItemChange(idx, 'unit_price', Number(e.target.value) || 0)
                           }
                           className='w-full rounded-md border border-gray-300 px-2 py-1 text-center text-sm'
-                          min='0'
                           disabled={isSubmitting}
                         />
                       </div>

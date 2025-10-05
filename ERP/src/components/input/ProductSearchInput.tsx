@@ -20,9 +20,16 @@ const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
   const [query, setQuery] = useState(value);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const isUserInputRef = useRef(true); // 사용자 입력 여부 추적
 
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // value prop 변경 시 query 동기화 (검색 트리거하지 않음)
+  useEffect(() => {
+    isUserInputRef.current = false; // prop 변경은 사용자 입력이 아님
+    setQuery(value);
+  }, [value]);
 
   // 디바운스된 검색어
   const debouncedQuery = useDebouncedValue(query.trim(), 300);
@@ -38,9 +45,9 @@ const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
     product_name: debouncedQuery || undefined, // 빈 문자열이면 undefined로 전체 검색
   });
 
-  // 검색 결과가 있으면 드롭다운 열기
+  // 검색 결과가 있으면 드롭다운 열기 (사용자 입력 시에만)
   useEffect(() => {
-    if (searchResults && searchResults.length > 0 && !disabled) {
+    if (searchResults && searchResults.length > 0 && !disabled && isUserInputRef.current) {
       setIsDropdownOpen(true);
     }
   }, [searchResults, disabled]);
@@ -117,6 +124,7 @@ const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    isUserInputRef.current = true; // 사용자가 직접 입력함
     setQuery(e.target.value);
   };
 

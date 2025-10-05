@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { FiPlus, FiSearch, FiLoader, FiDownload } from 'react-icons/fi';
 import PrimaryButton from '../../components/button/PrimaryButton';
 import GreenButton from '../../components/button/GreenButton';
 import StatusBadge from '../../components/common/StatusBadge';
 import TextInput from '../../components/input/TextInput';
 import SelectInput from '../../components/input/SelectInput';
+import DateInput from '../../components/input/DateInput';
 import OrderDetailModal from '../../components/modal/OrderDetailModal';
 import NewOrderModal from '../../components/modal/NewOrderModal';
 import { Order, OrderStatus } from '../../store/ordersStore';
@@ -23,8 +23,8 @@ interface SearchFilters {
   supplier: string;
   status: string;
   dateRange: string;
-  startDate: string;
-  endDate: string;
+  startDate: Date | null;
+  endDate: Date | null;
 }
 
 // 숫자를 한글로 변환하는 함수 추가 (OrderDetailModal.tsx에서 복사)
@@ -67,16 +67,16 @@ const OrdersPage: React.FC = () => {
     supplier: '',
     status: '모든 상태',
     dateRange: '전체 기간',
-    startDate: '',
-    endDate: '',
+    startDate: null,
+    endDate: null,
   });
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     orderId: '',
     supplier: '',
     status: '모든 상태',
     dateRange: '전체 기간',
-    startDate: '',
-    endDate: '',
+    startDate: null,
+    endDate: null,
   });
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
@@ -220,7 +220,7 @@ const OrdersPage: React.FC = () => {
     }
 
     // 날짜 필터링
-    if (searchFilters.dateRange === '커스텀 기간') {
+    if (searchFilters.dateRange === '사용자 지정') {
       // 커스텀 날짜 범위 처리
       if (searchFilters.startDate || searchFilters.endDate) {
         result = result.filter((order) => {
@@ -230,6 +230,7 @@ const OrdersPage: React.FC = () => {
           let isValid = true;
           if (searchFilters.startDate) {
             const startDate = new Date(searchFilters.startDate);
+            startDate.setHours(0, 0, 0, 0);
             isValid = isValid && orderDate >= startDate;
           }
           if (searchFilters.endDate) {
@@ -406,66 +407,10 @@ const OrdersPage: React.FC = () => {
     setSearchInputs((prev) => ({ ...prev, [key]: value }));
   };
 
-  // debounced text fields
-  const debouncedOrderId = useDebouncedValue(searchInputs.orderId, 300);
-  const debouncedSupplier = useDebouncedValue(searchInputs.supplier, 300);
-
   const handleSearch = () => {
-    // 유효성 검사 및 확인용 - 실제 필터링은 useEffect가 자동으로 처리
+    setSearchFilters(searchInputs);
+    setCurrentPage(1);
   };
-
-  // 자동 적용: 텍스트 입력은 디바운스 후 즉시 필터 반영
-  useEffect(() => {
-    setSearchFilters((prev) => ({ ...prev, orderId: debouncedOrderId }));
-    setCurrentPage(1);
-  }, [debouncedOrderId]);
-
-  useEffect(() => {
-    setSearchFilters((prev) => ({ ...prev, supplier: debouncedSupplier }));
-    setCurrentPage(1);
-  }, [debouncedSupplier]);
-
-  // 자동 적용: 상태 드롭다운 변경 시 즉시 필터 반영
-  useEffect(() => {
-    setSearchFilters((prev) => ({
-      ...prev,
-      status: searchInputs.status,
-      orderId: debouncedOrderId,
-      supplier: debouncedSupplier,
-    }));
-    setCurrentPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInputs.status]);
-
-  // 자동 적용: 기간 드롭다운 변경 시 즉시 필터 반영
-  useEffect(() => {
-    setSearchFilters((prev) => ({
-      ...prev,
-      dateRange: searchInputs.dateRange,
-      orderId: debouncedOrderId,
-      supplier: debouncedSupplier,
-      status: searchInputs.status,
-    }));
-    setCurrentPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInputs.dateRange]);
-
-  // 자동 적용: 커스텀 날짜 변경 시 즉시 필터 반영
-  useEffect(() => {
-    if (searchInputs.dateRange === '커스텀 기간') {
-      setSearchFilters((prev) => ({
-        ...prev,
-        startDate: searchInputs.startDate,
-        endDate: searchInputs.endDate,
-        orderId: debouncedOrderId,
-        supplier: debouncedSupplier,
-        status: searchInputs.status,
-        dateRange: searchInputs.dateRange,
-      }));
-      setCurrentPage(1);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInputs.startDate, searchInputs.endDate]);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
@@ -708,11 +653,8 @@ const OrdersPage: React.FC = () => {
               placeholder='상품명으로 검색'
               value={searchInputs.orderId}
               onChange={(value) => handleInputChange('orderId', value)}
+              onKeyDown={handleKeyDown}
               className='w-full'
-              extra={{
-                id: 'order-id-search',
-                onKeyDown: handleKeyDown,
-              }}
             />
           </div>
           <div className='flex w-64 flex-col gap-1'>
@@ -724,11 +666,8 @@ const OrdersPage: React.FC = () => {
               placeholder='공급업체로 검색'
               value={searchInputs.supplier}
               onChange={(value) => handleInputChange('supplier', value)}
+              onKeyDown={handleKeyDown}
               className='w-full'
-              extra={{
-                id: 'supplier-search',
-                onKeyDown: handleKeyDown,
-              }}
             />
           </div>
           <div className='flex w-64 flex-col gap-1'>
@@ -753,7 +692,7 @@ const OrdersPage: React.FC = () => {
             <SelectInput
               defaultText='전체 기간'
               value={searchInputs.dateRange}
-              options={['전체 기간', '최근 1개월', '최근 3개월', '최근 6개월', '커스텀 기간']}
+              options={['전체 기간', '최근 1개월', '최근 3개월', '최근 6개월', '사용자 지정']}
               onChange={(value) => handleInputChange('dateRange', value)}
               extra={{
                 id: 'date-range-filter',
@@ -762,33 +701,27 @@ const OrdersPage: React.FC = () => {
             />
           </div>
         </div>
-        {/* 커스텀 기간 선택 시 날짜 입력 필드 표시 */}
-        {searchInputs.dateRange === '커스텀 기간' && (
+        {/* 사용자 지정 기간 선택 시 날짜 입력 필드 표시 */}
+        {searchInputs.dateRange === '사용자 지정' && (
           <div className='flex items-end gap-4'>
-            <div className='flex w-64 flex-col gap-1'>
+            <div className='flex flex-col gap-1'>
               <label htmlFor='start-date' className='text-sm font-medium text-gray-700'>
                 시작 날짜
               </label>
-              <input
-                type='date'
-                id='start-date'
+              <DateInput
+                placeholder='시작 날짜 선택'
                 value={searchInputs.startDate}
-                onChange={(e) => handleInputChange('startDate', e.target.value)}
-                onKeyDown={handleKeyDown}
-                className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none'
+                onChange={(date) => handleInputChange('startDate', date ? date.toISOString().split('T')[0] : '')}
               />
             </div>
-            <div className='flex w-64 flex-col gap-1'>
+            <div className='flex flex-col gap-1'>
               <label htmlFor='end-date' className='text-sm font-medium text-gray-700'>
                 종료 날짜
               </label>
-              <input
-                type='date'
-                id='end-date'
+              <DateInput
+                placeholder='종료 날짜 선택'
                 value={searchInputs.endDate}
-                onChange={(e) => handleInputChange('endDate', e.target.value)}
-                onKeyDown={handleKeyDown}
-                className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none'
+                onChange={(date) => handleInputChange('endDate', date ? date.toISOString().split('T')[0] : '')}
               />
             </div>
           </div>
@@ -906,7 +839,7 @@ const OrdersPage: React.FC = () => {
                       <td className='px-6 py-3.5 text-center'>
                         <button
                           onClick={() => handleDeleteOrder(order)}
-                          className='flex items-center justify-center rounded bg-red-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-red-700'
+                          className='mx-auto flex items-center justify-center rounded bg-red-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-red-700'
                           aria-label={`${Array.isArray(order.product_names) ? order.product_names.join(', ') : order.product_names || '-'} 삭제`}>
                           삭제
                         </button>
