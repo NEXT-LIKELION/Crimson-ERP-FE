@@ -78,13 +78,13 @@ const StockHistoryModal: React.FC<StockHistoryModalProps> = ({ isOpen, onClose }
           <div className='flex items-center gap-4'>
             <div className='flex-1'>
               <label className='mb-1 block text-sm font-medium text-gray-700'>
-                품목코드로 검색
+                품목코드로 검색 (정확히 일치하는 코드만 검색됩니다)
               </label>
               <input
                 type='text'
                 value={variantCodeFilter}
                 onChange={(e) => setVariantCodeFilter(e.target.value)}
-                placeholder='품목코드를 입력하세요'
+                placeholder='품목코드를 정확히 입력하세요'
                 className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500'
               />
             </div>

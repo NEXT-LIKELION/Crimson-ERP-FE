@@ -26,7 +26,7 @@ export const updateInventoryItem = (productId: number, data: Partial<Product>) =
   return api.put(`/inventory/${productId}/`, data);
 };
 
-export const updateInventoryVariant = (variantId: string, data: Partial<ProductVariant>) => {
+export const updateInventoryVariant = (variantId: string, data: Partial<Product>) => {
   return api
     .patch(`/inventory/variants/${variantId}/`, data)
     .then((response) => {

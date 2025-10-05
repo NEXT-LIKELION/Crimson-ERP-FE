@@ -108,15 +108,26 @@ const EditProductModal = ({
     if (isNaN(costPrice)) {
       errs.push('매입가는 숫자여야 합니다.');
     }
-    // 공급업체 필수 안내
-    if (errs.length > 0) {
-      setErrors(errs);
-      return;
+
+    // 공급업체 검증
+    const filteredSuppliers = form.suppliers.filter(
+      (s) => s.supplier_name && s.supplier_name !== '선택' && s.supplier_name.trim()
+    );
+
+    // 공급업체가 최소 1개는 있어야 함
+    if (filteredSuppliers.length === 0) {
+      errs.push('공급업체를 최소 1개 이상 선택해주세요.');
     }
 
-    const filteredSuppliers = form.suppliers.filter(
-      (s) => s.supplier_name && s.supplier_name !== '선택'
-    );
+    // 추가된 공급업체 행이 있는데 선택되지 않은 경우 체크
+    if (filteredSuppliers.length !== form.suppliers.length && filteredSuppliers.length > 0) {
+      errs.push('선택하지 않은 공급업체가 있습니다. 삭제 버튼을 눌러 제거해주세요.');
+    }
+
+    if (errs.length > 0) {
+      alert(errs.join('\n'));
+      return;
+    }
 
     const updated = {
       variant_code: form.variant_code, // variant 식별을 위해 추가

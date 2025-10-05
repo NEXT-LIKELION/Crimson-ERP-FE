@@ -319,19 +319,18 @@ const InventoryPage = () => {
         throw new Error('variant 식별자를 찾을 수 없습니다.');
       }
 
-      // suppliers와 readOnly 필드들 제외
-      const { suppliers, sales, cost_price, order_count, return_count, stock, ...editableFields } =
+      // readOnly 필드들만 제외
+      const { sales, cost_price, order_count, return_count, stock, ...editableFields } =
         updatedProduct;
 
       // readOnly 필드들은 사용되지 않지만 구조분해할당으로 제외하기 위해 필요
-      void suppliers;
       void sales;
       void cost_price;
       void order_count;
       void return_count;
       void stock;
 
-      // API에 전송할 수정 가능한 필드들만 포함
+      // API에 전송할 수정 가능한 필드들 (suppliers 포함)
       const updateData = {
         ...editableFields,
         price:
@@ -346,10 +345,6 @@ const InventoryPage = () => {
 
       await updateInventoryVariant(String(variantIdentifier), updateData);
 
-      // 공급업체 정보가 배열로 제공된 경우 (향후 구현)
-      if (Array.isArray(suppliers) && suppliers.length > 0) {
-        // TODO: 공급업체 매핑 업데이트 API 구현 후 호출
-      }
       alert('상품이 성공적으로 수정되었습니다.');
       handleCloseModal();
       await queryClient.invalidateQueries({ queryKey: ['inventories'] });
