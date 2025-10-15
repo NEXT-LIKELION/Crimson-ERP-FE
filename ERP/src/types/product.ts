@@ -223,7 +223,8 @@ export function ensureNumber(value: number | string | undefined): number | undef
   return isNaN(parsed) ? undefined : parsed;
 }
 
-// 상품 생성 완료 후 콜백용 타입 (ProductFormData + variant_id)
+// 상품 생성 완료 후 콜백용 타입 (ProductFormData + variant_id + product_id)
 export interface CreatedProductData extends ProductFormData {
   variant_id: string;
+  product_id: string;
 }

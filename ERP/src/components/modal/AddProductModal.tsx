@@ -8,7 +8,6 @@ import {
   fetchProductOptions,
   createProductWithVariant,
   fetchAllInventoriesForMerge,
-  checkProductNameExists,
   fetchCategories,
 } from '../../api/inventory';
 import { ProductSupplierData } from '../../types/product';
@@ -49,11 +48,11 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     enabled: isOpen,
   });
 
-  // 기존 데이터에서 카테고리 목록 추출 (기존 상품의 카테고리 확인용)
+  // 기존 데이터에서 카테고리 목록 추출 및 중복 체크용
   const { data: allInventoriesData } = useQuery({
     queryKey: ['allInventories'],
     queryFn: fetchAllInventoriesForMerge,
-    enabled: isOpen && productType === 'existing',
+    enabled: isOpen,
   });
 
   // 동적 카테고리 옵션 생성 + 새 카테고리 추가 옵션
@@ -128,6 +127,15 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     setForm((prev) => ({ ...prev, suppliers: newSuppliers }));
   };
 
+  // 활성 상품 중복 체크 (variants 데이터 기반)
+  const checkDuplicateInActiveProducts = (name: string): boolean => {
+    if (!allInventoriesData) return false;
+    const activeProductNames = new Set(
+      allInventoriesData.map((v) => v.name.trim().toLowerCase())
+    );
+    return activeProductNames.has(name.trim().toLowerCase());
+  };
+
   const handleAddSupplier = () => {
     setForm((prev) => ({
       ...prev,
@@ -166,14 +174,9 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
       return;
     }
 
-    // 상품명 중복 검사 (신규 상품에 한함)
+    // 상품명 중복 검사 (신규 상품에 한함, 활성 상품만)
     if (productType === 'new') {
-      const result = await checkProductNameExists(form.name);
-      if (result.error) {
-        setErrors([result.error]);
-        return;
-      }
-      if (result.isDuplicate) {
+      if (checkDuplicateInActiveProducts(form.name)) {
         alert(`이미 존재하는 상품명입니다: ${form.name}`);
         return;
       }
@@ -249,6 +252,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
       const newProduct = {
         ...form,
         variant_id: variantRes.variant_code,
+        product_id: variantRes.product_id,
       };
 
       onSave(newProduct);

@@ -17,14 +17,14 @@ export const usePermissions = () => {
     if (tab === 'HR') {
       return isAdmin;
     }
-    
+
     if (isAdmin) {
       return true;
     }
-    
+
     const userAllowedTabs = user?.allowed_tabs || [];
     const hasTabPermission = userAllowedTabs.includes(tab as AllowedTab);
-    
+
     return hasTabPermission;
   };
 

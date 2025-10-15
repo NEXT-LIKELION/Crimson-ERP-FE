@@ -29,15 +29,8 @@ const AppRoutes = () => {
           }
         />
 
-        {/* 재고 페이지 (로그인해야만 접근 가능) */}
-        <Route
-          path='/inventory'
-          element={
-            <PrivateRoute>
-              <InventoryPage />
-            </PrivateRoute>
-          }
-        />
+        {/* 재고 페이지 (비로그인도 접근 가능) */}
+        <Route path='/inventory' element={<InventoryPage />} />
 
         {/* 발주 페이지 (로그인해야만 접근 가능) */}
         <Route

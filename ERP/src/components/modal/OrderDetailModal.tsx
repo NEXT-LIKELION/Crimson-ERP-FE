@@ -324,7 +324,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                                 (total, item) => total + item.quantity * item.unit_price,
                                 0
                               )
-                            )} (₩ ${orderDetail.items
+                            )} (₩${orderDetail.items
                               .reduce((total, item) => total + item.quantity * item.unit_price, 0)
                               .toLocaleString()})</div>
                             <div class="info-item"><span class="label">부가세:</span> 포함</div>
@@ -658,7 +658,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                         0
                       )
                     )}{' '}
-                    (₩ $
+                    (₩
                     {orderDetail.items
                       .reduce((total, item) => total + item.quantity * item.unit_price, 0)
                       .toLocaleString()}
