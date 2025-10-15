@@ -14,12 +14,9 @@ interface StockAdjustment {
   id: number;
   variant_code: string;
   product_name: string;
-  option: string;
-  previous_stock: number;
-  current_stock: number;
-  change_amount: number;
+  delta: number;
   reason: string;
-  updated_by: string;
+  created_by: string;
   created_at: string;
 }
 
@@ -81,13 +78,13 @@ const StockHistoryModal: React.FC<StockHistoryModalProps> = ({ isOpen, onClose }
           <div className='flex items-center gap-4'>
             <div className='flex-1'>
               <label className='mb-1 block text-sm font-medium text-gray-700'>
-                품목코드로 검색
+                품목코드로 검색 (정확히 일치하는 코드만 검색됩니다)
               </label>
               <input
                 type='text'
                 value={variantCodeFilter}
                 onChange={(e) => setVariantCodeFilter(e.target.value)}
-                placeholder='품목코드를 입력하세요'
+                placeholder='품목코드를 정확히 입력하세요'
                 className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500'
               />
             </div>
@@ -127,9 +124,6 @@ const StockHistoryModal: React.FC<StockHistoryModalProps> = ({ isOpen, onClose }
                     <th className='px-4 py-3 text-left'>일시</th>
                     <th className='px-4 py-3 text-left'>품목코드</th>
                     <th className='px-4 py-3 text-left'>상품명</th>
-                    <th className='px-4 py-3 text-left'>옵션</th>
-                    <th className='px-4 py-3 text-center'>이전 재고</th>
-                    <th className='px-4 py-3 text-center'>현재 재고</th>
                     <th className='px-4 py-3 text-center'>변경량</th>
                     <th className='px-4 py-3 text-left'>사유</th>
                     <th className='px-4 py-3 text-left'>담당자</th>
@@ -145,28 +139,21 @@ const StockHistoryModal: React.FC<StockHistoryModalProps> = ({ isOpen, onClose }
                       <td className='px-4 py-3 text-left text-sm'>{formatDate(adjustment.created_at)}</td>
                       <td className='px-4 py-3 text-left text-sm font-medium'>{adjustment.variant_code}</td>
                       <td className='px-4 py-3 text-left text-sm'>{adjustment.product_name}</td>
-                      <td className='px-4 py-3 text-left text-sm'>{adjustment.option}</td>
-                      <td className='px-4 py-3 text-center text-sm'>
-                        {adjustment.previous_stock}EA
-                      </td>
-                      <td className='px-4 py-3 text-center text-sm'>
-                        {adjustment.current_stock}EA
-                      </td>
                       <td className='px-4 py-3 text-center'>
                         <span
                           className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                            adjustment.change_amount > 0
+                            adjustment.delta > 0
                               ? 'bg-green-100 text-green-800'
-                              : adjustment.change_amount < 0
+                              : adjustment.delta < 0
                                 ? 'bg-red-100 text-red-800'
                                 : 'bg-gray-100 text-gray-800'
                           }`}>
-                          {adjustment.change_amount > 0 ? '+' : ''}
-                          {adjustment.change_amount}EA
+                          {adjustment.delta > 0 ? '+' : ''}
+                          {adjustment.delta}EA
                         </span>
                       </td>
                       <td className='px-4 py-3 text-left text-sm'>{adjustment.reason}</td>
-                      <td className='px-4 py-3 text-left text-sm'>{adjustment.updated_by}</td>
+                      <td className='px-4 py-3 text-left text-sm'>{adjustment.created_by}</td>
                     </tr>
                   ))}
                 </tbody>
