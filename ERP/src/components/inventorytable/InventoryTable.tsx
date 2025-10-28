@@ -143,7 +143,7 @@ const InventoryTable = ({
           !isFetchingNextPage &&
           hasScrolled &&
           !isLoadingRef.current &&
-          (now - lastRequestTimeRef.current) > 150; // 최소 150ms 간격
+          now - lastRequestTimeRef.current > 150; // 최소 150ms 간격
 
         if (canTrigger) {
           isLoadingRef.current = true;
@@ -219,6 +219,13 @@ const InventoryTable = ({
         const aValue = a[key];
         const bValue = b[key];
 
+        // totalSales는 문자열이므로 원본 sales 값으로 정렬
+        if (key === 'totalSales') {
+          const aSales = (a as any).sales || 0;
+          const bSales = (b as any).sales || 0;
+          return order === 'asc' ? aSales - bSales : bSales - aSales;
+        }
+
         if (typeof aValue === 'number' && typeof bValue === 'number') {
           return order === 'asc' ? aValue - bValue : bValue - aValue;
         }
@@ -264,9 +271,7 @@ const InventoryTable = ({
         <h2 className='flex items-center text-lg font-semibold'>
           상품별 재고 현황
           {renderUpdateDate() && (
-            <span className='ml-2 text-sm font-normal text-gray-500'>
-              {renderUpdateDate()}
-            </span>
+            <span className='ml-2 text-sm font-normal text-gray-500'>{renderUpdateDate()}</span>
           )}
         </h2>
         <div className='flex items-center space-x-3 text-gray-500'>
