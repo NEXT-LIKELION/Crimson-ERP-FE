@@ -535,7 +535,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         const stockMessage = actualStockChanges
           .map(
             (s: { name: string; option: string; stock_before: number; stock_after: number; quantity: number }) =>
-              `${s.name}(${s.option}): ${s.stock_before} → ${s.stock_after} (+${s.quantity})`
+              `${s.name}(${s.option}): ${s.stock_before} → ${s.stock_after} (${s.stock_before > s.stock_after ? '-' : '+'}${s.quantity})`
           )
           .join('\n');
         alert(`상태가 ${statusText}로 변경되었습니다.\n\n재고가 변경되었습니다:\n${stockMessage}`);
