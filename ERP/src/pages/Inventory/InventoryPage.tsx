@@ -5,6 +5,7 @@ import SecondaryButton from '../../components/button/SecondaryButton';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { FaPlus, FaFileArrowUp, FaCodePullRequest } from 'react-icons/fa6';
 import { FaHistory, FaUndo } from 'react-icons/fa';
+import { FiInfo } from 'react-icons/fi';
 import InputField from '../../components/inputfield/InputField';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import { useInventories } from '../../hooks/queries/useInventories';
@@ -34,6 +35,7 @@ import * as XLSX from 'xlsx';
 import { useAdjustStock } from '../../hooks/queries/useStockAdjustment';
 import { useInventorySnapshots } from '../../hooks/queries/useInventorySnapshots';
 import { getAllChannelUpdateDates, detectUploadChannel } from '../../utils/snapshotAnalyzer';
+import { getErrorMessage } from '../../utils/errorHandling';
 
 const InventoryPage = () => {
   const queryClient = useQueryClient();
@@ -64,7 +66,7 @@ const InventoryPage = () => {
 
       return {
         ...snapshot,
-        detectedChannel
+        detectedChannel,
       };
     });
   }, [snapshotsData]);
@@ -72,7 +74,6 @@ const InventoryPage = () => {
   const channelUpdateDates = useMemo(() => {
     return getAllChannelUpdateDates(snapshotsWithChannel);
   }, [snapshotsWithChannel]);
-
 
   const lastUpdateDates = useMemo(() => {
     const formatDate = (dateString: string | null) => {
@@ -232,7 +233,7 @@ const InventoryPage = () => {
         const allData = await fetchAllInventoriesForMerge();
         setAllMergeData(allData);
       } catch (error) {
-        alert('전체 데이터를 불러오는 중 오류가 발생했습니다.');
+        alert('전체 데이터를 불러오는 중 오류가 발생했습니다: ' + getErrorMessage(error));
       } finally {
         setIsMergeDataLoading(false);
       }
@@ -307,7 +308,7 @@ const InventoryPage = () => {
       await refetch();
       alert('상품이 성공적으로 추가되었습니다.');
     } catch (err) {
-      alert('상품 추가 중 오류가 발생했습니다.');
+      alert('상품 추가 중 오류가 발생했습니다: ' + getErrorMessage(err));
     }
   };
 
@@ -350,7 +351,7 @@ const InventoryPage = () => {
       await queryClient.invalidateQueries({ queryKey: ['inventories'] });
       await refetch();
     } catch (err) {
-      alert('상품 수정 중 오류가 발생했습니다.');
+      alert('상품 수정 중 오류가 발생했습니다: ' + getErrorMessage(err));
     }
   };
 
@@ -406,7 +407,8 @@ const InventoryPage = () => {
       queryClient.invalidateQueries({ queryKey: ['inventorySnapshots'] });
       await refetch();
     } catch (err) {
-      alert('POS 데이터 업로드 중 오류 발생');
+      alert('POS 데이터 업로드 중 오류 발생: ' + getErrorMessage(err));
+      console.log(err);
     } finally {
       setIsPOSUploading(false);
       e.target.value = '';
@@ -435,21 +437,17 @@ const InventoryPage = () => {
   };
 
   const handleMerge = async (targetCode: string, sourceCodes: string[]) => {
-    try {
-      await mergeVariants({
-        target_variant_code: targetCode,
-        source_variant_codes: sourceCodes,
-      });
-      // 병합 후 모든 캐시 클리어하고 강제 새로고침
-      await queryClient.clear(); // 모든 캐시 클리어
-      await queryClient.invalidateQueries({ queryKey: ['inventories'] });
-      await refetch();
+    await mergeVariants({
+      target_variant_code: targetCode,
+      source_variant_codes: sourceCodes,
+    });
+    // 병합 후 모든 캐시 클리어하고 강제 새로고침
+    await queryClient.clear(); // 모든 캐시 클리어
+    await queryClient.invalidateQueries({ queryKey: ['inventories'] });
+    await refetch();
 
-      // 필터 초기화해서 최신 데이터 확인
-      setAppliedFilters({});
-    } catch (error) {
-      throw error; // 모달에서 에러 처리하도록 re-throw
-    }
+    // 필터 초기화해서 최신 데이터 확인
+    setAppliedFilters({});
   };
 
   const handleExportToExcel = async () => {
@@ -556,7 +554,7 @@ const InventoryPage = () => {
       // 파일 다운로드
       XLSX.writeFile(workbook, filename);
     } catch (error) {
-      alert('엑셀 파일 생성 중 오류가 발생했습니다.');
+      alert('엑셀 파일 생성 중 오류가 발생했습니다: ' + getErrorMessage(error));
     }
   };
 
@@ -598,9 +596,9 @@ const InventoryPage = () => {
   if (error) return <p>에러가 발생했습니다!</p>;
 
   return (
-    <div className="p-6 relative">
-      {isLoading && <LoadingSpinner overlay text="재고 데이터를 불러오는 중..." />}
-      {isPOSUploading && <LoadingSpinner overlay text="POS 데이터를 업로드하는 중..." />}
+    <div className='relative p-6'>
+      {isLoading && <LoadingSpinner overlay text='재고 데이터를 불러오는 중...' />}
+      {isPOSUploading && <LoadingSpinner overlay text='POS 데이터를 업로드하는 중...' />}
       <div className='mb-4 flex items-center justify-between'>
         <h1 className='text-2xl font-bold'>재고 관리</h1>
         <div className='flex space-x-2'>
@@ -629,12 +627,34 @@ const InventoryPage = () => {
                 icon={<FaUndo size={16} />}
                 onClick={() => setRollbackModalOpen(true)}
               />
-              <PrimaryButton
-                text='POS 데이터 업로드'
-                icon={<FaFileArrowUp size={16} />}
-                onClick={handlePOSButtonClick}
-                disabled={isPOSUploading}
-              />
+              <div className='flex flex-col items-end gap-1'>
+                <div className='flex items-center gap-2'>
+                  <PrimaryButton
+                    text='POS 데이터 업로드'
+                    icon={<FaFileArrowUp size={16} />}
+                    onClick={handlePOSButtonClick}
+                    disabled={isPOSUploading}
+                  />
+                  <div className='group relative flex items-center'>
+                    <FiInfo
+                      className='h-4 w-4 text-gray-500 cursor-help hover:text-gray-700'
+                      aria-label='파일명 규칙 안내'
+                    />
+                    <div className='invisible group-hover:visible absolute right-0 top-6 z-50 w-72 rounded-lg bg-gray-900 p-3 text-xs text-white shadow-lg'>
+                      <div className='mb-2 font-semibold'>파일명 규칙</div>
+                      <div className='space-y-1'>
+                        <p>• 파일명에 <span className='font-mono bg-gray-800 px-1 rounded'>_online</span> 또는 <span className='font-mono bg-gray-800 px-1 rounded'>_offline</span>을 반드시 포함해주세요</p>
+                        <p className='text-gray-300'>예시:</p>
+                        <p className='font-mono text-xs bg-gray-800 px-2 py-1 rounded'>재고_online_20250115.xlsx</p>
+                        <p className='font-mono text-xs bg-gray-800 px-2 py-1 rounded'>POS데이터_offline_0115.xlsx</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <span className='text-xs text-gray-500'>
+                  파일명: *_online.xlsx 또는 *_offline.xlsx
+                </span>
+              </div>
             </>
           )}
           <input
@@ -729,7 +749,6 @@ const InventoryPage = () => {
         />
       </div>
 
-
       <InventoryTable
         inventories={tabData}
         onDelete={handleVariantDelete}
@@ -793,10 +812,7 @@ const InventoryPage = () => {
 
       {/* 병합 데이터 로딩 스피너 */}
       {isMergeDataLoading && (
-        <LoadingSpinner
-          overlay={true}
-          text="병합용 데이터를 불러오는 중..."
-        />
+        <LoadingSpinner overlay={true} text='병합용 데이터를 불러오는 중...' />
       )}
     </div>
   );
