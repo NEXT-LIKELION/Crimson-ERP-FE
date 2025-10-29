@@ -13,7 +13,14 @@ import {
 import { ProductSupplierData } from '../../types/product';
 import { useSuppliers } from '../../hooks/queries/useSuppliers';
 import { useQuery } from '@tanstack/react-query';
-import { ProductFormData, ProductVariant, ProductVariantCreate, Supplier, ProductOption, CreatedProductData } from '../../types/product';
+import {
+  ProductFormData,
+  ProductVariant,
+  ProductVariantCreate,
+  Supplier,
+  ProductOption,
+  CreatedProductData,
+} from '../../types/product';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface AddProductModalProps {
@@ -104,7 +111,6 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     }
   }, [isOpen]);
 
-
   useEscapeKey(onClose, isOpen);
 
   const handleChange = (field: keyof ProductFormData, value: string | number | string[]) => {
@@ -130,9 +136,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
   // 활성 상품 중복 체크 (variants 데이터 기반)
   const checkDuplicateInActiveProducts = (name: string): boolean => {
     if (!allInventoriesData) return false;
-    const activeProductNames = new Set(
-      allInventoriesData.map((v) => v.name.trim().toLowerCase())
-    );
+    const activeProductNames = new Set(allInventoriesData.map((v) => v.name.trim().toLowerCase()));
     return activeProductNames.has(name.trim().toLowerCase());
   };
 
@@ -220,12 +224,12 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
         const selectedProduct = productsData?.data?.find(
           (p: ProductOption) => p.product_id === selectedProductId
         );
-        
+
         // 기존 상품의 카테고리를 가져오기 위해 전체 재고 데이터에서 찾기
         const existingVariant = allInventoriesData?.find(
           (item: ProductVariant) => item.product_id === selectedProductId
         );
-        
+
         variantPayload = {
           product_id: selectedProductId,
           name: selectedProduct?.name || form.name,
@@ -257,7 +261,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
 
       onSave(newProduct);
       onClose();
-    } catch (err: unknown) {
+    } catch {
       alert('상품 생성 중 오류가 발생했습니다.');
     }
   };
