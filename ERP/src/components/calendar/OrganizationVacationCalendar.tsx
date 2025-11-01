@@ -24,7 +24,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | ''>('');
   const [selectedLeaveType, setSelectedLeaveType] = useState<string>('');
-  const [selectedStatus, setSelectedStatus] = useState<VacationStatus | ''>('');
+  const [showWork, setShowWork] = useState(true); // 근무 표시 여부
   const [showManagementPanel, setShowManagementPanel] = useState(false);
 
   const currentUser = useAuthStore((state) => state.user);
@@ -99,22 +99,27 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
 
       const employeeMatch =
         selectedEmployeeId === '' || vacation.employee === selectedEmployeeId;
+
+      // 휴가 유형 필터 (WORK 제외)
       const leaveTypeMatch = selectedLeaveType === '' || vacation.leave_type === selectedLeaveType;
-      const statusMatch = selectedStatus === '' || vacation.status === selectedStatus;
+
+      // 근무 표시 필터
+      const isWork = vacation.leave_type === 'WORK';
+      const workMatch = showWork || !isWork; // showWork가 false면 근무(WORK)는 제외
 
       // 일반 직원인 경우: 관리 패널에서만 본인 휴가만 보기, 캘린더 뷰에서는 전체 조직 휴가 보기
       if (!isAdmin && showManagementPanel) {
         const currentUserId = Number(currentUser?.id);
         const vacationEmployeeId = Number(vacation.employee);
         const isMyVacation = !isNaN(currentUserId) && !isNaN(vacationEmployeeId) && vacationEmployeeId === currentUserId;
-        return employeeMatch && leaveTypeMatch && statusMatch && isMyVacation;
+        return employeeMatch && leaveTypeMatch && workMatch && isMyVacation;
       }
 
-      return employeeMatch && leaveTypeMatch && statusMatch;
+      return employeeMatch && leaveTypeMatch && workMatch;
     });
-    
+
     return filtered;
-  }, [vacationsData?.data, employeesData?.data, selectedEmployeeId, selectedLeaveType, selectedStatus, showManagementPanel, isAdmin, currentUser?.id]);
+  }, [vacationsData?.data, employeesData?.data, selectedEmployeeId, selectedLeaveType, showWork, showManagementPanel, isAdmin, currentUser?.id]);
 
   // 날짜별 휴가 그룹화
   const vacationsByDate = useMemo(() => {
@@ -286,6 +291,10 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
       const dayVacations = vacationsByDate[dateKey] || [];
       const isToday = new Date().toDateString() === new Date(year, month, date).toDateString();
 
+      // 휴가와 근무 분리
+      const vacationsOnly = dayVacations.filter((v) => v.leave_type !== 'WORK');
+      const workOnly = dayVacations.filter((v) => v.leave_type === 'WORK');
+
       days.push(
         <div
           key={date}
@@ -294,31 +303,56 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
             className={`mb-2 text-sm font-medium ${isToday ? 'text-yellow-800' : 'text-gray-900'}`}>
             {date}
           </div>
-          <div className='space-y-1'>
-            {dayVacations.map((vacation, index) => {
-              const employeeColor = employeeColors[vacation.employee];
-              const leaveTypeLabel = getLeaveTypeLabel(vacation.leave_type);
-              const typeStyle = getVacationTypeStyle(vacation.leave_type);
-              const isWork = vacation.leave_type === 'WORK';
+          <div className='space-y-2'>
+            {/* 휴가 표시 */}
+            {vacationsOnly.length > 0 && (
+              <div className='space-y-1'>
+                {vacationsOnly.map((vacation, index) => {
+                  const employeeColor = employeeColors[vacation.employee];
+                  const leaveTypeLabel = getLeaveTypeLabel(vacation.leave_type);
 
-              return (
-                <div
-                  key={index}
-                  className={`rounded px-2 py-1 text-xs flex items-center justify-between ${
-                    isWork
-                      ? `${typeStyle.className}`
-                      : `text-white ${employeeColor}`
-                  }`}
-                  title={`${getEmployeeName(vacation.employee)} - ${leaveTypeLabel}${isWork ? ' (근무)' : ''}`}>
-                  <span className='mr-1 flex-1 truncate'>
-                    {getEmployeeName(vacation.employee)}
-                  </span>
-                  <span className={`text-xs whitespace-nowrap ${isWork ? 'opacity-90' : 'opacity-75'}`}>
-                    {leaveTypeLabel}
-                  </span>
-                </div>
-              );
-            })}
+                  return (
+                    <div
+                      key={index}
+                      className={`rounded px-2 py-1 text-xs flex items-center justify-between text-white ${employeeColor}`}
+                      title={`${getEmployeeName(vacation.employee)} - ${leaveTypeLabel}`}>
+                      <span className='mr-1 flex-1 truncate'>
+                        {getEmployeeName(vacation.employee)}
+                      </span>
+                      <span className='text-xs whitespace-nowrap opacity-75'>
+                        {leaveTypeLabel}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* 근무 표시 (구분선 포함) */}
+            {workOnly.length > 0 && (
+              <div className='space-y-1'>
+                {vacationsOnly.length > 0 && (
+                  <div className='border-t border-orange-200 my-1'></div>
+                )}
+                {workOnly.map((vacation, index) => {
+                  const typeStyle = getVacationTypeStyle(vacation.leave_type);
+
+                  return (
+                    <div
+                      key={index}
+                      className={`rounded px-2 py-1 text-xs flex items-center justify-between ${typeStyle.className}`}
+                      title={`${getEmployeeName(vacation.employee)} - 근무`}>
+                      <span className='mr-1 flex-1 truncate'>
+                        {getEmployeeName(vacation.employee)}
+                      </span>
+                      <span className='text-xs whitespace-nowrap opacity-90'>
+                        근무
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       );
@@ -349,6 +383,10 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
         return vacationDate.getFullYear() === year && vacationDate.getMonth() === month;
       });
 
+      // 휴가와 근무 분리
+      const vacationOnly = monthVacations.filter((v) => v.leave_type !== 'WORK');
+      const workOnly = monthVacations.filter((v) => v.leave_type === 'WORK');
+
       months.push(
         <div
           key={month}
@@ -357,27 +395,53 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
           <h3 className='mb-3 font-semibold text-gray-900 transition-colors hover:text-blue-600'>
             {month + 1}월
           </h3>
-          <div className='space-y-2'>
-            <div className='text-sm text-gray-600'>총 휴가: {monthVacations.length}건</div>
+          <div className='space-y-3'>
+            {/* 휴가 섹션 */}
             <div className='space-y-1'>
-              {monthVacations.slice(0, 5).map((vacation, index) => {
-                const employeeColor = employeeColors[vacation.employee];
-                const isWork = vacation.leave_type === 'WORK';
+              <div className='text-sm font-medium text-blue-600'>휴가: {vacationOnly.length}건</div>
+              <div className='space-y-1'>
+                {vacationOnly.slice(0, 3).map((vacation, index) => {
+                  const employeeColor = employeeColors[vacation.employee];
 
-                return (
-                  <div key={index} className='flex items-center space-x-2'>
-                    <div className={`h-3 w-3 rounded ${isWork ? 'border-2 border-orange-400 bg-orange-100' : employeeColor}`}></div>
-                    <span className='truncate text-xs text-gray-700'>
-                      {getEmployeeName(vacation.employee)} -{' '}
-                      {getLeaveTypeLabel(vacation.leave_type)}
-                    </span>
-                  </div>
-                );
-              })}
-              {monthVacations.length > 5 && (
-                <div className='text-xs text-gray-500'>+{monthVacations.length - 5}건 더</div>
-              )}
+                  return (
+                    <div key={index} className='flex items-center space-x-2'>
+                      <div className={`h-3 w-3 rounded ${employeeColor}`}></div>
+                      <span className='truncate text-xs text-gray-700'>
+                        {getEmployeeName(vacation.employee)} -{' '}
+                        {getLeaveTypeLabel(vacation.leave_type)}
+                      </span>
+                    </div>
+                  );
+                })}
+                {vacationOnly.length > 3 && (
+                  <div className='text-xs text-gray-500'>+{vacationOnly.length - 3}건 더</div>
+                )}
+              </div>
             </div>
+
+            {/* 근무 섹션 */}
+            {workOnly.length > 0 && (
+              <div className='space-y-1 border-t border-gray-100 pt-2'>
+                <div className='text-sm font-medium text-orange-600'>
+                  근무: {workOnly.length}건
+                </div>
+                <div className='space-y-1'>
+                  {workOnly.slice(0, 2).map((vacation, index) => {
+                    return (
+                      <div key={index} className='flex items-center space-x-2'>
+                        <div className='h-3 w-3 rounded border-2 border-orange-400 bg-orange-100'></div>
+                        <span className='truncate text-xs text-gray-700'>
+                          {getEmployeeName(vacation.employee)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {workOnly.length > 2 && (
+                    <div className='text-xs text-gray-500'>+{workOnly.length - 2}건 더</div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       );
@@ -415,17 +479,28 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
               const isOwner = currentUser?.id === vacation.employee;
               const canCancel = isOwner && vacation.status === 'PENDING';
               const canApprove = isAdmin && vacation.status === 'PENDING';
+              const isWork = vacation.leave_type === 'WORK';
 
               return (
                 <div key={vacation.id} className='rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-md'>
                   <div className='mb-3 flex items-start justify-between'>
                     <div className='flex items-center'>
-                      <div className={`mr-3 flex h-10 w-10 items-center justify-center rounded-lg ${employeeColors[vacation.employee]} text-white text-sm font-semibold`}>
-                        {getEmployeeName(vacation.employee).charAt(0)}
+                      <div className={`mr-3 flex h-10 w-10 items-center justify-center rounded-lg ${
+                        isWork
+                          ? 'border-2 border-orange-400 bg-orange-50 text-orange-600'
+                          : `${employeeColors[vacation.employee]} text-white`
+                      } text-sm font-semibold`}>
+                        {isWork ? (
+                          <span className='text-orange-600'>근</span>
+                        ) : (
+                          <span className='text-white'>{getEmployeeName(vacation.employee).charAt(0)}</span>
+                        )}
                       </div>
                       <div>
                         <h3 className='font-semibold text-gray-900'>{getEmployeeName(vacation.employee)}</h3>
-                        <p className='text-sm text-gray-600'>{getLeaveTypeLabel(vacation.leave_type)}</p>
+                        <p className='text-sm text-gray-600'>
+                          {getLeaveTypeLabel(vacation.leave_type)}
+                        </p>
                       </div>
                     </div>
                     <StatusBadge
@@ -509,7 +584,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
           <div className='flex h-64 items-center justify-center'>
             <div className='flex flex-col items-center'>
               <div className='mb-4 h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600'></div>
-              <p className='font-medium text-gray-600'>조직 휴가 정보를 불러오는 중...</p>
+              <p className='font-medium text-gray-600'>조직 일정 정보를 불러오는 중...</p>
             </div>
           </div>
         </div>
@@ -533,12 +608,12 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
             </div>
             <div>
               <h2 className='text-lg font-semibold text-gray-900'>
-                {showManagementPanel ? (isAdmin ? '휴가 관리' : '내 휴가 관리') : '조직 휴가 캘린더'}
+                {showManagementPanel ? (isAdmin ? '휴가/근무 관리' : '내 휴가 관리') : '조직 일정 캘린더'}
               </h2>
               <p className='text-sm text-gray-500'>
-                {showManagementPanel 
-                  ? `총 ${filteredVacations.length}건의 휴가가 있습니다`
-                  : '전체 조직의 승인된 휴가를 확인하세요'
+                {showManagementPanel
+                  ? `총 ${filteredVacations.length}건의 일정이 있습니다`
+                  : '전체 조직의 승인된 휴가 및 근무 일정을 확인하세요'
                 }
               </p>
             </div>
@@ -593,7 +668,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                       ? 'bg-indigo-500 text-white shadow-sm'
                       : 'text-gray-600 hover:text-indigo-600 hover:bg-indigo-50'
                   }`}>
-                  📋 {isAdmin ? '휴가 관리' : '내 휴가 관리'}
+                  📋 {isAdmin ? '휴가/근무 관리' : '내 휴가 관리'}
                 </button>
               </div>
             </div>
@@ -660,8 +735,8 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                 value={selectedLeaveType}
                 onChange={(e) => setSelectedLeaveType(e.target.value)}
                 className='w-full rounded-lg border border-gray-200 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none'>
-                <option value=''>전체 유형</option>
-                {LEAVE_TYPE_OPTIONS.map((option) => (
+                <option value=''>전체 휴가 유형</option>
+                {LEAVE_TYPE_OPTIONS.filter((option) => option.value !== 'WORK').map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -669,22 +744,21 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
               </select>
             </div>
 
-            {/* 상태 필터 */}
+            {/* 근무 표시 필터 */}
             <div>
-              <label className='mb-1 block text-sm font-medium text-gray-700'>상태</label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value as VacationStatus | '')}
-                className='w-full rounded-lg border border-gray-200 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none'>
-                <option value=''>전체 상태</option>
-                {VACATION_STATUS_OPTIONS.filter(
-                  (option) => showManagementPanel || option.value === 'APPROVED'
-                ).map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <label className='mb-1 block text-sm font-medium text-gray-700'>근무 일정</label>
+              <div className='flex items-center h-[42px] px-3 py-2 rounded-lg border border-gray-200 bg-white'>
+                <input
+                  type='checkbox'
+                  id='showWork'
+                  checked={showWork}
+                  onChange={(e) => setShowWork(e.target.checked)}
+                  className='h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-2 focus:ring-orange-500 cursor-pointer'
+                />
+                <label htmlFor='showWork' className='ml-2 text-sm text-gray-700 cursor-pointer select-none'>
+                  근무 일정 표시
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -702,7 +776,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
         <div className='border-t border-gray-200 bg-gray-50 px-6 py-4'>
           <div className='flex items-center justify-between'>
             <div className='text-sm text-gray-600'>
-              전체 {filteredVacations.length}건의 휴가가 표시되고 있습니다
+              전체 {filteredVacations.length}건의 일정이 표시되고 있습니다
             </div>
             <button
               onClick={onClose}
