@@ -25,7 +25,6 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | ''>('');
   const [selectedLeaveType, setSelectedLeaveType] = useState<string>('');
   const [showWork, setShowWork] = useState(true); // 근무 표시 여부
-  const [selectedStatus, setSelectedStatus] = useState<VacationStatus | ''>('');
   const [showManagementPanel, setShowManagementPanel] = useState(false);
 
   const currentUser = useAuthStore((state) => state.user);
@@ -108,21 +107,19 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
       const isWork = vacation.leave_type === 'WORK';
       const workMatch = showWork || !isWork; // showWork가 false면 근무(WORK)는 제외
 
-      const statusMatch = selectedStatus === '' || vacation.status === selectedStatus;
-
       // 일반 직원인 경우: 관리 패널에서만 본인 휴가만 보기, 캘린더 뷰에서는 전체 조직 휴가 보기
       if (!isAdmin && showManagementPanel) {
         const currentUserId = Number(currentUser?.id);
         const vacationEmployeeId = Number(vacation.employee);
         const isMyVacation = !isNaN(currentUserId) && !isNaN(vacationEmployeeId) && vacationEmployeeId === currentUserId;
-        return employeeMatch && leaveTypeMatch && workMatch && statusMatch && isMyVacation;
+        return employeeMatch && leaveTypeMatch && workMatch && isMyVacation;
       }
 
-      return employeeMatch && leaveTypeMatch && workMatch && statusMatch;
+      return employeeMatch && leaveTypeMatch && workMatch;
     });
 
     return filtered;
-  }, [vacationsData?.data, employeesData?.data, selectedEmployeeId, selectedLeaveType, showWork, selectedStatus, showManagementPanel, isAdmin, currentUser?.id]);
+  }, [vacationsData?.data, employeesData?.data, selectedEmployeeId, selectedLeaveType, showWork, showManagementPanel, isAdmin, currentUser?.id]);
 
   // 날짜별 휴가 그룹화
   const vacationsByDate = useMemo(() => {
@@ -704,7 +701,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
           </div>
 
           {/* 필터 영역 */}
-          <div className={`grid grid-cols-1 gap-4 ${(isAdmin || !showManagementPanel) ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
+          <div className={`grid grid-cols-1 gap-4 ${(isAdmin || !showManagementPanel) ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
             {/* 직원 필터 - 관리자는 항상 표시, 일반직원은 캘린더 뷰에서만 표시 */}
             {(isAdmin || !showManagementPanel) && (
               <div>
@@ -762,24 +759,6 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                   근무 일정 표시
                 </label>
               </div>
-            </div>
-
-            {/* 상태 필터 */}
-            <div>
-              <label className='mb-1 block text-sm font-medium text-gray-700'>상태</label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value as VacationStatus | '')}
-                className='w-full rounded-lg border border-gray-200 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none'>
-                <option value=''>전체 상태</option>
-                {VACATION_STATUS_OPTIONS.filter(
-                  (option) => showManagementPanel || option.value === 'APPROVED'
-                ).map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
         </div>
