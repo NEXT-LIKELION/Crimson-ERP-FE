@@ -60,6 +60,29 @@ const OrdersPage: React.FC = () => {
   const [isOrderDetailModalOpen, setIsOrderDetailModalOpen] = useState<boolean>(false);
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState<boolean>(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [reorderData, setReorderData] = useState<
+    | {
+        supplierId?: number;
+        supplierName?: string;
+        manager?: string;
+        items?: Array<{
+          product_id: string | null;
+          variant: string | null;
+          variant_code: string;
+          quantity: number;
+          cost_price: number;
+          unit_price: number;
+          unit?: string;
+          remark?: string;
+          spec: string;
+        }>;
+        vat_included?: boolean;
+        packaging_included?: boolean;
+        instruction_note?: string;
+        note?: string;
+      }
+    | undefined
+  >(undefined);
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchInputs, setSearchInputs] = useState<SearchFilters>({
@@ -922,6 +945,11 @@ const OrdersPage: React.FC = () => {
           isOpen={isOrderDetailModalOpen}
           onClose={() => setIsOrderDetailModalOpen(false)}
           isManager={permissions.hasPermission('ORDER')}
+          onReorder={(data) => {
+            setReorderData(data);
+            setIsOrderDetailModalOpen(false);
+            setIsNewOrderModalOpen(true);
+          }}
         />
       )}
 
@@ -929,11 +957,16 @@ const OrdersPage: React.FC = () => {
       {isNewOrderModalOpen && (
         <NewOrderModal
           isOpen={isNewOrderModalOpen}
-          onClose={() => setIsNewOrderModalOpen(false)}
+          onClose={() => {
+            setIsNewOrderModalOpen(false);
+            setReorderData(undefined);
+          }}
           onSuccess={() => {
             refetch(); // 주문 생성 후 서버에서 최신 목록 받아오기
             setIsNewOrderModalOpen(false);
+            setReorderData(undefined);
           }}
+          initialData={reorderData}
         />
       )}
     </div>

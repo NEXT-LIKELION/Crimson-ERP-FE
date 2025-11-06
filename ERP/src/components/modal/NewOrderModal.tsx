@@ -27,10 +27,22 @@ import {
 } from '../../utils/orderUtils';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 
+interface ReorderData {
+  supplierId?: number;
+  supplierName?: string;
+  manager?: string;
+  items?: OrderItemPayload[];
+  vat_included?: boolean;
+  packaging_included?: boolean;
+  instruction_note?: string;
+  note?: string;
+}
+
 interface NewOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (newOrder: Order) => void;
+  initialData?: ReorderData;
 }
 
 interface OrderItemPayload {
@@ -45,7 +57,12 @@ interface OrderItemPayload {
   spec: string;
 }
 
-const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const NewOrderModal: React.FC<NewOrderModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialData,
+}) => {
   const queryClient = useQueryClient();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
@@ -98,6 +115,38 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         .then((res) => {
           const supplierData = Array.isArray(res.data) ? res.data : [];
           setSuppliers(supplierData);
+
+          // initialData가 있으면 재발주 데이터로 폼 초기화
+          if (initialData) {
+            if (initialData.supplierId) {
+              setSupplier(initialData.supplierId);
+            }
+            if (initialData.supplierName) {
+              setSupplierName(initialData.supplierName);
+            }
+            if (initialData.manager) {
+              setSelectedManager(initialData.manager);
+            }
+            if (initialData.items && initialData.items.length > 0) {
+              setItems(initialData.items);
+            }
+            if (initialData.vat_included !== undefined) {
+              setIncludesTax(initialData.vat_included);
+            }
+            if (initialData.packaging_included !== undefined) {
+              setHasPackaging(initialData.packaging_included);
+            }
+            if (initialData.instruction_note) {
+              setWorkInstructions(initialData.instruction_note);
+            }
+            if (initialData.note) {
+              setNote(initialData.note);
+            }
+            // orderDate와 deliveryDate는 null로 유지 (사용자가 입력)
+          } else {
+            resetForm();
+            setSupplierName('');
+          }
         })
         .catch((error) => {
           console.error('Failed to fetch suppliers:', error);
@@ -109,17 +158,89 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         .then((res) => {
           const productData = Array.isArray(res.data) ? res.data : [];
           setProducts(productData);
+
+          // initialData가 있고 items에 variant_code만 있는 경우, 상품 정보 조회
+          if (initialData?.items && initialData.items.length > 0) {
+            const itemsWithProductInfo = initialData.items.map((item) => {
+              // product_id와 variant가 이미 있으면 그대로 사용
+              if (item.product_id && item.variant) {
+                return item;
+              }
+              // variant_code만 있으면 null로 설정 (나중에 조회)
+              return item;
+            });
+
+            // variant_code로 상품 정보 조회
+            Promise.all(
+              itemsWithProductInfo.map(async (item) => {
+                if (item.variant_code && !item.product_id) {
+                  try {
+                    const variantDetailRes = await fetchVariantDetail(item.variant_code);
+                    const variantDetail = variantDetailRes.data;
+
+                    // product_id와 variant 정보 추출 (ProductVariant 타입 기준)
+                    return {
+                      ...item,
+                      product_id: variantDetail.product_id || null,
+                      variant: variantDetail.option || null,
+                    };
+                  } catch (error) {
+                    console.error(
+                      `Failed to fetch variant detail for ${item.variant_code}:`,
+                      error
+                    );
+                    return item; // 에러 발생 시 원본 유지
+                  }
+                }
+                return item;
+              })
+            ).then((updatedItems) => {
+              setItems(updatedItems);
+
+              // variantsByProduct도 업데이트 (드롭다운 작동을 위해)
+              const productIds = new Set(
+                updatedItems
+                  .map((item) => item.product_id)
+                  .filter((id): id is string => id !== null)
+              );
+
+              // 각 product_id에 대해 variants 조회
+              Promise.all(
+                Array.from(productIds).map(async (productId) => {
+                  try {
+                    const variantsRes = await fetchVariantsByProductId(productId);
+                    const variants = variantsRes.data?.variants || [];
+                    return {
+                      productId,
+                      variants: variants.map((v: { variant_code: string; option: string }) => ({
+                        variant_code: v.variant_code,
+                        option: v.option,
+                      })),
+                    };
+                  } catch (error) {
+                    console.error(`Failed to fetch variants for product ${productId}:`, error);
+                    return { productId, variants: [] };
+                  }
+                })
+              ).then((variantsData) => {
+                const variantsMap: {
+                  [productId: string]: Array<{ variant_code: string; option: string }>;
+                } = {};
+                variantsData.forEach(({ productId, variants }) => {
+                  variantsMap[productId] = variants;
+                });
+                setVariantsByProduct(variantsMap);
+              });
+            });
+          }
         })
         .catch((error) => {
           console.error('Failed to fetch product options:', error);
           setProducts([]);
           setFormErrors((prev) => [...prev, '상품 목록을 불러오는데 실패했습니다.']);
         });
-
-      resetForm();
-      setSupplierName('');
     }
-  }, [isOpen]);
+  }, [isOpen, initialData]);
 
   const resetForm = () => {
     setSupplier(0);

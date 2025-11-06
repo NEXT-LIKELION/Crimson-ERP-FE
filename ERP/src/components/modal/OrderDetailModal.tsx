@@ -1,6 +1,6 @@
 // src/components/modal/OrderDetailModal.tsx
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { FiX, FiPrinter, FiDownload } from 'react-icons/fi';
+import { FiX, FiPrinter, FiDownload, FiRepeat } from 'react-icons/fi';
 import { OrderItem as StoreOrderItem } from '../../store/ordersStore';
 import axios from '../../api/axios';
 import { fetchSuppliers } from '../../api/supplier';
@@ -10,6 +10,7 @@ import { getStatusDisplayName } from '../../utils/orderUtils';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { useQueryClient } from '@tanstack/react-query';
 import { ORDER_INFO } from '../../constant';
+import NewOrderModal from './NewOrderModal';
 
 interface ApiError {
   response?: {
@@ -24,6 +25,26 @@ interface OrderDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   isManager: boolean;
+  onReorder?: (reorderData: {
+    supplierId?: number;
+    supplierName?: string;
+    manager?: string;
+    items?: Array<{
+      product_id: string | null;
+      variant: string | null;
+      variant_code: string;
+      quantity: number;
+      cost_price: number;
+      unit_price: number;
+      unit?: string;
+      remark?: string;
+      spec: string;
+    }>;
+    vat_included?: boolean;
+    packaging_included?: boolean;
+    instruction_note?: string;
+    note?: string;
+  }) => void;
 }
 
 interface OrderDetailItem {
@@ -84,6 +105,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   isOpen,
   onClose,
   isManager,
+  onReorder,
 }) => {
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -108,6 +130,30 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     email: string;
     address: string;
   } | null>(null);
+  const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState<boolean>(false);
+  const [reorderData, setReorderData] = useState<
+    | {
+        supplierId?: number;
+        supplierName?: string;
+        manager?: string;
+        items?: Array<{
+          product_id: string | null;
+          variant: string | null;
+          variant_code: string;
+          quantity: number;
+          cost_price: number;
+          unit_price: number;
+          unit?: string;
+          remark?: string;
+          spec: string;
+        }>;
+        vat_included?: boolean;
+        packaging_included?: boolean;
+        instruction_note?: string;
+        note?: string;
+      }
+    | undefined
+  >(undefined);
 
   const fetchOrderDetails = useCallback(async () => {
     setIsLoading(true);
@@ -444,11 +490,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
       sheet.cell('E16').value(orderDetail.order_date);
       sheet
         .cell('R16')
-        .value(
-          orderDetail.expected_delivery_date
-            ? `${orderDetail.expected_delivery_date}`
-            : ''
-        );
+        .value(orderDetail.expected_delivery_date ? `${orderDetail.expected_delivery_date}` : '');
       sheet.cell('E17').value('고려대학교 100주년기념관(크림슨스토어)');
 
       const totalAmount = orderDetail.items.reduce(
@@ -564,7 +606,74 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     }
   };
 
-  if (!isOpen || !orderDetail) return null;
+  const handleReorder = () => {
+    if (!orderDetail || !supplierDetail) {
+      alert('주문 정보 또는 공급업체 정보가 없습니다.');
+      return;
+    }
+
+    // OrderDetailItem[]을 OrderItemPayload[]로 변환
+    const reorderItems = orderDetail.items.map((item) => ({
+      product_id: null, // variant_code만으로는 product_id를 찾을 수 없으므로 null
+      variant: null, // variant_code만으로는 variant를 찾을 수 없으므로 null
+      variant_code: item.variant_code,
+      quantity: item.quantity,
+      cost_price: item.unit_price, // VAT 역산 없이 현재 가격 그대로 사용
+      unit_price: item.unit_price, // VAT 역산 없이 현재 가격 그대로 사용
+      unit: item.unit || 'EA',
+      remark: item.remark || '',
+      spec: item.spec || '',
+    }));
+
+    // 재발주 데이터 구성
+    const reorderDataToSet = {
+      supplierId: supplierDetail.id,
+      supplierName: supplierDetail.name,
+      manager: orderDetail.manager,
+      items: reorderItems,
+      vat_included: orderDetail.vat_included,
+      packaging_included: orderDetail.packaging_included,
+      instruction_note: orderDetail.instruction_note,
+      note: orderDetail.note,
+    };
+
+    // 부모 컴포넌트에 재발주 데이터 전달
+    if (onReorder) {
+      onReorder(reorderDataToSet);
+      onClose(); // 현재 모달 닫기
+    } else {
+      // onReorder가 없으면 기존 방식 (내부에서 관리)
+      setReorderData(reorderDataToSet);
+      setIsNewOrderModalOpen(true); // NewOrderModal 열기
+      // 상태 업데이트가 완료된 후 모달 닫기 (비동기 상태 업데이트 대응)
+      setTimeout(() => {
+        onClose(); // 현재 모달 닫기
+      }, 0);
+    }
+  };
+
+  if (!isOpen || !orderDetail) {
+    // OrderDetailModal이 닫혀도 NewOrderModal은 열려있을 수 있도록 별도로 렌더링
+    return (
+      <>
+        {isNewOrderModalOpen && (
+          <NewOrderModal
+            isOpen={isNewOrderModalOpen}
+            onClose={() => {
+              setIsNewOrderModalOpen(false);
+              setReorderData(undefined);
+            }}
+            onSuccess={() => {
+              setIsNewOrderModalOpen(false);
+              setReorderData(undefined);
+              queryClient.invalidateQueries({ queryKey: ['orders'] });
+            }}
+            initialData={reorderData}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black'>
@@ -798,6 +907,12 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
           {/* 우측: PDF/인쇄/승인 버튼 */}
           <div className='flex space-x-3'>
             <button
+              onClick={handleReorder}
+              className='flex items-center rounded bg-yellow-500 px-4 py-2 text-white'>
+              <FiRepeat className='mr-2 h-6 w-6' />
+              재발주
+            </button>
+            <button
               onClick={handleDownloadExcel}
               className='flex items-center rounded bg-green-600 px-4 py-2 text-white'>
               <FiDownload className='mr-2 h-6 w-6' />
@@ -812,6 +927,21 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* 재발주 모달 - 항상 렌더링하되 isOpen으로 제어 */}
+      <NewOrderModal
+        isOpen={isNewOrderModalOpen}
+        onClose={() => {
+          setIsNewOrderModalOpen(false);
+          setReorderData(undefined);
+        }}
+        onSuccess={() => {
+          setIsNewOrderModalOpen(false);
+          setReorderData(undefined);
+          queryClient.invalidateQueries({ queryKey: ['orders'] });
+        }}
+        initialData={reorderData}
+      />
     </div>
   );
 };
