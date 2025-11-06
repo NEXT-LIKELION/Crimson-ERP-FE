@@ -3,6 +3,7 @@ import { FiX, FiLoader, FiAlertTriangle } from 'react-icons/fi';
 import { useSupplierById, useUpdateSupplierVariant } from '../../hooks/queries/useSuppliers';
 import { EnrichedSupplierVariant } from '../../types/product';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { formatPhoneNumber } from '../../utils/formatters';
 
 interface SupplierDetailModalProps {
   isOpen: boolean;
@@ -190,7 +191,7 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
                     </div>
                     <div>
                       <span className='block text-sm font-medium text-gray-600'>연락처</span>
-                      <span className='text-gray-900'>{supplier.contact}</span>
+                      <span className='text-gray-900'>{formatPhoneNumber(supplier.contact)}</span>
                     </div>
                   </div>
                 </div>
