@@ -54,7 +54,7 @@ interface OrderDetail {
 
 // 숫자 → 한글 금액 변환 함수 (간단 버전, 억/만/천/백/십/일 단위)
 function numberToKorean(num: number): string {
-  if (num === 0) return '영원정';
+  if (num === 0) return '영';
   const hanA = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
   const danA = ['', '십', '백', '천'];
   const unitA = ['', '만', '억', '조', '경'];
@@ -76,7 +76,7 @@ function numberToKorean(num: number): string {
     }
     unit++;
   }
-  return result + '원정';
+  return result;
 }
 
 const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
@@ -456,7 +456,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         0
       );
       sheet.cell('G18').value(numberToKorean(totalAmount));
-      sheet.cell('Q18').value(`${totalAmount.toLocaleString()})`);
+      sheet.cell('Q18').value(`\u20A9${totalAmount.toLocaleString()})`);
 
       // 부가세 체크박스 LinkedCell: 포함(AG18), 비포함(AH18)
       sheet
@@ -681,7 +681,8 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                     )
                   </p>
                   <p>
-                    <span className='font-bold'>부가세:</span> {orderDetail.vat_included ? '포함' : '비포함'}
+                    <span className='font-bold'>부가세:</span>{' '}
+                    {orderDetail.vat_included ? '포함' : '비포함'}
                   </p>
                 </div>
               </div>
