@@ -16,7 +16,7 @@ import { deleteOrder, exportOrders } from '../../api/orders';
 import { fetchInventories } from '../../api/inventory';
 import { fetchSuppliers } from '../../api/supplier';
 import { usePermissions } from '../../hooks/usePermissions';
-
+import { getErrorMessage } from '../../utils/errorHandling';
 // 검색 필터 타입 정의
 interface SearchFilters {
   orderId: string;
@@ -393,9 +393,9 @@ const OrdersPage: React.FC = () => {
       // 5. 파일 저장
       const saveAs = (await import('file-saver')).saveAs;
       const blob = await workbook.outputAsync();
-      saveAs(blob, `(주)고대미래_발주서_${orderDetail.id}.xlsx`);
+      saveAs(blob, `(주)고대미래_발주서_${orderDetail.order_date}.xlsx`);
     } catch (error) {
-      alert('엑셀 파일 생성 중 오류가 발생했습니다.');
+      alert('엑셀 파일 생성 중 오류가 발생했습니다.' + getErrorMessage(error));
     }
   };
 
@@ -572,7 +572,7 @@ const OrdersPage: React.FC = () => {
       const today = new Date().toISOString().split('T')[0];
       XLSX.writeFile(wb, `발주목록_${today}.xlsx`);
     } catch (error) {
-      alert('엑셀 파일 생성 중 오류가 발생했습니다.');
+      alert('엑셀 파일 생성 중 오류가 발생했습니다.' + getErrorMessage(error));
     } finally {
       setIsExporting(false);
     }
