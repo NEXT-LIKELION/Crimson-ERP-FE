@@ -11,7 +11,7 @@ import AddSupplierModal from '../../components/modal/AddSupplierModal';
 import SupplierDetailModal from '../../components/modal/SupplierDetailModal';
 import { Supplier, SupplierCreateData } from '../../types/product';
 import { usePermissions } from '../../hooks/usePermissions';
-
+import { formatPhoneNumber } from '../../utils/formatters';
 // Supplier 인터페이스는 types/product.ts에서 import됨
 
 const SupplierPage: React.FC = () => {
@@ -110,7 +110,7 @@ const SupplierPage: React.FC = () => {
                   <td className='border-b border-gray-200 px-4 py-2 text-center'>{supplier.id}</td>
                   <td className='border-b border-gray-200 px-4 py-2'>{supplier.name}</td>
                   <td className='border-b border-gray-200 px-4 py-2'>{supplier.manager}</td>
-                  <td className='border-b border-gray-200 px-4 py-2'>{supplier.contact}</td>
+                  <td className='border-b border-gray-200 px-4 py-2'>{formatPhoneNumber(supplier.contact)}</td>
                   <td className='border-b border-gray-200 px-4 py-2'>{supplier.email}</td>
                   <td className='border-b border-gray-200 px-4 py-2'>{supplier.address}</td>
                   <td className='border-b border-gray-200 px-4 py-2'>
