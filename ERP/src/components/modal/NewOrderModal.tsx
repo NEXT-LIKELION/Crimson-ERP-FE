@@ -326,10 +326,18 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
     }
     setIsSubmitting(true);
     try {
+      // 로컬 시간 기준으로 YYYY-MM-DD 형식 변환 (타임존 문제 방지)
+      const formatDateToString = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       const payload = {
         supplier,
-        order_date: orderDate ? orderDate.toISOString().slice(0, 10) : '',
-        expected_delivery_date: deliveryDate ? deliveryDate.toISOString().slice(0, 10) : undefined,
+        order_date: orderDate ? formatDateToString(orderDate) : '',
+        expected_delivery_date: deliveryDate ? formatDateToString(deliveryDate) : undefined,
         status: 'PENDING',
         instruction_note: workInstructions || undefined,
         note: note || undefined,
