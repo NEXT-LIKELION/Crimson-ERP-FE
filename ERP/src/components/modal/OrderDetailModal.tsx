@@ -9,7 +9,7 @@ import { saveAs } from 'file-saver';
 import { getStatusDisplayName } from '../../utils/orderUtils';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { useQueryClient } from '@tanstack/react-query';
-
+import { ORDER_INFO } from '../../constant';
 
 interface ApiError {
   response?: {
@@ -90,8 +90,24 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   const printRef = useRef<HTMLDivElement>(null);
 
   const queryClient = useQueryClient();
-  const [suppliers, setSuppliers] = useState<Array<{ id: number; name: string; contact: string; manager: string; email: string; address: string }>>([]);
-  const [supplierDetail, setSupplierDetail] = useState<{ id: number; name: string; contact: string; manager: string; email: string; address: string } | null>(null);
+  const [suppliers, setSuppliers] = useState<
+    Array<{
+      id: number;
+      name: string;
+      contact: string;
+      manager: string;
+      email: string;
+      address: string;
+    }>
+  >([]);
+  const [supplierDetail, setSupplierDetail] = useState<{
+    id: number;
+    name: string;
+    contact: string;
+    manager: string;
+    email: string;
+    address: string;
+  } | null>(null);
 
   const fetchOrderDetails = useCallback(async () => {
     setIsLoading(true);
@@ -159,7 +175,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   }, [orderDetail, suppliers]);
 
   useEscapeKey(onClose, isOpen);
-
 
   const handlePrintOrder = () => {
     // 인쇄 기능 구현
@@ -284,25 +299,25 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                     
                     <div class="info-section">
                         <div class="info-column">
-                            <div class="info-item"><span class="label">사업자번호:</span> 682-88-00080</div>
-                            <div class="info-item"><span class="label">상호:</span> ㈜고대미래</div>
-                            <div class="info-item"><span class="label">대표자:</span> 유시진</div>
-                            <div class="info-item"><span class="label">주소:</span> 서울특별시 성북구 안암로145, 고려대학교 100주년삼성기념관 103호 크림슨 스토어</div>
+                            <div class="info-item"><span class="label">사업자번호:</span> ${ORDER_INFO.BUSINESS_NUMBER}</div>
+                            <div class="info-item"><span class="label">상호:</span> ${ORDER_INFO.COMPANY_NAME}</div>
+                            <div class="info-item"><span class="label">대표자:</span> ${ORDER_INFO.CEO}</div>
+                            <div class="info-item"><span class="label">주소:</span> ${ORDER_INFO.ADDRESS}</div>
                         </div>
                         <div class="info-column">
-                            <div class="info-item"><span class="label">발신:</span> ㈜고대미래</div>
-                            <div class="info-item"><span class="label">전화:</span> 02-3290-5116</div>
+                            <div class="info-item"><span class="label">발신:</span> ${ORDER_INFO.COMPANY_NAME}</div>
+                            <div class="info-item"><span class="label">전화:</span> ${ORDER_INFO.PHONE}</div>
                             <div class="info-item"><span class="label">담당자:</span> ${orderDetail.manager}</div>
-                            <div class="info-item"><span class="label">FAX:</span> 02-923-0578</div>
+                            <div class="info-item"><span class="label">FAX:</span> ${ORDER_INFO.FAX}</div>
                         </div>
                     </div>
                     
                     <div class="info-section">
                         <div class="info-column">
-                            <div class="info-item"><span class="label">수신:</span> ${orderDetail.supplier}</div>
-                            <div class="info-item"><span class="label">전화:</span> 010-6675-7797</div>
-                            <div class="info-item"><span class="label">담당자:</span> 박한솔</div>
-                            <div class="info-item"><span class="label">이메일:</span> hspark_factcorp@kakao.com</div>
+                            <div class="info-item"><span class="label">수신:</span> ${supplierDetail?.name || orderDetail.supplier}</div>
+                            <div class="info-item"><span class="label">전화:</span> ${supplierDetail?.contact || '-'}</div>
+                            <div class="info-item"><span class="label">담당자:</span> ${supplierDetail?.manager || '-'}</div>
+                            <div class="info-item"><span class="label">이메일:</span> ${supplierDetail?.email || '-'}</div>
                         </div>
                     </div>
                     
@@ -316,7 +331,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                             <div class="info-item"><span class="label">납품일자:</span> ${
                               orderDetail.expected_delivery_date
                             }</div>
-                            <div class="info-item"><span class="label">납품장소:</span> 고려대학교 100주년기념관(크림슨스토어)</div>
+                            <div class="info-item"><span class="label">납품장소:</span> ${ORDER_INFO.DELIVERY_LOCATION}</div>
                         </div>
                         <div class="info-column">
                             <div class="info-item"><span class="label">구매비용:</span> 일금 ${numberToKorean(
@@ -327,7 +342,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                             )} (₩${orderDetail.items
                               .reduce((total, item) => total + item.quantity * item.unit_price, 0)
                               .toLocaleString()})</div>
-                            <div class="info-item"><span class="label">부가세:</span> 포함</div>
+                            <div class="info-item"><span class="label">부가세:</span> ${orderDetail.vat_included ? '포함' : '비포함'}</div>
                         </div>
                     </div>
                     
@@ -391,11 +406,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                     <div class="packaging">
                         <span class="label">포장:</span>
                         <span class="packaging-value">${orderDetail.packaging_included ? '있음' : '없음'}</span>
-                    </div>
-                    
-                    <div class="note-section">
-                        <div class="label">비고:</div>
-                        <div>${orderDetail.note}</div>
                     </div>
                     
                     <button class="print-button" onclick="window.print()">인쇄하기</button>
@@ -464,9 +474,8 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
       // sheet.cell('Z31').value(orderDetail.packaging_included ? '■' : '□');
       // sheet.cell('AA31').value(orderDetail.packaging_included ? '□' : '■');
 
-      // 작업지시/비고
+      // 작업지시
       sheet.cell('A30').value(orderDetail.instruction_note || '');
-      sheet.cell('A33').value(orderDetail.note || '');
 
       // 4. 품목 테이블 (행 복제 및 데이터 입력)
       const startRow = 21;
@@ -526,15 +535,22 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
       const statusText = getStatusDisplayName(newStatus);
 
       // 실제 재고 변경이 있는 항목만 필터링
-      const actualStockChanges = stock_changes?.filter(
-        (s: { stock_before: number; stock_after: number }) => s.stock_before !== s.stock_after
-      ) || [];
+      const actualStockChanges =
+        stock_changes?.filter(
+          (s: { stock_before: number; stock_after: number }) => s.stock_before !== s.stock_after
+        ) || [];
 
       if (actualStockChanges.length > 0) {
         // 실제 재고 변경이 있는 경우
         const stockMessage = actualStockChanges
           .map(
-            (s: { name: string; option: string; stock_before: number; stock_after: number; quantity: number }) =>
+            (s: {
+              name: string;
+              option: string;
+              stock_before: number;
+              stock_after: number;
+              quantity: number;
+            }) =>
               `${s.name}(${s.option}): ${s.stock_before} → ${s.stock_after} (${s.stock_before > s.stock_after ? '-' : '+'}${Math.abs(s.quantity)})`
           )
           .join('\n');
@@ -665,7 +681,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                     )
                   </p>
                   <p>
-                    <span className='font-bold'>부가세:</span> 포함
+                    <span className='font-bold'>부가세:</span> {orderDetail.vat_included ? '포함' : '비포함'}
                   </p>
                 </div>
               </div>
@@ -745,13 +761,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                 <div className='rounded-md border border-gray-300 bg-zinc-100 px-3 py-1'>
                   <span>{orderDetail.packaging_included ? '있음' : '없음'}</span>
                 </div>
-              </div>
-
-              {/* Notes */}
-              <div className='my-5 px-5'>
-                <p>
-                  <span className='font-bold'>비고:</span> {orderDetail.note}
-                </p>
               </div>
             </div>
           )}
