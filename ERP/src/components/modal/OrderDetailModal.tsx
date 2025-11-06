@@ -443,11 +443,11 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
       sheet.cell('E16').value(orderDetail.order_date);
       sheet
-        .cell('Q16')
+        .cell('R16')
         .value(
           orderDetail.expected_delivery_date
-            ? `납품일자: ${orderDetail.expected_delivery_date}`
-            : '납품일자:'
+            ? `${orderDetail.expected_delivery_date}`
+            : ''
         );
       sheet.cell('E17').value('고려대학교 100주년기념관(크림슨스토어)');
 
@@ -456,19 +456,18 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         0
       );
       sheet.cell('G18').value(numberToKorean(totalAmount));
-      sheet.cell('Q18').value(`\u20A9${totalAmount.toLocaleString()})`);
+      sheet.cell('Q18').value(`${totalAmount.toLocaleString()})`);
 
       // 부가세 체크박스 LinkedCell: 포함(AG18), 비포함(AH18)
       sheet
-        .cell('AG18')
-        .value(orderDetail.vat_included ? true : false)
-        .style('numberFormat', ';;;'); // 포함(숨김)
-      sheet
-        .cell('AH18')
-        .value(orderDetail.vat_included ? false : true)
-        .style('numberFormat', ';;;'); // 비포함(숨김)
+        .cell('AB18')
+        .value(orderDetail.vat_included ? '있음' : '없음')
+        .style('bold', true);
       // 포장 체크박스는 기존 LinkedCell(Z101 등) 사용
-      sheet.cell('AB31').value(orderDetail.packaging_included ? true : false); // 포장 체크박스 LinkedCell
+      sheet
+        .cell('AB31')
+        .value(orderDetail.packaging_included ? '있음' : '없음')
+        .style('bold', true);
       // sheet.cell('AA18').value(orderDetail.vat_included ? '■' : '□'); // ← 문자 체크박스는 주석처리
       // sheet.cell('AD18').value(orderDetail.vat_included ? '□' : '■');
       // sheet.cell('Z31').value(orderDetail.packaging_included ? '■' : '□');
