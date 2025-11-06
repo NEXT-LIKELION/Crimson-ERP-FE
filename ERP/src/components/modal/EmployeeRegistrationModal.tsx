@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import { FiX, FiUser, FiChevronRight, FiUserCheck } from 'react-icons/fi';
 import { MappedEmployee } from '../../pages/HR/HRPage';
-import { registerEmployee, ALLOWED_TABS_OPTIONS, fetchEmployees, patchEmployee, checkUsernameAvailability } from '../../api/hr';
+import {
+  registerEmployee,
+  ALLOWED_TABS_OPTIONS,
+  fetchEmployees,
+  patchEmployee,
+  checkUsernameAvailability,
+} from '../../api/hr';
 import { getAccessToken } from '../../utils/localStorage';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 
@@ -14,10 +20,10 @@ interface NewEmployeeAccount {
   username: string;
   password: string;
   confirmPassword: string;
-  first_name: string;  // 이름 추가
-  email: string;       // 이메일 추가
-  contact: string;     // 연락처 추가
-  gender: 'MALE' | 'FEMALE';  // 성별 필수
+  first_name: string; // 이름 추가
+  email: string; // 이메일 추가
+  contact: string; // 연락처 추가
+  gender: 'MALE' | 'FEMALE'; // 성별 필수
 }
 
 interface EmployeeHRInfo {
@@ -35,9 +41,11 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [newEmployeeId, setNewEmployeeId] = useState<number | null>(null); // 1단계에서 생성된 직원 ID
-  
+
   // 사용자명 중복 체크 관련 상태
-  const [usernameCheckStatus, setUsernameCheckStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
+  const [usernameCheckStatus, setUsernameCheckStatus] = useState<
+    'idle' | 'checking' | 'available' | 'unavailable'
+  >('idle');
   const [checkedUsername, setCheckedUsername] = useState<string>('');
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
 
@@ -46,10 +54,10 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
     username: '',
     password: '',
     confirmPassword: '',
-    first_name: '',  // 이름 추가
-    email: '',       // 이메일 추가
-    contact: '',     // 연락처 추가
-    gender: 'MALE',  // 성별 기본값: 남성
+    first_name: '', // 이름 추가
+    email: '', // 이메일 추가
+    contact: '', // 연락처 추가
+    gender: 'MALE', // 성별 기본값: 남성
   });
 
   // 2단계 데이터 (HR 정보)
@@ -70,7 +78,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
   // 사용자명 중복 체크 함수
   const handleUsernameCheck = async () => {
     const username = newEmployeeAccount.username.trim();
-    
+
     if (!username) {
       setErrorMessage('사용자 아이디를 입력해주세요.');
       return;
@@ -84,7 +92,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
       const result = await checkUsernameAvailability(username);
       setCheckedUsername(username);
       setUsernameCheckStatus(result.available ? 'available' : 'unavailable');
-      
+
       if (!result.available) {
         setErrorMessage(result.message);
       }
@@ -137,8 +145,15 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
 
   // 1단계 검증 (기본 계정 생성 정보)
   const validateStep1 = (): boolean => {
-    if (!newEmployeeAccount.username || !newEmployeeAccount.password || !newEmployeeAccount.confirmPassword ||
-        !newEmployeeAccount.first_name || !newEmployeeAccount.email || !newEmployeeAccount.contact || !newEmployeeAccount.gender) {
+    if (
+      !newEmployeeAccount.username ||
+      !newEmployeeAccount.password ||
+      !newEmployeeAccount.confirmPassword ||
+      !newEmployeeAccount.first_name ||
+      !newEmployeeAccount.email ||
+      !newEmployeeAccount.contact ||
+      !newEmployeeAccount.gender
+    ) {
       setErrorMessage('모든 필드를 입력해주세요.');
       return false;
     }
@@ -212,7 +227,6 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
       return;
     }
 
-
     setIsLoading(true);
 
     try {
@@ -225,23 +239,23 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
         contact: newEmployeeAccount.contact,
         gender: newEmployeeAccount.gender,
       };
-      
+
       let response;
       try {
         response = await registerEmployee(signupData);
       } catch (signupError: unknown) {
         let errorMessage = '계정 생성에 실패했습니다.';
         let specificField = '';
-        
+
         if (signupError && typeof signupError === 'object' && 'response' in signupError) {
           const errorResponse = signupError.response as { data?: unknown };
           const errorData = errorResponse?.data;
-          
+
           if (typeof errorData === 'string') {
             errorMessage = errorData;
           } else if (errorData && typeof errorData === 'object') {
             const errorObj = errorData as Record<string, unknown>;
-            
+
             if ('message' in errorObj && typeof errorObj.message === 'string') {
               errorMessage = errorObj.message;
             } else if ('detail' in errorObj && typeof errorObj.detail === 'string') {
@@ -249,26 +263,36 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
             } else {
               // 필드별 에러 처리
               const fieldErrors: string[] = [];
-              
+
               for (const [field, errors] of Object.entries(errorObj)) {
                 // 이메일 중복은 에러로 처리하지 않음 (등록 허용)
-                if (field === 'email' && (
-                  (Array.isArray(errors) && errors.some(err => typeof err === 'string' && (err.includes('already exists') || err.includes('must be unique')))) ||
-                  (typeof errors === 'string' && (errors.includes('already exists') || errors.includes('must be unique')))
-                )) {
+                if (
+                  field === 'email' &&
+                  ((Array.isArray(errors) &&
+                    errors.some(
+                      (err) =>
+                        typeof err === 'string' &&
+                        (err.includes('already exists') || err.includes('must be unique'))
+                    )) ||
+                    (typeof errors === 'string' &&
+                      (errors.includes('already exists') || errors.includes('must be unique'))))
+                ) {
                   continue; // 이메일 중복 에러는 무시
                 }
-                
+
                 let fieldErrorMsg = '';
-                
+
                 if (Array.isArray(errors)) {
                   fieldErrorMsg = errors.join(', ');
                 } else if (typeof errors === 'string') {
                   fieldErrorMsg = errors;
                 }
-                
+
                 // 한국어로 번역
-                if (fieldErrorMsg.includes('already exists') || fieldErrorMsg.includes('must be unique')) {
+                if (
+                  fieldErrorMsg.includes('already exists') ||
+                  fieldErrorMsg.includes('must be unique')
+                ) {
                   if (field === 'username') {
                     specificField = '사용자 아이디';
                     fieldErrorMsg = '이미 사용 중인 아이디입니다.';
@@ -276,30 +300,30 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                     fieldErrorMsg = '이미 사용 중인 값입니다.';
                   }
                 }
-                
+
                 if (fieldErrorMsg) {
                   fieldErrors.push(fieldErrorMsg);
                 }
               }
-              
+
               if (fieldErrors.length > 0) {
                 errorMessage = fieldErrors.join(' | ');
               }
             }
           }
         }
-        
+
         // 구체적인 필드 에러가 있을 경우 팝업으로 알림
         if (specificField) {
           alert(`❌ ${specificField} 오류\n\n${errorMessage}\n\n다른 값을 입력해주세요.`);
         }
-        
+
         throw new Error(errorMessage);
       }
-      
+
       // 새로 생성된 직원 ID 찾기
       const newUserData = response.data.user;
-      
+
       let employeesData;
       try {
         const employeesResponse = await fetchEmployees();
@@ -308,8 +332,10 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
         const message = fetchError instanceof Error ? fetchError.message : '알 수 없는 오류';
         throw new Error(`직원 목록 조회 실패: ${message}`);
       }
-      
-      const newEmployeeRecord = employeesData.data?.find((emp: { username: string; id: number }) => emp.username === newEmployeeAccount.username);
+
+      const newEmployeeRecord = employeesData.data?.find(
+        (emp: { username: string; id: number }) => emp.username === newEmployeeAccount.username
+      );
 
       if (!newEmployeeRecord) {
         if (newUserData && newUserData.id) {
@@ -320,15 +346,10 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
       } else {
         setNewEmployeeId(newEmployeeRecord.id);
       }
-      
+
       setCurrentStep(2);
-      
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error 
-          ? error.message
-          : '계정 생성 중 오류가 발생했습니다.'
-      );
+      setErrorMessage(error instanceof Error ? error.message : '계정 생성 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -374,7 +395,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
         allowed_tabs: employeeHRInfo.position === 'MANAGER' ? [] : employeeHRInfo.allowed_tabs,
         gender: newEmployeeAccount.gender, // 성별 정보 추가
       };
-      
+
       try {
         await patchEmployee(newEmployeeId, hrUpdateData);
       } catch (patchError: unknown) {
@@ -391,7 +412,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
       // 2단계 PATCH 완료 후 새 직원 데이터 구성
       const newEmployee: MappedEmployee = {
         id: newEmployeeId, // 1단계에서 생성된 직원 ID
-        first_name: newEmployeeAccount.first_name,      // 1단계에서 가져옴
+        first_name: newEmployeeAccount.first_name, // 1단계에서 가져옴
         username: newEmployeeAccount.username, // API 호출 시 사용할 실제 username
         role: employeeHRInfo.position as 'MANAGER' | 'STAFF' | 'INTERN',
         position:
@@ -401,16 +422,17 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
               ? '인턴'
               : '대표',
         department: employeeHRInfo.position === 'MANAGER' ? '경영진' : '일반',
-        email: newEmployeeAccount.email,          // 1단계에서 가져옴
-        phone: newEmployeeAccount.contact,        // 1단계에서 가져옴
+        email: newEmployeeAccount.email, // 1단계에서 가져옴
+        phone: newEmployeeAccount.contact, // 1단계에서 가져옴
         status: 'denied', // 새로 등록된 직원은 승인 대기 상태
         hire_date: employeeHRInfo.hire_date,
         annual_leave_days: employeeHRInfo.annual_leave_days,
-        allowed_tabs: employeeHRInfo.position === 'MANAGER'
-          ? []
-          : Array.isArray(employeeHRInfo.allowed_tabs)
-            ? employeeHRInfo.allowed_tabs
-            : [],
+        allowed_tabs:
+          employeeHRInfo.position === 'MANAGER'
+            ? []
+            : Array.isArray(employeeHRInfo.allowed_tabs)
+              ? employeeHRInfo.allowed_tabs
+              : [],
         remaining_leave_days: employeeHRInfo.annual_leave_days, // 초기에는 전체 연차가 남은 연차
         vacation_days: [],
         vacation_pending_days: [],
@@ -422,13 +444,13 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
       // 성공 시 콜백 호출
       onRegisterComplete(newEmployee);
 
-      alert(`✅ 직원 등록 완료!\n\n직원: ${newEmployeeAccount.first_name} (${newEmployeeAccount.username})\n직책: ${employeeHRInfo.position}\n권한: ${employeeHRInfo.allowed_tabs.join(', ') || '없음'}\n\n승인 후 로그인 가능합니다.`);
+      alert(
+        `✅ 직원 등록 완료!\n\n직원: ${newEmployeeAccount.first_name} (${newEmployeeAccount.username})\n직책: ${employeeHRInfo.position}\n권한: ${employeeHRInfo.allowed_tabs.join(', ') || '없음'}\n\n승인 후 로그인 가능합니다.`
+      );
       onClose();
     } catch (error: unknown) {
       setErrorMessage(
-        error instanceof Error 
-          ? error.message
-          : 'HR 정보 설정 중 오류가 발생했습니다.'
+        error instanceof Error ? error.message : 'HR 정보 설정 중 오류가 발생했습니다.'
       );
       alert('계정은 생성되었지만 HR 정보 설정에 실패했습니다.\nHR 관리에서 수동으로 설정해주세요.');
     } finally {
@@ -511,11 +533,11 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                     value={newEmployeeAccount.username}
                     onChange={handleAccountInfoChange}
                     className={`flex-1 rounded-lg border px-3 py-2 focus:ring-2 focus:outline-none ${
-                      usernameCheckStatus === 'available' 
-                        ? 'border-green-300 focus:border-green-500 focus:ring-green-500' 
+                      usernameCheckStatus === 'available'
+                        ? 'border-green-300 focus:border-green-500 focus:ring-green-500'
                         : usernameCheckStatus === 'unavailable'
-                        ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:border-rose-500 focus:ring-rose-500'
+                          ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                          : 'border-gray-300 focus:border-rose-500 focus:ring-rose-500'
                     }`}
                     placeholder='로그인 아이디를 입력하세요'
                   />
@@ -523,12 +545,12 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                     type='button'
                     onClick={handleUsernameCheck}
                     disabled={isCheckingUsername || !newEmployeeAccount.username.trim()}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                       usernameCheckStatus === 'available'
-                        ? 'bg-green-100 text-green-700 border border-green-300'
+                        ? 'border border-green-300 bg-green-100 text-green-700'
                         : usernameCheckStatus === 'unavailable'
-                        ? 'bg-red-100 text-red-700 border border-red-300'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500'
+                          ? 'border border-red-300 bg-red-100 text-red-700'
+                          : 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500'
                     } disabled:cursor-not-allowed`}>
                     {isCheckingUsername ? (
                       <div className='flex items-center'>
@@ -578,20 +600,24 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                   value={newEmployeeAccount.confirmPassword}
                   onChange={handleAccountInfoChange}
                   className={`w-full rounded-lg border px-3 py-2 focus:border-rose-500 focus:ring-2 focus:outline-none ${
-                    newEmployeeAccount.confirmPassword && newEmployeeAccount.password !== newEmployeeAccount.confirmPassword
+                    newEmployeeAccount.confirmPassword &&
+                    newEmployeeAccount.password !== newEmployeeAccount.confirmPassword
                       ? 'border-red-300 focus:ring-red-500'
                       : 'border-gray-300 focus:ring-rose-500'
                   }`}
                   placeholder='비밀번호를 다시 입력하세요'
                 />
-                {newEmployeeAccount.confirmPassword && newEmployeeAccount.password !== newEmployeeAccount.confirmPassword && (
-                  <p className='mt-1 text-sm text-red-500'>비밀번호가 일치하지 않습니다.</p>
-                )}
+                {newEmployeeAccount.confirmPassword &&
+                  newEmployeeAccount.password !== newEmployeeAccount.confirmPassword && (
+                    <p className='mt-1 text-sm text-red-500'>비밀번호가 일치하지 않습니다.</p>
+                  )}
               </div>
 
               {/* 이름 필드 추가 */}
               <div>
-                <label htmlFor='first_name' className='mb-2 block text-sm font-medium text-gray-700'>
+                <label
+                  htmlFor='first_name'
+                  className='mb-2 block text-sm font-medium text-gray-700'>
                   이름 <span className='text-red-500'>*</span>
                 </label>
                 <input
@@ -693,11 +719,12 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                   className='w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'
                   style={{
                     position: 'relative',
-                    WebkitAppearance: 'none'
+                    WebkitAppearance: 'none',
                   }}
                 />
-                <style dangerouslySetInnerHTML={{
-                  __html: `
+                <style
+                  dangerouslySetInnerHTML={{
+                    __html: `
                     input[type="date"]::-webkit-calendar-picker-indicator {
                       position: absolute;
                       top: 0;
@@ -707,8 +734,9 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
                       opacity: 0;
                       cursor: pointer;
                     }
-                  `
-                }} />
+                  `,
+                  }}
+                />
               </div>
 
               <div>
@@ -777,7 +805,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
               <button
                 onClick={handleNextStep}
                 disabled={isLoading}
-                className='flex flex-1 items-center justify-center rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed'>
+                className='flex flex-1 items-center justify-center rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50'>
                 {isLoading ? (
                   <>
                     <div className='mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent'></div>

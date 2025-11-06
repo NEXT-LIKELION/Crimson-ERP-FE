@@ -16,7 +16,6 @@ interface ProductSearchPageData {
 }
 
 export const useProductSearch = (filters?: ProductSearchFilters) => {
-
   // API 파라미터 준비 (product_name은 그대로 유지)
   const apiFilters: Record<string, unknown> = filters ? { ...filters } : {};
 

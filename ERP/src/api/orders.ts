@@ -65,9 +65,7 @@ export const fetchProductsBySupplier = async (supplierId: number) => {
     }
 
     // 업체의 variants에서 유니크한 상품명 추출
-    const uniqueProductNames = [...new Set(
-      supplier.variants.map((v: { name: string }) => v.name)
-    )];
+    const uniqueProductNames = [...new Set(supplier.variants.map((v: { name: string }) => v.name))];
 
     // 전체 상품 목록 조회
     const productsRes = await api.get('/inventory/');
@@ -93,7 +91,7 @@ export const searchProducts = async (query: string) => {
     let hasMoreData = true;
 
     const baseParams: Record<string, string | number> = {
-      page_size: 100
+      page_size: 100,
     };
 
     // 검색어가 있을 때만 필터링 파라미터 추가
@@ -121,13 +119,15 @@ export const searchProducts = async (query: string) => {
         uniqueVariants.set(variant.variant_code, {
           product_id: variant.product_id,
           name: variant.name,
-          variant_code: variant.variant_code
+          variant_code: variant.variant_code,
         });
       }
     });
 
     const productOptions = Array.from(uniqueVariants.values());
-    console.log(`✅ 상품 검색 완료: ${productOptions.length}개 (총 variants: ${allVariants.length}개)`);
+    console.log(
+      `✅ 상품 검색 완료: ${productOptions.length}개 (총 variants: ${allVariants.length}개)`
+    );
     return { data: productOptions };
   } catch (error) {
     console.error('Failed to search products:', error);

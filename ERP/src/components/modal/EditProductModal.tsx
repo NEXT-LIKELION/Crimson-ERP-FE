@@ -58,7 +58,11 @@ const EditProductModal = ({
     ...product,
     stock: product.stock ?? 0,
     suppliers: Array.isArray(product.suppliers)
-      ? product.suppliers.map(s => ({ supplier_name: s.name, cost_price: s.cost_price, is_primary: s.is_primary }))
+      ? product.suppliers.map((s) => ({
+          supplier_name: s.name,
+          cost_price: s.cost_price,
+          is_primary: s.is_primary,
+        }))
       : [{ supplier_name: '', cost_price: 0, is_primary: false }],
     channels: product.channels || [],
   });
@@ -84,7 +88,11 @@ const EditProductModal = ({
     setForm((prev: EditForm) => ({ ...prev, [field]: value }));
   };
 
-  const handleSupplierChange = (index: number, field: keyof SupplierForm, value: string | number | boolean) => {
+  const handleSupplierChange = (
+    index: number,
+    field: keyof SupplierForm,
+    value: string | number | boolean
+  ) => {
     const newSuppliers = [...form.suppliers];
     newSuppliers[index] = { ...newSuppliers[index], [field]: value };
     setForm((prev) => ({ ...prev, suppliers: newSuppliers }));
@@ -101,7 +109,8 @@ const EditProductModal = ({
     const errs = [];
     if (!form.name?.trim()) errs.push('상품명을 입력해주세요.');
     if (!form.price || isNaN(Number(form.price))) errs.push('판매가는 숫자여야 합니다.');
-    if (!form.channels || form.channels.length === 0) errs.push('판매 채널을 최소 하나 이상 선택해주세요.');
+    if (!form.channels || form.channels.length === 0)
+      errs.push('판매 채널을 최소 하나 이상 선택해주세요.');
     // 원가 데이터 유효성 검사 - 빈 값이면 0으로 처리
     const costPrice =
       form.cost_price === '' || form.cost_price === undefined ? 0 : Number(form.cost_price);
@@ -162,12 +171,14 @@ const EditProductModal = ({
         cost_price: product.cost_price || 0, // 원가 데이터가 없는 경우 0으로 설정
         channels: product.channels || [], // 채널 데이터 로딩
         suppliers: Array.isArray(product.suppliers)
-            ? product.suppliers.map((s: { name: string; cost_price?: number; is_primary?: boolean }) => ({
+          ? product.suppliers.map(
+              (s: { name: string; cost_price?: number; is_primary?: boolean }) => ({
                 supplier_name: s.name,
                 cost_price: s.cost_price || 0,
                 is_primary: s.is_primary ?? false,
-              }))
-            : [{ supplier_name: '', cost_price: 0, is_primary: false }],
+              })
+            )
+          : [{ supplier_name: '', cost_price: 0, is_primary: false }],
       });
       setErrors([]);
     }

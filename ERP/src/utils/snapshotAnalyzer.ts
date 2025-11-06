@@ -35,9 +35,7 @@ export const findChangedProducts = (
   if (!currentItems || !previousItems) return [];
 
   const changedProducts: SnapshotItem[] = [];
-  const previousMap = new Map(
-    previousItems.map(item => [item.variant_code, item])
-  );
+  const previousMap = new Map(previousItems.map((item) => [item.variant_code, item]));
 
   for (const currentItem of currentItems) {
     const previousItem = previousMap.get(currentItem.variant_code);
@@ -65,9 +63,7 @@ export const findChangedProducts = (
 /**
  * 스냅샷에서 채널 정보를 추출 (백엔드 meta.upload_channel 우선 사용)
  */
-export const detectUploadChannel = (
-  currentSnapshot: Snapshot
-): 'online' | 'offline' | null => {
+export const detectUploadChannel = (currentSnapshot: Snapshot): 'online' | 'offline' | null => {
   // 1️⃣ 최우선: 백엔드에서 제공하는 명확한 채널 정보
   if (currentSnapshot.meta?.upload_channel) {
     return currentSnapshot.meta.upload_channel;
@@ -101,7 +97,7 @@ export const getLatestUpdateByChannel = (
     return snapshots[0]?.created_at || null;
   }
 
-  const filtered = snapshots.filter(snap => snap.detectedChannel === channel);
+  const filtered = snapshots.filter((snap) => snap.detectedChannel === channel);
   return filtered[0]?.created_at || null;
 };
 

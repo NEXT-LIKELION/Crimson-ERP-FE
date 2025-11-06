@@ -127,7 +127,6 @@ export const fetchFilteredInventoriesForExport = async (
   appliedFilters: InventoryExportFilters
 ): Promise<ProductVariant[]> => {
   try {
-
     // 백엔드 필터 (상태 필터와 페이지 관련 제외)
     const backendFilters = { ...appliedFilters };
     delete backendFilters.status;
@@ -147,7 +146,6 @@ export const fetchFilteredInventoriesForExport = async (
       const response = await fetchInventories(params);
       const pageData = response.data.results || [];
       allData = [...allData, ...pageData];
-
 
       hasMoreData = response.data.next !== null;
       page++;

@@ -1,8 +1,22 @@
 // src/components/modals/EmployeeDetailsModal.tsx
 import React, { useState } from 'react';
-import { FiX, FiEdit, FiCheck, FiXCircle, FiCalendar, FiClock, FiPlusCircle, FiTrash2 } from 'react-icons/fi';
+import {
+  FiX,
+  FiEdit,
+  FiCheck,
+  FiXCircle,
+  FiCalendar,
+  FiClock,
+  FiPlusCircle,
+  FiTrash2,
+} from 'react-icons/fi';
 import { MappedEmployee } from '../../pages/HR/HRPage';
-import { ALLOWED_TABS_OPTIONS, parseVacationDays, VacationDay, VacationRequest } from '../../api/hr';
+import {
+  ALLOWED_TABS_OPTIONS,
+  parseVacationDays,
+  VacationDay,
+  VacationRequest,
+} from '../../api/hr';
 import { useEmployee } from '../../hooks/queries/useEmployees';
 import VacationCalendar from '../calendar/VacationCalendar';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
@@ -49,7 +63,6 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
 
   // 전체 휴가 데이터 조회 (근무 일정 포함)
   const { data: vacationsData } = useVacations();
-  
 
   // 최신 직원 정보 (휴가 데이터 포함) - API 데이터 우선 사용
   const currentEmployee = React.useMemo(() => {
@@ -64,18 +77,30 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
         email: apiData.email,
         phone: apiData.contact || '',
         role: apiData.role,
-        status: !apiData.is_active ? 'terminated' : (apiData.status?.toLowerCase() === 'approved' ? 'active' : 'denied') as 'active' | 'terminated' | 'denied',
+        status: !apiData.is_active
+          ? 'terminated'
+          : ((apiData.status?.toLowerCase() === 'approved' ? 'active' : 'denied') as
+              | 'active'
+              | 'terminated'
+              | 'denied'),
         annual_leave_days: apiData.annual_leave_days,
         allowed_tabs: apiData.allowed_tabs || [], // API 데이터 우선 사용
         hire_date: apiData.hire_date || '',
         remaining_leave_days: parseFloat(apiData.remaining_leave_days) || 0,
-        vacation_days: typeof apiData.vacation_days === 'string' ? [] as VacationDay[] : apiData.vacation_days as VacationDay[],
-        vacation_pending_days: typeof apiData.vacation_pending_days === 'string' ? [] as VacationDay[] : apiData.vacation_pending_days as VacationDay[],
-        gender: apiData.gender && ['MALE', 'FEMALE'].includes(apiData.gender)
-          ? apiData.gender
-          : undefined, // gender 필드 타입 검증
+        vacation_days:
+          typeof apiData.vacation_days === 'string'
+            ? ([] as VacationDay[])
+            : (apiData.vacation_days as VacationDay[]),
+        vacation_pending_days:
+          typeof apiData.vacation_pending_days === 'string'
+            ? ([] as VacationDay[])
+            : (apiData.vacation_pending_days as VacationDay[]),
+        gender:
+          apiData.gender && ['MALE', 'FEMALE'].includes(apiData.gender)
+            ? apiData.gender
+            : undefined, // gender 필드 타입 검증
       };
-      
+
       return mappedEmployee;
     }
     return employee;
@@ -95,15 +120,18 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
 
   // 휴가 데이터 파싱
   const vacationDays = parseVacationDays(currentEmployee.vacation_days as string | VacationDay[]);
-  const vacationPendingDays = parseVacationDays(currentEmployee.vacation_pending_days as string | VacationDay[]);
+  const vacationPendingDays = parseVacationDays(
+    currentEmployee.vacation_pending_days as string | VacationDay[]
+  );
 
   // 근무 일정 필터링 (WORK 타입, 해당 직원, 승인된 것만)
   const workSchedules = React.useMemo(() => {
     if (!vacationsData?.data) return [];
-    return vacationsData.data.filter((vacation: VacationRequest) =>
-      vacation.employee === currentEmployee.id &&
-      vacation.leave_type === 'WORK' &&
-      vacation.status === 'APPROVED'
+    return vacationsData.data.filter(
+      (vacation: VacationRequest) =>
+        vacation.employee === currentEmployee.id &&
+        vacation.leave_type === 'WORK' &&
+        vacation.status === 'APPROVED'
     );
   }, [vacationsData?.data, currentEmployee.id]);
 
@@ -145,7 +173,6 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
       alert('이름을 입력해주세요.');
       return;
     }
-
 
     // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -252,7 +279,6 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
     }
   };
 
-
   return (
     <div
       className='fixed inset-0 z-50 flex items-center justify-center p-4'
@@ -327,8 +353,11 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                 </select>
               ) : (
                 <span className='text-gray-900'>
-                  {currentEmployee.gender === 'MALE' ? '남성' :
-                   currentEmployee.gender === 'FEMALE' ? '여성' : '미입력'}
+                  {currentEmployee.gender === 'MALE'
+                    ? '남성'
+                    : currentEmployee.gender === 'FEMALE'
+                      ? '여성'
+                      : '미입력'}
                 </span>
               )}
             </div>
@@ -345,7 +374,9 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                   className='w-full rounded-md border border-gray-300 px-3 py-2 focus:border-rose-500 focus:ring-2 focus:ring-rose-500 focus:outline-none'
                 />
               ) : (
-                <span className='text-gray-900'>{formatDateToKorean(currentEmployee.hire_date)}</span>
+                <span className='text-gray-900'>
+                  {formatDateToKorean(currentEmployee.hire_date)}
+                </span>
               )}
             </div>
 
@@ -428,14 +459,12 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                   </div>
                 ) : (
                   <div className='flex flex-wrap gap-1'>
-
-                    
                     {(currentEmployee.allowed_tabs || [])
                       .filter((tab) => tab !== 'HR') // HR 권한은 제외
                       .map((tab) => {
                         // 알려진 권한인지 확인
                         const tabOption = ALLOWED_TABS_OPTIONS.find((opt) => opt.value === tab);
-                        
+
                         // 알려진 권한인 경우
                         if (tabOption) {
                           return (
@@ -446,7 +475,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                             </span>
                           );
                         }
-                        
+
                         // 알 수 없는 권한인 경우 (디버깅용)
                         return (
                           <span
@@ -456,9 +485,9 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                           </span>
                         );
                       })}
-                      
-                    {(!currentEmployee.allowed_tabs || 
-                      currentEmployee.allowed_tabs.filter(tab => tab !== 'HR').length === 0) && (
+
+                    {(!currentEmployee.allowed_tabs ||
+                      currentEmployee.allowed_tabs.filter((tab) => tab !== 'HR').length === 0) && (
                       <span className='text-sm text-gray-500'>권한이 설정되지 않았습니다</span>
                     )}
                   </div>
@@ -491,7 +520,8 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                         <div className='flex items-center'>
                           <FiClock className='mr-2 h-4 w-4 text-orange-600' />
                           <span className='text-sm text-gray-700'>
-                            {formatDateToKorean(schedule.start_date)} ~ {formatDateToKorean(schedule.end_date)}
+                            {formatDateToKorean(schedule.start_date)} ~{' '}
+                            {formatDateToKorean(schedule.end_date)}
                           </span>
                         </div>
                         <button
@@ -555,7 +585,6 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
               </div>
             )}
           </div>
-
         </div>
 
         {/* 버튼 영역 - 고정 */}
@@ -569,7 +598,6 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
               <FiCalendar className='mr-2 h-4 w-4' />
               {employeeDetailLoading ? '로딩 중...' : '캘린더 보기'}
             </button>
-
 
             {/* 수정 관련 버튼들 */}
             {isAdmin &&

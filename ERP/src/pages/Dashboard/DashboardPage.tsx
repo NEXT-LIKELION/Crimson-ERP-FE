@@ -14,7 +14,6 @@ const DashboardPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedVacation, setSelectedVacation] = useState<Vacation | null>(null);
 
-
   // 날짜별 휴가 그룹화 (취소, 대기중, 퇴사자 휴가 제외)
   const vacationsByDate = useMemo(() => {
     const grouped: Record<string, Vacation[]> = {};
@@ -101,7 +100,9 @@ const DashboardPage = () => {
     const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
     weekdays.forEach((day) => {
       days.push(
-        <div key={`header-${day}`} className='bg-gray-100 p-2 text-center text-xs font-medium text-gray-600'>
+        <div
+          key={`header-${day}`}
+          className='bg-gray-100 p-2 text-center text-xs font-medium text-gray-600'>
           {day}
         </div>
       );
@@ -122,8 +123,9 @@ const DashboardPage = () => {
         <div
           key={date}
           // Increased min-h from min-h-20 to min-h-24 to accommodate the new work assignment display layout
-          className={`min-h-24 border-b border-r border-gray-200 p-1 ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
-          <div className={`mb-1 text-xs font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+          className={`min-h-24 border-r border-b border-gray-200 p-1 ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
+          <div
+            className={`mb-1 text-xs font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
             {date}
           </div>
           <div className='space-y-1'>
@@ -131,7 +133,11 @@ const DashboardPage = () => {
               // 재직중인 직원인지 확인
               const employees = employeesData?.data || [];
               const employee = employees.find((emp: EmployeeList) => emp.id === vacation.employee);
-              if (!employee || !employee.is_active || employee.status?.toLowerCase() !== 'approved') {
+              if (
+                !employee ||
+                !employee.is_active ||
+                employee.status?.toLowerCase() !== 'approved'
+              ) {
                 // 퇴사한 직원의 휴가는 표시하지 않음
                 return null;
               }
@@ -145,18 +151,19 @@ const DashboardPage = () => {
               return (
                 <div
                   key={`${vacation.id}-${index}`}
-                  className={`rounded px-1 py-0.5 text-xs cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-between ${
+                  className={`flex cursor-pointer items-center justify-between rounded px-1 py-0.5 text-xs transition-opacity hover:opacity-80 ${
                     isWork
                       ? 'border-2 border-orange-400 bg-orange-50 text-orange-800'
-                      : 'text-white bg-blue-500'
+                      : 'bg-blue-500 text-white'
                   }`}
                   title={`${employeeName} - ${leaveTypeLabel}${isWork ? ' (근무)' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedVacation(vacation);
                   }}>
-                  <span className='truncate flex-1'>{employeeName}</span>
-                  <span className={`text-xs whitespace-nowrap ml-1 ${isWork ? 'opacity-90' : 'opacity-75'}`}>
+                  <span className='flex-1 truncate'>{employeeName}</span>
+                  <span
+                    className={`ml-1 text-xs whitespace-nowrap ${isWork ? 'opacity-90' : 'opacity-75'}`}>
                     {isWork ? '💼' : '🌴'} {leaveTypeLabel}
                   </span>
                 </div>
@@ -293,25 +300,33 @@ const DashboardPage = () => {
                   </div>
                   <div className='ml-3'>
                     <p className='text-sm font-medium text-gray-900'>직원명</p>
-                    <p className='text-sm text-gray-600'>{getEmployeeName(selectedVacation.employee)}</p>
+                    <p className='text-sm text-gray-600'>
+                      {getEmployeeName(selectedVacation.employee)}
+                    </p>
                   </div>
                 </div>
 
                 {/* 휴가/근무 유형 */}
                 <div className='flex items-center'>
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                    selectedVacation.leave_type === 'WORK' ? 'bg-orange-100' : 'bg-green-100'
-                  }`}>
-                    <FiCalendar className={`h-5 w-5 ${
-                      selectedVacation.leave_type === 'WORK' ? 'text-orange-600' : 'text-green-600'
-                    }`} />
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                      selectedVacation.leave_type === 'WORK' ? 'bg-orange-100' : 'bg-green-100'
+                    }`}>
+                    <FiCalendar
+                      className={`h-5 w-5 ${
+                        selectedVacation.leave_type === 'WORK'
+                          ? 'text-orange-600'
+                          : 'text-green-600'
+                      }`}
+                    />
                   </div>
                   <div className='ml-3'>
                     <p className='text-sm font-medium text-gray-900'>
                       {selectedVacation.leave_type === 'WORK' ? '근무 유형' : '휴가 유형'}
                     </p>
                     <p className='text-sm text-gray-600'>
-                      {selectedVacation.leave_type === 'WORK' ? '💼' : '🌴'} {getLeaveTypeLabel(selectedVacation.leave_type)}
+                      {selectedVacation.leave_type === 'WORK' ? '💼' : '🌴'}{' '}
+                      {getLeaveTypeLabel(selectedVacation.leave_type)}
                     </p>
                   </div>
                 </div>
@@ -327,24 +342,23 @@ const DashboardPage = () => {
                     </p>
                     <p className='text-sm text-gray-600'>
                       {selectedVacation.start_date} ~ {selectedVacation.end_date}
-                      <span className='ml-2 text-blue-600 font-medium'>
+                      <span className='ml-2 font-medium text-blue-600'>
                         ({calculateVacationDays(selectedVacation)}일)
                       </span>
                     </p>
                   </div>
                 </div>
 
-
                 {/* 사유 */}
                 {selectedVacation.reason && (
                   <div className='rounded-lg bg-gray-50 p-3'>
-                    <p className='text-sm font-medium text-gray-900 mb-1'>사유</p>
+                    <p className='mb-1 text-sm font-medium text-gray-900'>사유</p>
                     <p className='text-sm text-gray-600'>{selectedVacation.reason}</p>
                   </div>
                 )}
 
                 {/* 신청일 */}
-                <div className='text-xs text-gray-500 text-center pt-2 border-t'>
+                <div className='border-t pt-2 text-center text-xs text-gray-500'>
                   신청일: {new Date(selectedVacation.created_at).toLocaleDateString('ko-KR')}
                 </div>
               </div>

@@ -25,8 +25,12 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
   const [savingId, setSavingId] = useState<string | null>(null);
 
   // 공급업체 정보 조회
-  const { data: supplierData, isLoading: supplierLoading, error: supplierError } = useSupplierById(supplierId ?? 0);
-  
+  const {
+    data: supplierData,
+    isLoading: supplierLoading,
+    error: supplierError,
+  } = useSupplierById(supplierId ?? 0);
+
   // 공급업체 variant 업데이트 mutation (낙관적 업데이트 포함)
   const updateVariantMutation = useUpdateSupplierVariant();
 
@@ -38,14 +42,23 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
       return [];
     }
 
-    return supplier.variants.map((variant: { variant_code: string; name: string; option: string; stock: number; cost_price?: number; is_primary?: boolean }) => ({
-      variant_code: variant.variant_code,
-      product_name: variant.name,
-      option: variant.option,
-      stock: variant.stock,
-      cost_price: variant.cost_price || 0,
-      is_primary: variant.is_primary || false,
-    }));
+    return supplier.variants.map(
+      (variant: {
+        variant_code: string;
+        name: string;
+        option: string;
+        stock: number;
+        cost_price?: number;
+        is_primary?: boolean;
+      }) => ({
+        variant_code: variant.variant_code,
+        product_name: variant.name,
+        option: variant.option,
+        stock: variant.stock,
+        cost_price: variant.cost_price || 0,
+        is_primary: variant.is_primary || false,
+      })
+    );
   }, [supplier?.variants]);
 
   // variant 편집 핸들러
@@ -81,7 +94,7 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
     };
 
     setSavingId(code);
-    
+
     try {
       await updateVariantMutation.mutateAsync({
         supplierId,
@@ -89,16 +102,15 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
         data: {
           cost_price: edit.cost_price,
           is_primary: edit.is_primary,
-        }
+        },
       });
-      
+
       // 성공 시 편집 상태 초기화
       setVariantEdits((prev) => {
         const newState = { ...prev };
         delete newState[code];
         return newState;
       });
-      
     } catch (error) {
       console.error('저장 실패:', error);
       alert('저장에 실패했습니다.');
@@ -121,7 +133,9 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
   // 로딩 상태
   if (supplierLoading) {
     return (
-      <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm' onClick={handleBackdropClick}>
+      <div
+        className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm'
+        onClick={handleBackdropClick}>
         <div className='w-full max-w-4xl rounded-xl border border-gray-200 bg-white p-6 shadow-lg'>
           <div className='flex h-64 items-center justify-center'>
             <div className='flex flex-col items-center'>
@@ -137,14 +151,18 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
   // 에러 상태
   if (supplierError) {
     return (
-      <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm' onClick={handleBackdropClick}>
+      <div
+        className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm'
+        onClick={handleBackdropClick}>
         <div className='w-full max-w-4xl rounded-xl border border-gray-200 bg-white p-6 shadow-lg'>
           <div className='flex h-64 items-center justify-center'>
             <div className='rounded-lg border border-red-200 bg-red-50 p-8 text-center'>
               <div className='mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100'>
                 <FiAlertTriangle className='h-6 w-6 text-red-600' />
               </div>
-              <h3 className='mb-2 text-lg font-semibold text-red-800'>데이터를 불러올 수 없습니다</h3>
+              <h3 className='mb-2 text-lg font-semibold text-red-800'>
+                데이터를 불러올 수 없습니다
+              </h3>
               <p className='text-red-600'>잠시 후 다시 시도해주세요.</p>
             </div>
           </div>
@@ -154,8 +172,12 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
   }
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm' onClick={handleBackdropClick}>
-      <div className='max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg' onClick={(e) => e.stopPropagation()}>
+    <div
+      className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm'
+      onClick={handleBackdropClick}>
+      <div
+        className='max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg'
+        onClick={(e) => e.stopPropagation()}>
         {/* 헤더 */}
         <div className='flex items-center justify-between border-b border-gray-200 px-6 py-4'>
           <div className='flex items-center'>
@@ -215,7 +237,7 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
                 <h3 className='mb-4 text-lg font-semibold text-gray-900'>
                   공급 품목 ({enrichedVariants.length}개)
                 </h3>
-                
+
                 {enrichedVariants.length === 0 ? (
                   <div className='rounded-lg border border-gray-200 bg-gray-50 p-8 text-center'>
                     <p className='text-gray-600'>등록된 공급 품목이 없습니다.</p>
@@ -225,13 +247,27 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
                     <table className='w-full border-collapse text-sm text-gray-700'>
                       <thead className='border-b border-gray-300 bg-gray-50'>
                         <tr>
-                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>CODE</th>
-                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>품목명</th>
-                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>옵션</th>
-                          <th className='border-b px-4 py-3 text-center font-medium text-gray-900'>재고</th>
-                          <th className='border-b px-4 py-3 text-center font-medium text-gray-900'>단가</th>
-                          <th className='border-b px-4 py-3 text-center font-medium text-gray-900'>대표</th>
-                          <th className='border-b px-4 py-3 text-center font-medium text-gray-900'>저장</th>
+                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>
+                            CODE
+                          </th>
+                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>
+                            품목명
+                          </th>
+                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>
+                            옵션
+                          </th>
+                          <th className='border-b px-4 py-3 text-center font-medium text-gray-900'>
+                            재고
+                          </th>
+                          <th className='border-b px-4 py-3 text-center font-medium text-gray-900'>
+                            단가
+                          </th>
+                          <th className='border-b px-4 py-3 text-center font-medium text-gray-900'>
+                            대표
+                          </th>
+                          <th className='border-b px-4 py-3 text-center font-medium text-gray-900'>
+                            저장
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -245,11 +281,15 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
                           return (
                             <tr key={code} className='border-b border-gray-100 hover:bg-gray-50'>
                               <td className='px-4 py-3'>
-                                <code className='rounded bg-gray-100 px-2 py-1 text-xs'>{code}</code>
+                                <code className='rounded bg-gray-100 px-2 py-1 text-xs'>
+                                  {code}
+                                </code>
                               </td>
                               <td className='px-4 py-3 font-medium'>{variant.product_name}</td>
                               <td className='px-4 py-3'>{variant.option}</td>
-                              <td className='px-4 py-3 text-center'>{variant.stock.toLocaleString()}</td>
+                              <td className='px-4 py-3 text-center'>
+                                {variant.stock.toLocaleString()}
+                              </td>
                               <td className='px-4 py-3 text-center'>
                                 <input
                                   type='number'

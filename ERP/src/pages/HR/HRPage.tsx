@@ -16,7 +16,15 @@ import EmployeeRegistrationModal from '../../components/modal/EmployeeRegistrati
 import VacationRequestModal from '../../components/modal/VacationRequestModal';
 import ChangePasswordModal from '../../components/modal/ChangePasswordModal';
 import OrganizationVacationCalendar from '../../components/calendar/OrganizationVacationCalendar';
-import { useEmployees, useEmployee, useTerminateEmployee, usePatchEmployee, useApproveEmployee, useDeleteEmployee, useChangePassword } from '../../hooks/queries/useEmployees';
+import {
+  useEmployees,
+  useEmployee,
+  useTerminateEmployee,
+  usePatchEmployee,
+  useApproveEmployee,
+  useDeleteEmployee,
+  useChangePassword,
+} from '../../hooks/queries/useEmployees';
 import { useQueryClient } from '@tanstack/react-query';
 import { EmployeeList } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
@@ -24,7 +32,6 @@ import { isApiError, getErrorMessage } from '../../utils/errorHandling';
 
 // 직원 상태 타입
 type EmployeeStatus = 'active' | 'terminated' | 'denied';
-
 
 // 날짜 형식 변환 함수 (ISO 8601 형식 지원)
 const formatDateToKorean = (dateString: string): string => {
@@ -68,41 +75,44 @@ const mapGenderToKorean = (gender?: string): string => {
 // 프론트엔드에서 사용할 통합 Employee 타입 (API 스펙 기반)
 export interface MappedEmployee {
   id: number;
-  first_name: string;                    // API 스키마와 일치
-  username: string;                      // API 호출용
-  role: 'MANAGER' | 'STAFF' | 'INTERN';   // 정확한 enum 타입
-  position: string;                      // UI 표시용 한글 직책
-  department: string;                    // UI 표시용 부서
+  first_name: string; // API 스키마와 일치
+  username: string; // API 호출용
+  role: 'MANAGER' | 'STAFF' | 'INTERN'; // 정확한 enum 타입
+  position: string; // UI 표시용 한글 직책
+  department: string; // UI 표시용 부서
   email: string;
-  phone: string;                         // contact 필드 매핑
+  phone: string; // contact 필드 매핑
   status: 'active' | 'terminated' | 'denied'; // UI 상태
   hire_date: string;
   annual_leave_days: number;
   allowed_tabs: string[];
   remaining_leave_days: number;
-  vacation_days: unknown[];                  // 휴가 데이터 (파싱 필요)
-  vacation_pending_days: unknown[];          // 대기 중인 휴가
-  gender?: 'MALE' | 'FEMALE';               // 성별 (Swagger 문서 기준)
+  vacation_days: unknown[]; // 휴가 데이터 (파싱 필요)
+  vacation_pending_days: unknown[]; // 대기 중인 휴가
+  gender?: 'MALE' | 'FEMALE'; // 성별 (Swagger 문서 기준)
   // UI용 필드들 (선택적)
   created_at?: string;
   updated_at?: string;
 }
 
 // 직원 상태를 정확히 판단하는 유틸리티 함수
-const getEmployeeStatus = (status: string, isActive: boolean): 'active' | 'denied' | 'terminated' => {
+const getEmployeeStatus = (
+  status: string,
+  isActive: boolean
+): 'active' | 'denied' | 'terminated' => {
   // is_active가 false면 상태에 상관없이 퇴사
   if (!isActive) {
     return 'terminated';
   }
-  
+
   // is_active가 true일 때 status에 따라 구분 (대소문자 구분 없이)
   const normalizedStatus = status?.toLowerCase();
   if (normalizedStatus === 'approved') {
-    return 'active';      // 재직중
+    return 'active'; // 재직중
   } else if (normalizedStatus === 'denied') {
-    return 'denied';      // 승인대기중
+    return 'denied'; // 승인대기중
   }
-  
+
   // 기본값 (예상치 못한 상태)
   return 'denied';
 };
@@ -152,7 +162,7 @@ const HRPage: React.FC = () => {
   // 현재 사용자의 상세 정보 조회 (연차 정보 포함)
   const currentEmployeeId = React.useMemo(() => {
     if (!currentUser || isAdmin) return null;
-    const currentEmp = employees.find(emp => emp.username === currentUser.username);
+    const currentEmp = employees.find((emp) => emp.username === currentUser.username);
     return currentEmp?.id || null;
   }, [employees, currentUser, isAdmin]);
 
@@ -163,7 +173,7 @@ const HRPage: React.FC = () => {
   const currentEmployeeData = React.useMemo(() => {
     if (!currentUser || isAdmin || !currentEmployeeId) return null;
 
-    const basicData = employees.find(emp => emp.username === currentUser.username);
+    const basicData = employees.find((emp) => emp.username === currentUser.username);
     if (!basicData) return null;
 
     // 상세 정보가 있으면 연차 데이터를 업데이트
@@ -198,21 +208,21 @@ const HRPage: React.FC = () => {
 
   // 직원을 상태별로 그룹화하는 함수
   const groupEmployeesByStatus = () => {
-    const activeEmployees = employees.filter(emp => emp.status === 'active');
-    const pendingEmployees = employees.filter(emp => emp.status === 'denied'); // API에서 DENIED = 승인대기 상태
-    const terminatedEmployees = employees.filter(emp => emp.status === 'terminated');
-    
+    const activeEmployees = employees.filter((emp) => emp.status === 'active');
+    const pendingEmployees = employees.filter((emp) => emp.status === 'denied'); // API에서 DENIED = 승인대기 상태
+    const terminatedEmployees = employees.filter((emp) => emp.status === 'terminated');
+
     return {
       active: activeEmployees,
       pending: pendingEmployees,
-      terminated: terminatedEmployees
+      terminated: terminatedEmployees,
     };
   };
 
   // 섹션별 직원 카드를 렌더링하는 함수
   const renderEmployeeSections = () => {
     const { active, pending, terminated } = groupEmployeesByStatus();
-    
+
     return (
       <div className='space-y-8'>
         {/* 재직중 섹션 */}
@@ -233,7 +243,9 @@ const HRPage: React.FC = () => {
         {pending.length > 0 && (
           <div>
             <div className='mb-4'>
-              <h2 className='text-lg font-semibold text-gray-900'>승인대기중 ({pending.length}명)</h2>
+              <h2 className='text-lg font-semibold text-gray-900'>
+                승인대기중 ({pending.length}명)
+              </h2>
             </div>
             <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
               {pending.map((employee) => (
@@ -279,15 +291,16 @@ const HRPage: React.FC = () => {
       hire_date: updatedEmployee.hire_date?.trim() || undefined,
       role: updatedEmployee.role,
       is_deleted: false, // 일반적인 정보 수정 시에는 항상 false (삭제가 아닌 경우)
-      gender: updatedEmployee.gender && ['MALE', 'FEMALE'].includes(updatedEmployee.gender)
-        ? updatedEmployee.gender
-        : undefined, // 성별 필드 유효성 검증
+      gender:
+        updatedEmployee.gender && ['MALE', 'FEMALE'].includes(updatedEmployee.gender)
+          ? updatedEmployee.gender
+          : undefined, // 성별 필드 유효성 검증
     };
 
     try {
       await patchEmployeeMutation.mutateAsync({
         employeeId: updatedEmployee.id,
-        data: updateData
+        data: updateData,
       });
 
       setSelectedEmployee(updatedEmployee);
@@ -371,7 +384,11 @@ const HRPage: React.FC = () => {
         return;
       }
 
-      if (window.confirm(`${employee.first_name} 직원을 완전히 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+      if (
+        window.confirm(
+          `${employee.first_name} 직원을 완전히 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`
+        )
+      ) {
         try {
           await deleteEmployeeMutation.mutateAsync(employee.id);
           alert('직원이 삭제되었습니다.');
@@ -430,7 +447,7 @@ const HRPage: React.FC = () => {
           </div>
 
           {/* 하단: 액션 버튼들 */}
-          <div className='border-t border-gray-100 pt-3 -mx-4 px-4'>
+          <div className='-mx-4 border-t border-gray-100 px-4 pt-3'>
             <div className='flex items-center justify-end space-x-1.5'>
               <button
                 className='flex items-center rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50'
@@ -476,7 +493,7 @@ const HRPage: React.FC = () => {
                       try {
                         await approveEmployeeMutation.mutateAsync({
                           username: employee.username,
-                          status: 'approved'
+                          status: 'approved',
                         });
                         alert('승인 완료!');
                       } catch (e: unknown) {
@@ -495,14 +512,14 @@ const HRPage: React.FC = () => {
                       try {
                         await approveEmployeeMutation.mutateAsync({
                           username: employee.username,
-                          status: 'denied'
+                          status: 'denied',
                         });
 
                         await patchEmployeeMutation.mutateAsync({
                           employeeId: employee.id,
                           data: {
-                            is_active: false
-                          }
+                            is_active: false,
+                          },
                         });
 
                         alert('거절 및 퇴사 처리 완료!');
@@ -532,7 +549,7 @@ const HRPage: React.FC = () => {
   // 직원 등록 완료 핸들러
   const handleEmployeeRegistrationComplete = () => {
     setShowEmployeeRegistrationModal(false);
-    
+
     // React Query 캐시 무효화로 최신 데이터 가져오기
     queryClient.invalidateQueries({ queryKey: ['employees'] });
   };
@@ -552,7 +569,8 @@ const HRPage: React.FC = () => {
                 <div>
                   <h1 className='text-2xl font-bold text-gray-900'>마이페이지</h1>
                   <p className='mt-1 text-gray-600'>
-                    안녕하세요, <span className='font-semibold text-blue-600'>{employee.first_name}</span>님
+                    안녕하세요,{' '}
+                    <span className='font-semibold text-blue-600'>{employee.first_name}</span>님
                   </p>
                 </div>
               </div>
@@ -579,8 +597,7 @@ const HRPage: React.FC = () => {
                 <button
                   onClick={() => setShowOrganizationVacationCalendar(true)}
                   className='flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700'>
-                  <FiCalendar className='mr-2 h-4 w-4' />
-                  내 캘린더
+                  <FiCalendar className='mr-2 h-4 w-4' />내 캘린더
                 </button>
               </div>
             </div>
@@ -611,62 +628,74 @@ const HRPage: React.FC = () => {
 
               <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>이름</label>
+                  <label className='mb-2 block text-sm font-medium text-gray-700'>이름</label>
                   <p className='text-gray-900'>{employee.first_name}</p>
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>사용자명</label>
+                  <label className='mb-2 block text-sm font-medium text-gray-700'>사용자명</label>
                   <p className='text-gray-900'>{employee.username}</p>
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>직책</label>
+                  <label className='mb-2 block text-sm font-medium text-gray-700'>직책</label>
                   <p className='text-gray-900'>{employee.position}</p>
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>근무 상태</label>
+                  <label className='mb-2 block text-sm font-medium text-gray-700'>근무 상태</label>
                   <p className='text-gray-900'>
-                    {employee.status === 'active' ? '재직중' :
-                     employee.status === 'terminated' ? '퇴사' : '승인대기'}
+                    {employee.status === 'active'
+                      ? '재직중'
+                      : employee.status === 'terminated'
+                        ? '퇴사'
+                        : '승인대기'}
                   </p>
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>이메일</label>
+                  <label className='mb-2 block text-sm font-medium text-gray-700'>이메일</label>
                   <p className='text-gray-900'>{employee.email}</p>
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>연락처</label>
+                  <label className='mb-2 block text-sm font-medium text-gray-700'>연락처</label>
                   <p className='text-gray-900'>{employee.phone}</p>
                 </div>
                 {employee.gender && (
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>성별</label>
+                    <label className='mb-2 block text-sm font-medium text-gray-700'>성별</label>
                     <p className='text-gray-900'>{mapGenderToKorean(employee.gender)}</p>
                   </div>
                 )}
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>입사일</label>
+                  <label className='mb-2 block text-sm font-medium text-gray-700'>입사일</label>
                   <p className='text-gray-900'>{formatDateToKorean(employee.hire_date)}</p>
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>연차 총 일수</label>
+                  <label className='mb-2 block text-sm font-medium text-gray-700'>
+                    연차 총 일수
+                  </label>
                   <p className='text-gray-900'>{employee.annual_leave_days}일</p>
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>남은 연차</label>
+                  <label className='mb-2 block text-sm font-medium text-gray-700'>남은 연차</label>
                   <p className='text-gray-900'>{employee.remaining_leave_days}일</p>
                 </div>
                 {employee.allowed_tabs && employee.allowed_tabs.length > 0 && (
                   <div className='md:col-span-2'>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>접근 권한</label>
+                    <label className='mb-2 block text-sm font-medium text-gray-700'>
+                      접근 권한
+                    </label>
                     <div className='flex flex-wrap gap-2'>
                       {employee.allowed_tabs.map((tab) => (
                         <span
                           key={tab}
                           className='inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800'>
-                          {tab === 'INVENTORY' ? '재고 관리' :
-                           tab === 'ORDER' ? '발주 관리' :
-                           tab === 'SUPPLIER' ? '업체 관리' :
-                           tab === 'HR' ? 'HR 관리' : tab}
+                          {tab === 'INVENTORY'
+                            ? '재고 관리'
+                            : tab === 'ORDER'
+                              ? '발주 관리'
+                              : tab === 'SUPPLIER'
+                                ? '업체 관리'
+                                : tab === 'HR'
+                                  ? 'HR 관리'
+                                  : tab}
                         </span>
                       ))}
                     </div>
@@ -688,7 +717,9 @@ const HRPage: React.FC = () => {
                     </div>
                     <div className='ml-3'>
                       <p className='text-sm font-medium text-blue-900'>연차 총 일수</p>
-                      <p className='text-lg font-semibold text-blue-700'>{employee.annual_leave_days}일</p>
+                      <p className='text-lg font-semibold text-blue-700'>
+                        {employee.annual_leave_days}일
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -699,7 +730,9 @@ const HRPage: React.FC = () => {
                     </div>
                     <div className='ml-3'>
                       <p className='text-sm font-medium text-green-900'>남은 연차</p>
-                      <p className='text-lg font-semibold text-green-700'>{employee.remaining_leave_days}일</p>
+                      <p className='text-lg font-semibold text-green-700'>
+                        {employee.remaining_leave_days}일
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -710,7 +743,9 @@ const HRPage: React.FC = () => {
                     </div>
                     <div className='ml-3'>
                       <p className='text-sm font-medium text-orange-900'>사용한 연차</p>
-                      <p className='text-lg font-semibold text-orange-700'>{employee.annual_leave_days - employee.remaining_leave_days}일</p>
+                      <p className='text-lg font-semibold text-orange-700'>
+                        {employee.annual_leave_days - employee.remaining_leave_days}일
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -761,7 +796,7 @@ const HRPage: React.FC = () => {
     return (
       <>
         <PersonalInfoPage employee={currentEmployeeData} />
-        
+
         {/* 직원 상세 정보 모달 (본인 정보만) */}
         {showDetailsModal && selectedEmployee && (
           <EmployeeDetailsModal
@@ -786,7 +821,7 @@ const HRPage: React.FC = () => {
         {/* 근무 등록 모달 (마이페이지용) */}
         {showWorkAssignmentModal && isAdmin && (
           <VacationRequestModal
-            initialMode="work"
+            initialMode='work'
             onClose={() => setShowWorkAssignmentModal(false)}
             onSuccess={() => {
               setShowWorkAssignmentModal(false);
@@ -797,7 +832,9 @@ const HRPage: React.FC = () => {
 
         {/* 개인 캘린더 모달 */}
         {showOrganizationVacationCalendar && (
-          <OrganizationVacationCalendar onClose={() => setShowOrganizationVacationCalendar(false)} />
+          <OrganizationVacationCalendar
+            onClose={() => setShowOrganizationVacationCalendar(false)}
+          />
         )}
 
         {/* 비밀번호 변경 모달 (마이페이지용) */}
@@ -825,7 +862,9 @@ const HRPage: React.FC = () => {
             <FiUser className='h-6 w-6 text-yellow-600' />
           </div>
           <h3 className='mb-2 text-lg font-semibold text-yellow-800'>정보를 찾을 수 없습니다</h3>
-          <p className='text-yellow-600'>개인 정보를 불러올 수 없습니다. 관리자에게 문의해주세요.</p>
+          <p className='text-yellow-600'>
+            개인 정보를 불러올 수 없습니다. 관리자에게 문의해주세요.
+          </p>
         </div>
       </div>
     );
@@ -944,7 +983,7 @@ const HRPage: React.FC = () => {
       {/* 근무 등록 모달 (관리자용) */}
       {showWorkAssignmentModal && isAdmin && (
         <VacationRequestModal
-          initialMode="work"
+          initialMode='work'
           onClose={() => setShowWorkAssignmentModal(false)}
           onSuccess={() => {
             setShowWorkAssignmentModal(false);
@@ -953,7 +992,6 @@ const HRPage: React.FC = () => {
           }}
         />
       )}
-
 
       {/* 조직 캘린더 모달 */}
       {showOrganizationVacationCalendar && (

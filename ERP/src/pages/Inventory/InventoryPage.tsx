@@ -637,16 +637,25 @@ const InventoryPage = () => {
                   />
                   <div className='group relative flex items-center'>
                     <FiInfo
-                      className='h-4 w-4 text-gray-500 cursor-help hover:text-gray-700'
+                      className='h-4 w-4 cursor-help text-gray-500 hover:text-gray-700'
                       aria-label='파일명 규칙 안내'
                     />
-                    <div className='invisible group-hover:visible absolute right-0 top-6 z-50 w-72 rounded-lg bg-gray-900 p-3 text-xs text-white shadow-lg'>
+                    <div className='invisible absolute top-6 right-0 z-50 w-72 rounded-lg bg-gray-900 p-3 text-xs text-white shadow-lg group-hover:visible'>
                       <div className='mb-2 font-semibold'>파일명 규칙</div>
                       <div className='space-y-1'>
-                        <p>• 파일명에 <span className='font-mono bg-gray-800 px-1 rounded'>_online</span> 또는 <span className='font-mono bg-gray-800 px-1 rounded'>_offline</span>을 반드시 포함해주세요</p>
+                        <p>
+                          • 파일명에{' '}
+                          <span className='rounded bg-gray-800 px-1 font-mono'>_online</span> 또는{' '}
+                          <span className='rounded bg-gray-800 px-1 font-mono'>_offline</span>을
+                          반드시 포함해주세요
+                        </p>
                         <p className='text-gray-300'>예시:</p>
-                        <p className='font-mono text-xs bg-gray-800 px-2 py-1 rounded'>재고_online_20250115.xlsx</p>
-                        <p className='font-mono text-xs bg-gray-800 px-2 py-1 rounded'>POS데이터_offline_0115.xlsx</p>
+                        <p className='rounded bg-gray-800 px-2 py-1 font-mono text-xs'>
+                          재고_online_20250115.xlsx
+                        </p>
+                        <p className='rounded bg-gray-800 px-2 py-1 font-mono text-xs'>
+                          POS데이터_offline_0115.xlsx
+                        </p>
                       </div>
                     </div>
                   </div>

@@ -31,31 +31,37 @@ export const changePassword = (employeeId: number, password: string) =>
   api.put(`/authentication/change-password/${employeeId}/`, { password });
 
 // 직원 등록 (회원가입) - 기본 필드만 사용
-export const registerEmployee = (data: EmployeeRegistrationData | {
-  username: string;
-  email: string;
-  password: string;
-  first_name: string;
-  contact: string;
-}) => {
+export const registerEmployee = (
+  data:
+    | EmployeeRegistrationData
+    | {
+        username: string;
+        email: string;
+        password: string;
+        first_name: string;
+        contact: string;
+      }
+) => {
   return api.post('/authentication/signup/', data);
-}
+};
 
 // 사용자명 중복 체크
-export const checkUsernameAvailability = async (username: string): Promise<{ available: boolean; message: string }> => {
+export const checkUsernameAvailability = async (
+  username: string
+): Promise<{ available: boolean; message: string }> => {
   try {
     const response = await fetchEmployees();
-    const existingUsernames = response.data.map(employee => employee.username);
+    const existingUsernames = response.data.map((employee) => employee.username);
     const isAvailable = !existingUsernames.includes(username);
-    
+
     return {
       available: isAvailable,
-      message: isAvailable ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.'
+      message: isAvailable ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.',
     };
   } catch {
     throw new Error('중복 확인 중 오류가 발생했습니다.');
   }
-}
+};
 
 // ===== 휴가 관련 API =====
 
@@ -76,36 +82,36 @@ export const reviewVacation = (
 
 // 직원 목록 조회 응답 타입 (GET /hr/employees/) - API 스펙 정확히 반영
 export interface EmployeeList {
-  id: number;                    // readOnly
-  username: string;              // required, pattern: ^[\w.@+-]+$, maxLength: 150
-  email: string;                 // email format, maxLength: 254
-  role: 'MANAGER' | 'STAFF' | 'INTERN';  // enum 값으로 정확히 정의
-  contact: string | null;        // maxLength: 20, nullable
+  id: number; // readOnly
+  username: string; // required, pattern: ^[\w.@+-]+$, maxLength: 150
+  email: string; // email format, maxLength: 254
+  role: 'MANAGER' | 'STAFF' | 'INTERN'; // enum 값으로 정확히 정의
+  contact: string | null; // maxLength: 20, nullable
   status: 'APPROVED' | 'DENIED'; // enum 값으로 정확히 정의
-  first_name: string;            // maxLength: 150
-  is_active: boolean;            // 퇴사 여부
-  hire_date: string | null;      // date format, nullable, readOnly
-  remaining_leave_days: string;  // readOnly
-  gender?: 'MALE' | 'FEMALE';    // 성별, nullable
+  first_name: string; // maxLength: 150
+  is_active: boolean; // 퇴사 여부
+  hire_date: string | null; // date format, nullable, readOnly
+  remaining_leave_days: string; // readOnly
+  gender?: 'MALE' | 'FEMALE'; // 성별, nullable
 }
 
 // 직원 상세 조회 응답 타입 (GET /hr/employees/{id}/) - API 스펙 정확히 반영
 export interface EmployeeDetail {
-  id: number;                          // readOnly
-  username: string;                    // required, pattern: ^[\w.@+-]+$, maxLength: 150
-  email: string;                       // email format, maxLength: 254
+  id: number; // readOnly
+  username: string; // required, pattern: ^[\w.@+-]+$, maxLength: 150
+  email: string; // email format, maxLength: 254
   role: 'MANAGER' | 'STAFF' | 'INTERN'; // enum 값
-  contact: string | null;              // maxLength: 20, nullable
-  status: 'APPROVED' | 'DENIED';       // enum 값
-  first_name: string;                  // maxLength: 150
-  is_active: boolean;                  // 퇴사 여부
-  hire_date: string | null;            // date format, nullable
-  annual_leave_days: number;           // integer, max: 2147483647, min: 0
-  allowed_tabs: string[];              // required, 접근 허용 탭 목록
-  remaining_leave_days: string;        // readOnly
-  vacation_days: string;               // readOnly
-  vacation_pending_days: string;       // readOnly
-  gender?: 'MALE' | 'FEMALE';          // 성별, nullable (Swagger 스펙 기준)
+  contact: string | null; // maxLength: 20, nullable
+  status: 'APPROVED' | 'DENIED'; // enum 값
+  first_name: string; // maxLength: 150
+  is_active: boolean; // 퇴사 여부
+  hire_date: string | null; // date format, nullable
+  annual_leave_days: number; // integer, max: 2147483647, min: 0
+  allowed_tabs: string[]; // required, 접근 허용 탭 목록
+  remaining_leave_days: string; // readOnly
+  vacation_days: string; // readOnly
+  vacation_pending_days: string; // readOnly
+  gender?: 'MALE' | 'FEMALE'; // 성별, nullable (Swagger 스펙 기준)
 }
 
 // 백엔드 API 응답에 맞는 Employee 타입 (하위 호환성을 위해 EmployeeDetail과 동일하게 유지)
@@ -115,16 +121,16 @@ export type Employee = EmployeeDetail;
 
 // PATCH /hr/employees/{employee_id}/ 엔드포인트용 데이터 타입 (API 스펙 기준)
 export interface EmployeeUpdateData {
-  email?: string;                       // 직원 이메일
-  first_name?: string;                  // 이름
-  contact?: string;                     // 직원 연락처
-  is_active?: boolean;                  // 퇴사 여부 (false이면 퇴사)
-  annual_leave_days?: number;           // 연차일수
-  allowed_tabs?: string[];              // 접근 허용 탭 목록
-  hire_date?: string;                   // 입사일 (date format)
+  email?: string; // 직원 이메일
+  first_name?: string; // 이름
+  contact?: string; // 직원 연락처
+  is_active?: boolean; // 퇴사 여부 (false이면 퇴사)
+  annual_leave_days?: number; // 연차일수
+  allowed_tabs?: string[]; // 접근 허용 탭 목록
+  hire_date?: string; // 입사일 (date format)
   role?: 'MANAGER' | 'STAFF' | 'INTERN'; // 직무 구분
-  is_deleted?: boolean;                 // 삭제 여부 (소프트 삭제)
-  gender?: 'MALE' | 'FEMALE';           // 성별
+  is_deleted?: boolean; // 삭제 여부 (소프트 삭제)
+  gender?: 'MALE' | 'FEMALE'; // 성별
 }
 
 // EmployeePatchData는 EmployeeUpdateData와 동일 (하위 호환성을 위해 유지)

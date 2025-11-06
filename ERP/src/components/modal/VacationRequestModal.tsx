@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import { FiX, FiCalendar, FiFileText, FiSend, FiUsers } from 'react-icons/fi';
 import { useCreateVacation, useVacations } from '../../hooks/queries/useVacations';
-import { VacationCreateData, LEAVE_TYPE_OPTIONS, LeaveType, fetchEmployees, EmployeeList } from '../../api/hr';
+import {
+  VacationCreateData,
+  LEAVE_TYPE_OPTIONS,
+  LeaveType,
+  fetchEmployees,
+  EmployeeList,
+} from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
 import { useEmployees } from '../../hooks/queries/useEmployees';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
@@ -12,7 +18,11 @@ interface VacationRequestModalProps {
   initialMode?: 'vacation' | 'work';
 }
 
-const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, onSuccess, initialMode = 'vacation' }) => {
+const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
+  onClose,
+  onSuccess,
+  initialMode = 'vacation',
+}) => {
   const currentUser = useAuthStore((state) => state.user);
   const createVacationMutation = useCreateVacation();
   const { data: employeesData } = useEmployees();
@@ -32,8 +42,8 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
   // 직원 목록 (재직중인 직원만)
   const activeEmployees = React.useMemo(() => {
     if (!employeesData?.data) return [];
-    return employeesData.data.filter((emp: EmployeeList) =>
-      emp.is_active && emp.status?.toLowerCase() === 'approved'
+    return employeesData.data.filter(
+      (emp: EmployeeList) => emp.is_active && emp.status?.toLowerCase() === 'approved'
     );
   }, [employeesData?.data]);
 
@@ -63,7 +73,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
     const newStart = new Date(startDate);
     const newEnd = new Date(endDate);
 
-    return vacationsData.data.some(vacation => {
+    return vacationsData.data.some((vacation) => {
       // 같은 직원의 승인된 휴가만 확인
       if (vacation.employee !== employeeId || vacation.status !== 'APPROVED') {
         return false;
@@ -148,7 +158,10 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
         }
       }
 
-      if (targetEmployeeId && checkDateOverlap(targetEmployeeId, formData.start_date, formData.end_date)) {
+      if (
+        targetEmployeeId &&
+        checkDateOverlap(targetEmployeeId, formData.start_date, formData.end_date)
+      ) {
         newErrors.start_date = '이미 승인된 휴가와 날짜가 겹칩니다.';
         newErrors.end_date = '이미 승인된 휴가와 날짜가 겹칩니다.';
       }
@@ -211,7 +224,9 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
       };
 
       await createVacationMutation.mutateAsync(requestData);
-      const successMessage = isWorkMode ? '근무 등록이 완료되었습니다.' : '휴가 신청이 완료되었습니다.';
+      const successMessage = isWorkMode
+        ? '근무 등록이 완료되었습니다.'
+        : '휴가 신청이 완료되었습니다.';
       alert(successMessage);
       onSuccess?.();
       onClose();
@@ -337,9 +352,10 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
         {/* 헤더 */}
         <div className='flex items-center justify-between border-b border-gray-200 px-6 py-4'>
           <div className='flex items-center'>
-            <div className={`mr-3 flex h-10 w-10 items-center justify-center rounded-lg ${
-              isWorkMode ? 'bg-orange-100' : 'bg-blue-100'
-            }`}>
+            <div
+              className={`mr-3 flex h-10 w-10 items-center justify-center rounded-lg ${
+                isWorkMode ? 'bg-orange-100' : 'bg-blue-100'
+              }`}>
               {isWorkMode ? (
                 <FiUsers className='h-5 w-5 text-orange-600' />
               ) : (
@@ -366,7 +382,9 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
             {/* 유형 선택 (휴가 모드에서만) */}
             {!isWorkMode && (
               <div>
-                <label htmlFor='leave_type' className='mb-2 block text-sm font-medium text-gray-700'>
+                <label
+                  htmlFor='leave_type'
+                  className='mb-2 block text-sm font-medium text-gray-700'>
                   휴가 유형 <span className='text-red-500'>*</span>
                 </label>
                 <select
@@ -377,7 +395,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
                   className={`w-full rounded-lg border px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
                     errors.leave_type ? 'border-red-300' : 'border-gray-300'
                   }`}>
-                  {LEAVE_TYPE_OPTIONS.filter(option => !option.adminOnly).map((option) => (
+                  {LEAVE_TYPE_OPTIONS.filter((option) => !option.adminOnly).map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -388,7 +406,6 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
                 )}
               </div>
             )}
-
 
             {/* 직원 선택 (근무 모드일 때만) */}
             {isWorkMode && (
@@ -415,9 +432,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
                     </option>
                   ))}
                 </select>
-                {errors.employee && (
-                  <p className='mt-1 text-sm text-red-500'>{errors.employee}</p>
-                )}
+                {errors.employee && <p className='mt-1 text-sm text-red-500'>{errors.employee}</p>}
               </div>
             )}
 
@@ -470,7 +485,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
             )}
 
             {/* 예상 휴가 일수 표시 */}
-            {(formData.start_date && (isHalfDay || formData.end_date)) && (
+            {formData.start_date && (isHalfDay || formData.end_date) && (
               <div className='rounded-lg bg-blue-50 p-3'>
                 <div className='flex items-center'>
                   <FiCalendar className='mr-2 h-4 w-4 text-blue-600' />
@@ -518,9 +533,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({ onClose, on
                 onClick={handleSubmit}
                 disabled={createVacationMutation.isPending}
                 className={`flex flex-1 items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                  isWorkMode
-                    ? 'bg-orange-600 hover:bg-orange-700'
-                    : 'bg-blue-600 hover:bg-blue-700'
+                  isWorkMode ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'
                 }`}>
                 {createVacationMutation.isPending ? (
                   <>

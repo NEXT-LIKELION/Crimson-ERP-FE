@@ -11,7 +11,6 @@ const AuthPage = () => {
   const navigate = useNavigate();
 
   const loginMutation = useLogin(() => {
-
     // useLogin 훅에서 이미 사용자 정보를 저장했으므로 바로 이동
     navigate('/');
   });
@@ -24,7 +23,12 @@ const AuthPage = () => {
       {
         onError: (err: unknown) => {
           const apiError = err as ApiError;
-          const msg = (err && typeof err === 'object' && 'response' in err && apiError?.response?.data?.message) || '로그인 실패';
+          const msg =
+            (err &&
+              typeof err === 'object' &&
+              'response' in err &&
+              apiError?.response?.data?.message) ||
+            '로그인 실패';
           setErrorMessage(String(msg));
         },
       }

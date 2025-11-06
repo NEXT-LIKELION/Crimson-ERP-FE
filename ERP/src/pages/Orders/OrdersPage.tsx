@@ -711,7 +711,9 @@ const OrdersPage: React.FC = () => {
               <DateInput
                 placeholder='시작 날짜 선택'
                 value={searchInputs.startDate}
-                onChange={(date) => handleInputChange('startDate', date ? date.toISOString().split('T')[0] : '')}
+                onChange={(date) =>
+                  handleInputChange('startDate', date ? date.toISOString().split('T')[0] : '')
+                }
               />
             </div>
             <div className='flex flex-col gap-1'>
@@ -721,7 +723,9 @@ const OrdersPage: React.FC = () => {
               <DateInput
                 placeholder='종료 날짜 선택'
                 value={searchInputs.endDate}
-                onChange={(date) => handleInputChange('endDate', date ? date.toISOString().split('T')[0] : '')}
+                onChange={(date) =>
+                  handleInputChange('endDate', date ? date.toISOString().split('T')[0] : '')
+                }
               />
             </div>
           </div>
@@ -932,7 +936,6 @@ const OrdersPage: React.FC = () => {
           }}
         />
       )}
-
     </div>
   );
 };
