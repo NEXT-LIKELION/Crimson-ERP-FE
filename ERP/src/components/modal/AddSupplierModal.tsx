@@ -31,8 +31,7 @@ const AddSupplierModal = ({
       const data = (initialData as Record<string, string>) ?? defaultForm;
       // 초기 연락처가 숫자만 있는 경우 포맷팅 적용
       if (data.contact && /^[0-9]+$/.test(data.contact)) {
-        const contactNumbers = data.contact.replace(/[^0-9]/g, '');
-        data.contact = formatPhoneNumber(contactNumbers);
+        data.contact = formatPhoneNumber(data.contact);
       }
       setForm(data);
       setErrors([]);
