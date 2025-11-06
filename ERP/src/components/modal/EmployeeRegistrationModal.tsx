@@ -63,7 +63,7 @@ const EmployeeRegistrationModal: React.FC<EmployeeRegistrationModalProps> = ({
   // 직책 옵션
   const positionOptions = [
     { value: 'STAFF', label: '직원' },
-    { value: 'MANAGER', label: '대표' },
+    { value: 'MANAGER', label: '관리자' },
     { value: 'INTERN', label: '인턴' },
   ];
 
