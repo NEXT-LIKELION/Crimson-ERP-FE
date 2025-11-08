@@ -565,15 +565,13 @@ const HRPage: React.FC = () => {
                   휴가신청
                 </button>
 
-                {/* 근무 등록 버튼 (관리자만) */}
-                {isAdmin && (
-                  <button
-                    onClick={() => setShowWorkAssignmentModal(true)}
-                    className='flex items-center rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-700'>
-                    <FiClock className='mr-2 h-4 w-4' />
-                    근무등록
-                  </button>
-                )}
+                {/* 근무 등록 버튼 (모든 직원) */}
+                <button
+                  onClick={() => setShowWorkAssignmentModal(true)}
+                  className='flex items-center rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-700'>
+                  <FiClock className='mr-2 h-4 w-4' />
+                  근무등록
+                </button>
 
                 {/* 내 캘린더 보기 버튼 */}
                 <button
@@ -784,7 +782,7 @@ const HRPage: React.FC = () => {
         )}
 
         {/* 근무 등록 모달 (마이페이지용) */}
-        {showWorkAssignmentModal && isAdmin && (
+        {showWorkAssignmentModal && (
           <VacationRequestModal
             initialMode="work"
             onClose={() => setShowWorkAssignmentModal(false)}
@@ -861,15 +859,13 @@ const HRPage: React.FC = () => {
                   휴가신청
                 </button>
 
-                {/* 근무 등록 버튼 (관리자만) */}
-                {isAdmin && (
-                  <button
-                    onClick={() => setShowWorkAssignmentModal(true)}
-                    className='flex items-center rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-700'>
-                    <FiClock className='mr-2 h-4 w-4' />
-                    근무등록
-                  </button>
-                )}
+                {/* 근무 등록 버튼 (모든 사용자) */}
+                <button
+                  onClick={() => setShowWorkAssignmentModal(true)}
+                  className='flex items-center rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-orange-700'>
+                  <FiClock className='mr-2 h-4 w-4' />
+                  근무등록
+                </button>
 
                 {/* 휴가 관리/조직 캘린더 통합 버튼 */}
                 <button
@@ -941,8 +937,8 @@ const HRPage: React.FC = () => {
         />
       )}
 
-      {/* 근무 등록 모달 (관리자용) */}
-      {showWorkAssignmentModal && isAdmin && (
+      {/* 근무 등록 모달 (모든 직원) */}
+      {showWorkAssignmentModal && (
         <VacationRequestModal
           initialMode="work"
           onClose={() => setShowWorkAssignmentModal(false)}
