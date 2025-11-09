@@ -102,13 +102,9 @@ export const checkProductNameExists = async (
 
 // 병합용 전체 데이터 조회 (큰 page_size로 최소한의 요청)
 export const fetchAllInventoriesForMerge = async (): Promise<ProductVariant[]> => {
-  try {
     const response = await fetchInventoriesForExport();
     const data: ProductVariant[] = response.data || [];
     return data;
-  } catch (error) {
-    throw error;
-  }
 };
 
 // 엑셀 익스포트용 필터링된 전체 데이터 조회
@@ -126,7 +122,6 @@ interface InventoryExportFilters {
 export const fetchFilteredInventoriesForExport = async (
   appliedFilters: InventoryExportFilters
 ): Promise<ProductVariant[]> => {
-  try {
     // 백엔드 필터 (상태 필터와 페이지 관련 제외)
     const backendFilters = { ...appliedFilters };
     delete backendFilters.status;
@@ -200,10 +195,7 @@ export const fetchFilteredInventoriesForExport = async (
       return true;
     });
 
-    return filteredData;
-  } catch (error) {
-    throw error;
-  }
+  return filteredData;
 };
 
 // 재고 조정
