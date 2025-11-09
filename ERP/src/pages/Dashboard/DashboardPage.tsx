@@ -6,15 +6,19 @@ import { FiChevronLeft, FiChevronRight, FiCalendar, FiX, FiUser, FiClock } from 
 import { Link } from 'react-router-dom';
 import { useVacations } from '../../hooks/queries/useVacations';
 import { useEmployees } from '../../hooks/queries/useEmployees';
+import { useDashboard } from '../../hooks/queries/useDashboard';
 import { Vacation, LEAVE_TYPE_OPTIONS, EmployeeList } from '../../api/hr';
+import { useAuthStore } from '../../store/authStore';
 
 const DashboardPage = () => {
   const { data: vacationsData, isLoading, error } = useVacations();
   const { data: employeesData } = useEmployees();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedVacation, setSelectedVacation] = useState<Vacation | null>(null);
+  const role = useAuthStore((state) => state.user?.role);
+  const { data: dashboardNotifications } = useDashboard(role); // role이 MANAGER일 때만 쿼리 실행
 
-  // 날짜별 휴가 그룹화 (취소, 대기중, 퇴사자 휴가 제외)
+  // 날짜별 휴가 그룹화 (취소, 퇴사자 휴가 제외)
   const vacationsByDate = useMemo(() => {
     const grouped: Record<string, Vacation[]> = {};
     const vacations = vacationsData?.data || [];
@@ -27,12 +31,14 @@ const DashboardPage = () => {
         .map((emp: EmployeeList) => emp.id)
     );
 
-    // 승인된 휴가 중 재직중인 직원의 휴가만 필터링
-    const approvedVacations = vacations.filter(
-      (vacation) => vacation.status === 'APPROVED' && activeEmployeeIds.has(vacation.employee)
+    // 승인된 휴가 및 대기중인 휴가 중 재직중인 직원의 휴가만 필터링
+    const approvedAndPendingVacations = vacations.filter(
+      (vacation) =>
+        (vacation.status === 'APPROVED' || vacation.status === 'PENDING') &&
+        activeEmployeeIds.has(vacation.employee)
     );
 
-    approvedVacations.forEach((vacation) => {
+    approvedAndPendingVacations.forEach((vacation) => {
       const start = new Date(vacation.start_date);
       const end = new Date(vacation.end_date);
 
@@ -147,16 +153,22 @@ const DashboardPage = () => {
 
               // 근무 타입인지 확인
               const isWork = vacation.leave_type === 'WORK';
+              // PENDING 상태인지 확인
+              const isPending = vacation.status === 'PENDING';
 
               return (
                 <div
                   key={`${vacation.id}-${index}`}
                   className={`flex cursor-pointer items-center justify-between rounded px-1 py-0.5 text-xs transition-opacity hover:opacity-80 ${
                     isWork
-                      ? 'border-2 border-orange-400 bg-orange-50 text-orange-800'
-                      : 'bg-blue-500 text-white'
+                      ? isPending
+                        ? 'border-2 border-dashed border-orange-400 bg-orange-50 text-orange-800'
+                        : 'border-2 border-orange-400 bg-orange-50 text-orange-800'
+                      : isPending
+                        ? 'border-2 border-dashed border-blue-400 bg-blue-100 text-blue-800'
+                        : 'bg-blue-500 text-white'
                   }`}
-                  title={`${employeeName} - ${leaveTypeLabel}${isWork ? ' (근무)' : ''}`}
+                  title={`${employeeName} - ${leaveTypeLabel}${isWork ? ' (근무)' : ''}${isPending ? ' [대기중]' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedVacation(vacation);
@@ -206,21 +218,37 @@ const DashboardPage = () => {
       <h1 className='mb-4 text-2xl font-bold'>대시보드</h1>
       <div className='mb-6 grid grid-cols-3 gap-4'>
         <Link to='/inventory' className='flex items-center rounded-lg bg-indigo-600 p-4 text-white'>
-          <HiArchiveBox className='mr-3 h-10 w-9' />
+          <div className='relative mr-2 w-12'>
+            <HiArchiveBox className='mr-3 h-10 w-9' />
+          </div>
           <div className='flex-col'>
             <h3 className='text-lg font-bold'>재고 관리</h3>
             <p>전체 상품 재고 확인 및 관리</p>
           </div>
         </Link>
         <Link to='/orders' className='flex items-center rounded-lg bg-green-600 p-4 text-white'>
-          <IoClipboard className='mr-3 h-10 w-9' />
+          <div className='relative mr-2 w-12'>
+            <IoClipboard className='mr-3 h-10 w-9' />
+            {role === 'MANAGER' && (
+              <span className='absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white'>
+                {dashboardNotifications?.pending_order_count}
+              </span>
+            )}
+          </div>
           <div className='flex-col'>
             <h3 className='text-lg font-bold'>발주 관리</h3>
             <p>발주 요청 및 승인 프로세스 관리</p>
           </div>
         </Link>
         <Link to='/hr' className='flex items-center rounded-lg bg-purple-600 p-4 text-white'>
-          <IoPeopleSharp className='mr-3 h-10 w-9' />
+          <div className='relative mr-2 w-12'>
+            <IoPeopleSharp className='h-10 w-9' />
+            {role === 'MANAGER' && (
+              <span className='absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white'>
+                {dashboardNotifications?.pending_vacation_count}
+              </span>
+            )}
+          </div>
           <div className='flex-col'>
             <h3 className='text-lg font-bold'>HR 관리</h3>
             <p>직원 정보 및 관리</p>
