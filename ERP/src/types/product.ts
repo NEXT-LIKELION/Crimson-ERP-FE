@@ -1,19 +1,5 @@
 // src/types/product.ts
 
-// 공급업체-상품 매핑 생성/수정용
-export interface SupplierVariantUpdate {
-  name: string;        // 공급업체명
-  cost_price: number;  // integer
-  is_primary: boolean;
-}
-
-// 공급업체-상품 매핑 응답용
-export interface SupplierVariantUpdateTable {
-  id: number;          // readOnly
-  cost_price: number;  // 0~2147483647
-  is_primary: boolean;
-}
-
 // ProductVariant (API 응답용 - 읽기 전용 필드들)
 export interface ProductVariant {
   product_id: string;      // readOnly
@@ -63,7 +49,6 @@ export interface ProductVariantCreate {
   memo: string;
   name: string;
   channels: string[];
-  suppliers: SupplierVariantUpdate[]; // 실제 매핑 정보 배열
 }
 
 // 프론트엔드 통합 타입 (기존 코드 호환성)
@@ -94,9 +79,7 @@ export interface Product {
   created_at?: string;
   description?: string;
   memo?: string;
-  
-  // suppliers는 컨텍스트에 따라 다른 타입
-  suppliers?: string | SupplierVariantUpdate[]; // 조회: string, 생성/수정: 배열
+  suppliers?: string; // 조회용 표시 텍스트
 }
 
 // API 응답 타입 정의
@@ -142,23 +125,31 @@ export interface Supplier {
   manager: string;
   email: string;
   address: string;
-  variant_codes: string[];
-  variants: string; // readOnly - API 문서에 따르면 string 타입
 }
 
-// 공급업체 상세 조회용 확장 타입 (UI에서 사용)
-export interface SupplierDetail extends Supplier {
-  enrichedVariants?: EnrichedSupplierVariant[];
-}
-
-// 공급업체 variant 정보 (inventory 데이터와 조합된)
-export interface EnrichedSupplierVariant {
+// 발주 품목
+export interface SupplierOrderItem {
   variant_code: string;
-  product_name: string;
-  option: string;
-  stock: number;
-  cost_price: number;
-  is_primary: boolean;
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
+// 발주 정보
+export interface SupplierOrder {
+  id: number;
+  order_date: string;
+  expected_delivery_date: string;
+  status: string;
+  total_price: number;
+  items: SupplierOrderItem[];
+}
+
+// 발주 내역 API 응답
+export interface SupplierOrdersResponse {
+  supplier: string;
+  orders: SupplierOrder[];
 }
 
 // Supplier 생성용 (POST /supplier/ 요청)
@@ -168,7 +159,6 @@ export interface SupplierCreateData {
   manager: string;
   email: string;
   address: string;
-  variant_codes?: string[];
 }
 
 // Supplier 수정용 (PATCH /supplier/{id}/ 요청)
@@ -192,7 +182,6 @@ export interface ProductFormData {
   description: string;
   memo: string;
   channels: string[];
-  suppliers: ProductSupplierData[];
 }
 
 // 제품에 연결된 공급업체 데이터 (기존 호환성)
@@ -202,18 +191,6 @@ export interface ProductSupplierData {
   is_primary?: boolean; // 옵셔널로 변경
 }
 
-// 타입 가드 함수들
-export function isSupplierArray(
-  suppliers: string | SupplierVariantUpdate[] | undefined
-): suppliers is SupplierVariantUpdate[] {
-  return Array.isArray(suppliers);
-}
-
-export function isSupplierString(
-  suppliers: string | SupplierVariantUpdate[] | undefined
-): suppliers is string {
-  return typeof suppliers === 'string';
-}
 
 // 숫자 변환 유틸리티
 export function ensureNumber(value: number | string | undefined): number | undefined {
