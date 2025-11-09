@@ -376,6 +376,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
               is_primary: false,
             });
           } catch (error) {
+            console.error('Failed to add supplier variant mapping:', error);
             // 이미 매핑된 경우는 무시 (409 에러 등)
           }
         });
@@ -385,7 +386,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
         // 공급업체 캐시 무효화 (매핑 업데이트 반영)
         queryClient.invalidateQueries({ queryKey: ['suppliers'] });
         queryClient.invalidateQueries({ queryKey: ['supplier', supplier] });
-      } catch (error) {
+      } catch {
         alert('오류가 발생했습니다.');
         // 매핑 오류는 발주 성공에 영향을 주지 않음
       }
@@ -393,13 +394,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
       alert('발주가 성공적으로 신청되었습니다.');
       if (onSuccess) onSuccess(res.data);
       onClose();
-    } catch (error: any) {
-      const errorMessage =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
-        '발주 신청 중 오류가 발생했습니다.';
-      alert(`발주 실패: ${errorMessage}`);
+    } catch (error) {
+      console.error('Failed to submit order:', error);
+      alert('발주 신청 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);
     }
