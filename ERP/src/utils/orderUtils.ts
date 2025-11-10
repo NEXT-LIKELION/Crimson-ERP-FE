@@ -54,7 +54,7 @@ export const extractVariantCode = (
   // variants에서 찾기
   const variants = variantsByProduct[item.product_id] || [];
   const variantObj = variants.find((v) => v.option === item.variant);
-  
+
   return variantObj?.variant_code || '';
 };
 
@@ -89,7 +89,6 @@ export const validateOrderItem = (
   if (!item.variant_code) {
     errors.push(`${itemNum}번 항목의 품목 코드가 누락되었습니다.`);
   }
-
 
   if (item.quantity <= 0) {
     errors.push(`${itemNum}번 항목의 수량은 0보다 커야 합니다.`);
@@ -172,9 +171,9 @@ export const getStatusDisplayName = (status: string): string => {
 export const getStatusFromDisplayName = (displayName: string): string => {
   const reverseMap: Record<string, string> = {
     '승인 대기': 'PENDING',
-    '승인됨': 'APPROVED',
-    '완료': 'COMPLETED',
-    '취소됨': 'CANCELLED',
+    승인됨: 'APPROVED',
+    완료: 'COMPLETED',
+    취소됨: 'CANCELLED',
   };
 
   return reverseMap[displayName] || displayName;

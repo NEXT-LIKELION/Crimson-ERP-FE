@@ -32,7 +32,6 @@ interface InputFieldProps {
   onReset: () => void;
 }
 
-
 const InputField: React.FC<InputFieldProps> = ({
   productName,
   onProductNameChange,
@@ -68,7 +67,7 @@ const InputField: React.FC<InputFieldProps> = ({
     const maxSalesVal = parseInt(maxSales) || SLIDER_CONFIG.SALES.max;
     const minStockVal = parseInt(minStock) || SLIDER_CONFIG.STOCK.min;
     const maxStockVal = parseInt(maxStock) || SLIDER_CONFIG.STOCK.max;
-    
+
     setSalesSliderValues([minSalesVal, maxSalesVal]);
     setStockSliderValues([minStockVal, maxStockVal]);
   }, [minSales, maxSales, minStock, maxStock]); // props가 변경될 때마다 초기화
@@ -153,11 +152,13 @@ const InputField: React.FC<InputFieldProps> = ({
             onChangeComplete={handleStockSliderAfterChange as (value: number | number[]) => void}
             allowCross={false}
             pushable={0}
-            trackStyle={[{ 
-              backgroundColor: '#10b981',
-              left: `${(stockSliderValues[0] / SLIDER_CONFIG.STOCK.max) * 100}%`,
-              width: `${((stockSliderValues[1] - stockSliderValues[0]) / SLIDER_CONFIG.STOCK.max) * 100}%`
-            }]}
+            trackStyle={[
+              {
+                backgroundColor: '#10b981',
+                left: `${(stockSliderValues[0] / SLIDER_CONFIG.STOCK.max) * 100}%`,
+                width: `${((stockSliderValues[1] - stockSliderValues[0]) / SLIDER_CONFIG.STOCK.max) * 100}%`,
+              },
+            ]}
             railStyle={{ backgroundColor: '#e5e7eb' }}
             handleStyle={[
               { borderColor: '#10b981', backgroundColor: '#10b981' },
@@ -179,11 +180,13 @@ const InputField: React.FC<InputFieldProps> = ({
             value={salesSliderValues}
             onChange={handleSalesSliderChange as (value: number | number[]) => void}
             onChangeComplete={handleSalesSliderAfterChange as (value: number | number[]) => void}
-            trackStyle={[{ 
-              backgroundColor: '#2563eb',
-              left: `${(salesSliderValues[0] / SLIDER_CONFIG.SALES.max) * 100}%`,
-              width: `${((salesSliderValues[1] - salesSliderValues[0]) / SLIDER_CONFIG.SALES.max) * 100}%`
-            }]}
+            trackStyle={[
+              {
+                backgroundColor: '#2563eb',
+                left: `${(salesSliderValues[0] / SLIDER_CONFIG.SALES.max) * 100}%`,
+                width: `${((salesSliderValues[1] - salesSliderValues[0]) / SLIDER_CONFIG.SALES.max) * 100}%`,
+              },
+            ]}
             railStyle={{ backgroundColor: '#e5e7eb' }}
             handleStyle={[
               { borderColor: '#2563eb', backgroundColor: '#2563eb' },

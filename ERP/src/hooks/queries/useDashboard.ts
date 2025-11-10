@@ -1,14 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchDashboardData, DashboardData } from '../../api/dashboard';
+import { DashboardNotification, fetchDashboardNotifications } from '../../api/dashboard';
 
-export const useDashboard = () => {
-  return useQuery<DashboardData>({
+export const useDashboard = (role?: string) => {
+  return useQuery<DashboardNotification>({
     queryKey: ['dashboard'],
-    queryFn: async () => {
-      const response = await fetchDashboardData();
-      return response.data;
-    },
-    staleTime: 5 * 60 * 1000, // 5분
+    queryFn: fetchDashboardNotifications,
+    enabled: role === 'MANAGER', // MANAGER일 때만 쿼리 실행
+    staleTime: 1000 * 60 * 5, // 5분
+    gcTime: 1000 * 60 * 10, // 10분
     refetchOnWindowFocus: false,
   });
 };

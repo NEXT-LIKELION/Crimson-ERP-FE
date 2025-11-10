@@ -92,23 +92,16 @@ export const checkProductNameExists = async (
       (p: ProductOption) => (p?.name || '').trim().toLowerCase() === target
     );
     return { isDuplicate };
-  } catch (e) {
-    return {
-      isDuplicate: false,
-      error: '상품명 중복 확인 중 오류가 발생했습니다. 네트워크 연결을 확인해주세요.',
-    };
+  } catch {
+    return { isDuplicate: false };
   }
 };
 
 // 병합용 전체 데이터 조회 (큰 page_size로 최소한의 요청)
 export const fetchAllInventoriesForMerge = async (): Promise<ProductVariant[]> => {
-  try {
-    const response = await fetchInventoriesForExport();
-    const data: ProductVariant[] = response.data || [];
-    return data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await fetchInventoriesForExport();
+  const data: ProductVariant[] = response.data || [];
+  return data;
 };
 
 // 엑셀 익스포트용 필터링된 전체 데이터 조회
@@ -126,86 +119,80 @@ interface InventoryExportFilters {
 export const fetchFilteredInventoriesForExport = async (
   appliedFilters: InventoryExportFilters
 ): Promise<ProductVariant[]> => {
-  try {
+  // 백엔드 필터 (상태 필터와 페이지 관련 제외)
+  const backendFilters = { ...appliedFilters };
+  delete backendFilters.status;
+  delete backendFilters.page;
 
-    // 백엔드 필터 (상태 필터와 페이지 관련 제외)
-    const backendFilters = { ...appliedFilters };
-    delete backendFilters.status;
-    delete backendFilters.page;
+  // 필터링된 모든 데이터를 페이지별로 수집
+  let allData: ProductVariant[] = [];
+  let page = 1;
+  let hasMoreData = true;
 
-    // 필터링된 모든 데이터를 페이지별로 수집
-    let allData: ProductVariant[] = [];
-    let page = 1;
-    let hasMoreData = true;
+  while (hasMoreData) {
+    const params =
+      Object.keys(backendFilters).length > 0
+        ? { ...backendFilters, page, page_size: 100 }
+        : { page, page_size: 100 };
 
-    while (hasMoreData) {
-      const params =
-        Object.keys(backendFilters).length > 0
-          ? { ...backendFilters, page, page_size: 100 }
-          : { page, page_size: 100 };
+    const response = await fetchInventories(params);
+    const pageData = response.data.results || [];
+    allData = [...allData, ...pageData];
 
-      const response = await fetchInventories(params);
-      const pageData = response.data.results || [];
-      allData = [...allData, ...pageData];
+    hasMoreData = response.data.next !== null;
+    page++;
+  }
 
-
-      hasMoreData = response.data.next !== null;
-      page++;
+  // 프론트엔드 필터링 적용
+  const filteredData = allData.filter((item: ProductVariant) => {
+    // 상품명 필터
+    if (
+      appliedFilters?.name &&
+      !item.name.toLowerCase().includes(appliedFilters.name.toLowerCase())
+    ) {
+      return false;
     }
 
-    // 프론트엔드 필터링 적용
-    const filteredData = allData.filter((item: ProductVariant) => {
-      // 상품명 필터
-      if (
-        appliedFilters?.name &&
-        !item.name.toLowerCase().includes(appliedFilters.name.toLowerCase())
-      ) {
-        return false;
-      }
+    // 카테고리 필터
+    if (appliedFilters?.category && item.category !== appliedFilters.category) {
+      return false;
+    }
 
-      // 카테고리 필터
-      if (appliedFilters?.category && item.category !== appliedFilters.category) {
-        return false;
+    // 상태 필터
+    if (appliedFilters?.status && appliedFilters.status !== '모든 상태') {
+      const stock = item.stock;
+      const minStock = item.min_stock || 0;
+      let status = '정상';
+      if (stock === 0) {
+        status = '품절';
+      } else if (stock < minStock) {
+        status = '재고부족';
       }
+      if (status !== appliedFilters.status) return false;
+    }
 
-      // 상태 필터
-      if (appliedFilters?.status && appliedFilters.status !== '모든 상태') {
-        const stock = item.stock;
-        const minStock = item.min_stock || 0;
-        let status = '정상';
-        if (stock === 0) {
-          status = '품절';
-        } else if (stock < minStock) {
-          status = '재고부족';
-        }
-        if (status !== appliedFilters.status) return false;
-      }
+    // 재고수량 필터
+    if (appliedFilters?.stock_gt !== undefined) {
+      if (item.stock <= appliedFilters.stock_gt) return false;
+    }
+    if (appliedFilters?.stock_lt !== undefined) {
+      if (item.stock >= appliedFilters.stock_lt) return false;
+    }
 
-      // 재고수량 필터
-      if (appliedFilters?.stock_gt !== undefined) {
-        if (item.stock <= appliedFilters.stock_gt) return false;
-      }
-      if (appliedFilters?.stock_lt !== undefined) {
-        if (item.stock >= appliedFilters.stock_lt) return false;
-      }
+    // 판매합계 필터
+    if (appliedFilters?.sales_min !== undefined && appliedFilters?.sales_min > 0) {
+      const sales = typeof item.sales === 'string' ? Number(item.sales) || 0 : item.sales || 0;
+      if (sales < appliedFilters.sales_min) return false;
+    }
+    if (appliedFilters?.sales_max !== undefined && appliedFilters?.sales_max < 5000000) {
+      const sales = typeof item.sales === 'string' ? Number(item.sales) || 0 : item.sales || 0;
+      if (sales > appliedFilters.sales_max) return false;
+    }
 
-      // 판매합계 필터
-      if (appliedFilters?.sales_min !== undefined && appliedFilters?.sales_min > 0) {
-        const sales = typeof item.sales === 'string' ? Number(item.sales) || 0 : item.sales || 0;
-        if (sales < appliedFilters.sales_min) return false;
-      }
-      if (appliedFilters?.sales_max !== undefined && appliedFilters?.sales_max < 5000000) {
-        const sales = typeof item.sales === 'string' ? Number(item.sales) || 0 : item.sales || 0;
-        if (sales > appliedFilters.sales_max) return false;
-      }
+    return true;
+  });
 
-      return true;
-    });
-
-    return filteredData;
-  } catch (error) {
-    throw error;
-  }
+  return filteredData;
 };
 
 // 재고 조정

@@ -81,7 +81,6 @@ export const useInventories = (filters?: {
     refetchOnReconnect: false,
   });
 
-
   // useInfiniteQuery 데이터 처리
   const allData = useMemo(() => {
     if (!query.data?.pages) return [];

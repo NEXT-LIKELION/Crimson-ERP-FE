@@ -16,7 +16,7 @@ declare module 'xlsx-populate/browser/xlsx-populate' {
   interface XlsxCell {
     value(): string | number | boolean | Date | null | undefined;
     value(val: string | number | boolean | Date | null | undefined): XlsxCell;
-    style(property: string, value: string): XlsxCell;
+    style(property: string, value: string | boolean | number): XlsxCell;
   }
 
   interface XlsxPopulateModule {
@@ -46,7 +46,7 @@ declare module 'xlsx-populate/browser/xlsx-populate-no-encryption' {
   interface XlsxCell {
     value(): string | number | boolean | Date | null | undefined;
     value(val: string | number | boolean | Date | null | undefined): XlsxCell;
-    style(property: string, value: string): XlsxCell;
+    style(property: string, value: string | boolean | number): XlsxCell;
   }
 
   interface XlsxPopulateNoEncModule {

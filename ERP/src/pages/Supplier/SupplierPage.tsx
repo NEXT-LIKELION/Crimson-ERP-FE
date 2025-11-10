@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import GreenButton from '../../components/button/GreenButton';
 import { FaPlus } from 'react-icons/fa6';
-import { MdOutlineDownload, MdFilterList, MdOutlineEdit } from 'react-icons/md';
+import { MdOutlineEdit } from 'react-icons/md';
 import {
   useSuppliers,
   useCreateSupplier,
@@ -11,7 +11,8 @@ import AddSupplierModal from '../../components/modal/AddSupplierModal';
 import SupplierDetailModal from '../../components/modal/SupplierDetailModal';
 import { Supplier, SupplierCreateData } from '../../types/product';
 import { usePermissions } from '../../hooks/usePermissions';
-
+import { useEnterKey } from '../../hooks/useEnterKey';
+import { formatPhoneNumber } from '../../utils/formatters';
 // Supplier 인터페이스는 types/product.ts에서 import됨
 
 const SupplierPage: React.FC = () => {
@@ -24,6 +25,10 @@ const SupplierPage: React.FC = () => {
   const [detailId, setDetailId] = useState<number | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
   const updateSupplier = useUpdateSupplier();
+  const handleSearch = useCallback(() => {
+    setSearch(searchInput);
+  }, [searchInput]);
+  const handleEnterKey = useEnterKey(handleSearch);
 
   // API 데이터에서 실제 목록 추출
   const suppliers: Supplier[] = data?.data || [];
@@ -55,6 +60,7 @@ const SupplierPage: React.FC = () => {
             className='w-72 rounded border px-3 py-2'
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={handleEnterKey}
           />
           <button
             className='rounded bg-blue-500 px-4 py-2 text-white'
@@ -63,16 +69,6 @@ const SupplierPage: React.FC = () => {
           </button>
         </div>
         <div className='flex flex-row items-center gap-2'>
-          <MdFilterList
-            className='cursor-pointer text-gray-500 hover:text-gray-700'
-            size={22}
-            onClick={() => alert('필터 클릭(추후 구현)')}
-          />
-          <MdOutlineDownload
-            className='cursor-pointer text-gray-500 hover:text-gray-700'
-            size={22}
-            onClick={() => alert('다운로드 클릭(추후 구현)')}
-          />
           {permissions.canCreate('SUPPLIER') && (
             <GreenButton
               text='공급업체 추가'
@@ -110,7 +106,9 @@ const SupplierPage: React.FC = () => {
                   <td className='border-b border-gray-200 px-4 py-2 text-center'>{supplier.id}</td>
                   <td className='border-b border-gray-200 px-4 py-2'>{supplier.name}</td>
                   <td className='border-b border-gray-200 px-4 py-2'>{supplier.manager}</td>
-                  <td className='border-b border-gray-200 px-4 py-2'>{supplier.contact}</td>
+                  <td className='border-b border-gray-200 px-4 py-2'>
+                    {formatPhoneNumber(supplier.contact)}
+                  </td>
                   <td className='border-b border-gray-200 px-4 py-2'>{supplier.email}</td>
                   <td className='border-b border-gray-200 px-4 py-2'>{supplier.address}</td>
                   <td className='border-b border-gray-200 px-4 py-2'>
@@ -163,7 +161,11 @@ const SupplierPage: React.FC = () => {
       <AddSupplierModal
         isOpen={!!editId}
         onClose={() => setEditId(null)}
-        initialData={editId ? suppliers.find((s) => s.id === editId) as unknown as Record<string, unknown> : {}}
+        initialData={
+          editId
+            ? (suppliers.find((s) => s.id === editId) as unknown as Record<string, unknown>)
+            : {}
+        }
         title='공급업체 정보 수정'
         onSave={(form) => {
           if (editId != null) {
@@ -174,6 +176,5 @@ const SupplierPage: React.FC = () => {
     </div>
   );
 };
-
 
 export default SupplierPage;

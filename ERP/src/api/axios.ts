@@ -12,7 +12,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false
+  withCredentials: false,
 });
 
 api.interceptors.request.use((config) => {
@@ -36,7 +36,6 @@ api.interceptors.request.use((config) => {
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type'];
   }
-
 
   return config;
 });

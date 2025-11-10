@@ -69,9 +69,10 @@ const MergeVariantsModal: React.FC<MergeVariantsModalProps> = ({
       }
 
       // 2) 사용자 최종 확인
-      const targetProductName = variants.find(v => v.variant_code === targetVariant)?.name || targetVariant;
-      const sourceProductNames = sourceVariants.map(code =>
-        variants.find(v => v.variant_code === code)?.name || code
+      const targetProductName =
+        variants.find((v) => v.variant_code === targetVariant)?.name || targetVariant;
+      const sourceProductNames = sourceVariants.map(
+        (code) => variants.find((v) => v.variant_code === code)?.name || code
       );
 
       const confirmMessage = `다음 병합을 진행하시겠습니까?\n\nTarget: ${targetProductName}\nSources: ${sourceProductNames.join(
