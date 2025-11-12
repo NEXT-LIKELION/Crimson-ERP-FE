@@ -136,8 +136,12 @@ const StockHistoryModal: React.FC<StockHistoryModalProps> = ({ isOpen, onClose }
                       className={`border-b border-gray-200 ${
                         index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                       }`}>
-                      <td className='px-4 py-3 text-left text-sm'>{formatDate(adjustment.created_at)}</td>
-                      <td className='px-4 py-3 text-left text-sm font-medium'>{adjustment.variant_code}</td>
+                      <td className='px-4 py-3 text-left text-sm'>
+                        {formatDate(adjustment.created_at)}
+                      </td>
+                      <td className='px-4 py-3 text-left text-sm font-medium'>
+                        {adjustment.variant_code}
+                      </td>
                       <td className='px-4 py-3 text-left text-sm'>{adjustment.product_name}</td>
                       <td className='px-4 py-3 text-center'>
                         <span

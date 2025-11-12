@@ -2,22 +2,22 @@
 
 // ProductVariant (API 응답용 - 읽기 전용 필드들)
 export interface ProductVariant {
-  product_id: string;      // readOnly
-  name: string;           // readOnly
-  category: string;       // readOnly
+  product_id: string; // readOnly
+  name: string; // readOnly
+  category: string; // readOnly
   variant_code: string;
   option: string;
-  stock: number;          // readOnly
+  stock: number; // readOnly
   price: number;
   min_stock: number;
   description: string;
   memo: string;
-  cost_price: number;     // readOnly, 기본 원가 (number 타입)
-  order_count: number;    // readOnly
-  return_count: number;   // readOnly
-  sales: string;          // readOnly, 계산된 값 (string 타입)
-  suppliers: string;      // readOnly, 표시용 텍스트 (string 타입)
-  channels: string[];     // 판매 채널 목록
+  cost_price: number; // readOnly, 기본 원가 (number 타입)
+  order_count: number; // readOnly
+  return_count: number; // readOnly
+  sales: string; // readOnly, 계산된 값 (string 타입)
+  suppliers: string; // readOnly, 표시용 텍스트 (string 타입)
+  channels: string[]; // 판매 채널 목록
 }
 
 // 스냅샷 관련 타입 정의
@@ -38,9 +38,9 @@ export interface InventorySnapshot {
 
 // ProductVariant 생성용
 export interface ProductVariantCreate {
-  product_id: string;     // readOnly
+  product_id: string; // readOnly
   category: string;
-  category_name: string;  // readOnly
+  category_name: string; // readOnly
   option: string;
   stock: number;
   price: number;
@@ -63,16 +63,16 @@ export interface Product {
   option?: string;
   price?: number | string;
   stock?: number;
-  cost_price?: number | string;    // API: number, 프론트: number/string 허용
+  cost_price?: number | string; // API: number, 프론트: number/string 허용
   min_stock?: number;
   variant_id?: number | string;
   variant_code?: string;
-  channels?: string[];             // 판매 채널
+  channels?: string[]; // 판매 채널
   orderCount?: number;
   returnCount?: number;
   order_count?: number;
   return_count?: number;
-  sales?: number | string;         // API: string, 프론트: number 허용
+  sales?: number | string; // API: string, 프론트: number 허용
   salesCount?: number;
   totalSales?: string;
   status?: string;

@@ -16,7 +16,7 @@ import { deleteOrder, exportOrders } from '../../api/orders';
 import { fetchInventories } from '../../api/inventory';
 import { fetchSuppliers } from '../../api/supplier';
 import { usePermissions } from '../../hooks/usePermissions';
-
+import { getErrorMessage } from '../../utils/errorHandling';
 // 검색 필터 타입 정의
 interface SearchFilters {
   orderId: string;
@@ -60,6 +60,29 @@ const OrdersPage: React.FC = () => {
   const [isOrderDetailModalOpen, setIsOrderDetailModalOpen] = useState<boolean>(false);
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState<boolean>(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [reorderData, setReorderData] = useState<
+    | {
+        supplierId?: number;
+        supplierName?: string;
+        manager?: string;
+        items?: Array<{
+          product_id: string | null;
+          variant: string | null;
+          variant_code: string;
+          quantity: number;
+          cost_price: number;
+          unit_price: number;
+          unit?: string;
+          remark?: string;
+          spec: string;
+        }>;
+        vat_included?: boolean;
+        packaging_included?: boolean;
+        instruction_note?: string;
+        note?: string;
+      }
+    | undefined
+  >(undefined);
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchInputs, setSearchInputs] = useState<SearchFilters>({
@@ -393,9 +416,9 @@ const OrdersPage: React.FC = () => {
       // 5. 파일 저장
       const saveAs = (await import('file-saver')).saveAs;
       const blob = await workbook.outputAsync();
-      saveAs(blob, `(주)고대미래_발주서_${orderDetail.id}.xlsx`);
+      saveAs(blob, `(주)고대미래_발주서_${orderDetail.order_date}.xlsx`);
     } catch (error) {
-      alert('엑셀 파일 생성 중 오류가 발생했습니다.');
+      alert('엑셀 파일 생성 중 오류가 발생했습니다.' + getErrorMessage(error));
     }
   };
 
@@ -572,7 +595,7 @@ const OrdersPage: React.FC = () => {
       const today = new Date().toISOString().split('T')[0];
       XLSX.writeFile(wb, `발주목록_${today}.xlsx`);
     } catch (error) {
-      alert('엑셀 파일 생성 중 오류가 발생했습니다.');
+      alert('엑셀 파일 생성 중 오류가 발생했습니다.' + getErrorMessage(error));
     } finally {
       setIsExporting(false);
     }
@@ -711,7 +734,9 @@ const OrdersPage: React.FC = () => {
               <DateInput
                 placeholder='시작 날짜 선택'
                 value={searchInputs.startDate}
-                onChange={(date) => handleInputChange('startDate', date ? date.toISOString().split('T')[0] : '')}
+                onChange={(date) =>
+                  handleInputChange('startDate', date ? date.toISOString().split('T')[0] : '')
+                }
               />
             </div>
             <div className='flex flex-col gap-1'>
@@ -721,7 +746,9 @@ const OrdersPage: React.FC = () => {
               <DateInput
                 placeholder='종료 날짜 선택'
                 value={searchInputs.endDate}
-                onChange={(date) => handleInputChange('endDate', date ? date.toISOString().split('T')[0] : '')}
+                onChange={(date) =>
+                  handleInputChange('endDate', date ? date.toISOString().split('T')[0] : '')
+                }
               />
             </div>
           </div>
@@ -918,6 +945,11 @@ const OrdersPage: React.FC = () => {
           isOpen={isOrderDetailModalOpen}
           onClose={() => setIsOrderDetailModalOpen(false)}
           isManager={permissions.hasPermission('ORDER')}
+          onReorder={(data) => {
+            setReorderData(data);
+            setIsOrderDetailModalOpen(false);
+            setIsNewOrderModalOpen(true);
+          }}
         />
       )}
 
@@ -925,14 +957,18 @@ const OrdersPage: React.FC = () => {
       {isNewOrderModalOpen && (
         <NewOrderModal
           isOpen={isNewOrderModalOpen}
-          onClose={() => setIsNewOrderModalOpen(false)}
+          onClose={() => {
+            setIsNewOrderModalOpen(false);
+            setReorderData(undefined);
+          }}
           onSuccess={() => {
             refetch(); // 주문 생성 후 서버에서 최신 목록 받아오기
             setIsNewOrderModalOpen(false);
+            setReorderData(undefined);
           }}
+          initialData={reorderData}
         />
       )}
-
     </div>
   );
 };

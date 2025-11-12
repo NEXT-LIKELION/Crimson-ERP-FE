@@ -23,7 +23,7 @@ export const useLogin = (onSuccessCallback?: (userData: User) => void) =>
       const refresh = res.data.refresh_token;
       const basicUser = {
         ...res.data.user,
-        role: res.data.user.role as 'MANAGER' | 'STAFF' | 'INTERN'
+        role: res.data.user.role as 'MANAGER' | 'STAFF' | 'INTERN',
       } as User;
 
       setTokens(access, refresh);
@@ -31,7 +31,7 @@ export const useLogin = (onSuccessCallback?: (userData: User) => void) =>
       const createUserWithTabs = (allowed_tabs: string[] = [], employeeId?: number): User => ({
         ...basicUser,
         allowed_tabs,
-        id: employeeId
+        id: employeeId,
       });
 
       const handleUserSuccess = (user: User) => {
@@ -43,11 +43,16 @@ export const useLogin = (onSuccessCallback?: (userData: User) => void) =>
 
       try {
         const employeesRes = await fetchEmployees();
-        const currentEmployee = employeesRes.data.find(emp => emp.username === basicUser.username);
-        
+        const currentEmployee = employeesRes.data.find(
+          (emp) => emp.username === basicUser.username
+        );
+
         if (currentEmployee) {
           const detailRes = await fetchEmployee(currentEmployee.id);
-          const completeUser = createUserWithTabs(detailRes.data.allowed_tabs || [], currentEmployee.id);
+          const completeUser = createUserWithTabs(
+            detailRes.data.allowed_tabs || [],
+            currentEmployee.id
+          );
           handleUserSuccess(completeUser);
         } else {
           handleUserSuccess(createUserWithTabs());

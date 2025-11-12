@@ -16,13 +16,16 @@ export const createSupplier = (data: {
 }) => api.post('/supplier/', data);
 
 // 공급업체 수정
-export const updateSupplier = (id: number, data: {
-  name?: string;
-  contact?: string;
-  manager?: string;
-  email?: string;
-  address?: string;
-}) => api.patch(`/supplier/${id}/`, data);
+export const updateSupplier = (
+  id: number,
+  data: {
+    name?: string;
+    contact?: string;
+    manager?: string;
+    email?: string;
+    address?: string;
+  }
+) => api.patch(`/supplier/${id}/`, data);
 
 // 공급업체별 발주 내역 조회
 export const fetchSupplierOrders = (supplierId: number) =>

@@ -21,21 +21,19 @@ const AddSupplierModal = ({
   initialData,
   title = '공급업체 추가',
 }: AddSupplierModalProps) => {
-  const [form, setForm] = useState<Record<string, string>>(initialData as Record<string, string> ?? defaultForm);
-  const [rawContact, setRawContact] = useState('');
+  const [form, setForm] = useState<Record<string, string>>(
+    (initialData as Record<string, string>) ?? defaultForm
+  );
   const [errors, setErrors] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
       const data = (initialData as Record<string, string>) ?? defaultForm;
-      setForm(data);
-      // 수정 모드인 경우 초기 연락처 설정
-      if (initialData?.contact) {
-        const contactNumbers = String(initialData.contact).replace(/[^0-9]/g, '');
-        setRawContact(contactNumbers);
-      } else {
-        setRawContact('');
+      // 초기 연락처가 숫자만 있는 경우 포맷팅 적용
+      if (data.contact && /^[0-9]+$/.test(data.contact)) {
+        data.contact = formatPhoneNumber(data.contact);
       }
+      setForm(data);
       setErrors([]);
     }
   }, [isOpen, initialData]);
@@ -45,7 +43,6 @@ const AddSupplierModal = ({
   const handleChange = (field: string, value: string) => {
     if (field === 'contact') {
       const numbers = value.replace(/[^0-9]/g, '');
-      setRawContact(numbers);
       setForm((prev) => ({ ...prev, [field]: formatPhoneNumber(numbers) }));
     } else {
       setForm((prev) => ({ ...prev, [field]: value }));
@@ -67,16 +64,16 @@ const AddSupplierModal = ({
       setErrors(errs);
       return;
     }
-    
+
     // 올바른 형태로 데이터 구성
     const submitData = {
       name: form.name?.trim(),
-      contact: rawContact || form.contact?.replace(/[^0-9]/g, ''), // 숫자만 전송
+      contact: form.contact?.trim(), // 하이픈 포함 문자열 전송
       manager: form.manager?.trim(),
       email: form.email?.trim(),
       address: form.address?.trim(),
     };
-    
+
     onSave(submitData);
     onClose();
   };
@@ -141,7 +138,7 @@ const AddSupplierModal = ({
                 value={form.address || ''}
                 onChange={(e) => handleChange('address', e.target.value)}
                 rows={3}
-                className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 resize-none'
+                className='w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none'
                 placeholder='주소를 입력해주세요&#10;예: 서울특별시 강남구 테헤란로 123&#10;테헤란밸리 오피스빌딩 456호'
               />
             </div>

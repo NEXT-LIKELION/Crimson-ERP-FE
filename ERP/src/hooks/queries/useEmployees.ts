@@ -57,14 +57,17 @@ export const usePatchEmployee = () => {
   return useMutation({
     mutationFn: ({ employeeId, data }: { employeeId: number; data: EmployeePatchData }) =>
       patchEmployee(employeeId, data),
-    
+
     // 성공 시 전체 데이터 새로 가져오기
     onSuccess: (response, { employeeId, data }) => {
       console.log('직원 정보 업데이트 성공:', response);
-      
+
       // 현재 로그인한 사용자의 정보가 업데이트된 경우 authStore도 업데이트
       const currentUser = useAuthStore.getState().user;
-      if (currentUser && (currentUser.id === employeeId || currentUser.username === response?.data?.username)) {
+      if (
+        currentUser &&
+        (currentUser.id === employeeId || currentUser.username === response?.data?.username)
+      ) {
         const updateUser = useAuthStore.getState().updateUser;
         updateUser({
           first_name: data.first_name,
@@ -75,7 +78,7 @@ export const usePatchEmployee = () => {
         });
         console.log('현재 사용자 정보 업데이트 완료');
       }
-      
+
       // 전체 목록 강제 새로고침 (서버와 동기화)
       queryClient.refetchQueries({ queryKey: ['employees'] });
       queryClient.refetchQueries({ queryKey: ['employee', employeeId] });

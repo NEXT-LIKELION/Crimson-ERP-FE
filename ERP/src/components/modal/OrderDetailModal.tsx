@@ -1,6 +1,6 @@
 // src/components/modal/OrderDetailModal.tsx
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { FiX, FiPrinter, FiDownload } from 'react-icons/fi';
+import { FiX, FiPrinter, FiDownload, FiRepeat } from 'react-icons/fi';
 import { OrderItem as StoreOrderItem } from '../../store/ordersStore';
 import axios from '../../api/axios';
 import { fetchSuppliers } from '../../api/supplier';
@@ -9,7 +9,8 @@ import { saveAs } from 'file-saver';
 import { getStatusDisplayName } from '../../utils/orderUtils';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { useQueryClient } from '@tanstack/react-query';
-
+import { ORDER_INFO } from '../../constant';
+import NewOrderModal from './NewOrderModal';
 
 interface ApiError {
   response?: {
@@ -24,6 +25,26 @@ interface OrderDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   isManager: boolean;
+  onReorder?: (reorderData: {
+    supplierId?: number;
+    supplierName?: string;
+    manager?: string;
+    items?: Array<{
+      product_id: string | null;
+      variant: string | null;
+      variant_code: string;
+      quantity: number;
+      cost_price: number;
+      unit_price: number;
+      unit?: string;
+      remark?: string;
+      spec: string;
+    }>;
+    vat_included?: boolean;
+    packaging_included?: boolean;
+    instruction_note?: string;
+    note?: string;
+  }) => void;
 }
 
 interface OrderDetailItem {
@@ -54,7 +75,7 @@ interface OrderDetail {
 
 // 숫자 → 한글 금액 변환 함수 (간단 버전, 억/만/천/백/십/일 단위)
 function numberToKorean(num: number): string {
-  if (num === 0) return '영원정';
+  if (num === 0) return '영';
   const hanA = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
   const danA = ['', '십', '백', '천'];
   const unitA = ['', '만', '억', '조', '경'];
@@ -76,7 +97,7 @@ function numberToKorean(num: number): string {
     }
     unit++;
   }
-  return result + '원정';
+  return result;
 }
 
 const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
@@ -84,14 +105,55 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   isOpen,
   onClose,
   isManager,
+  onReorder,
 }) => {
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   const queryClient = useQueryClient();
-  const [suppliers, setSuppliers] = useState<Array<{ id: number; name: string; contact: string; manager: string; email: string; address: string }>>([]);
-  const [supplierDetail, setSupplierDetail] = useState<{ id: number; name: string; contact: string; manager: string; email: string; address: string } | null>(null);
+  const [suppliers, setSuppliers] = useState<
+    Array<{
+      id: number;
+      name: string;
+      contact: string;
+      manager: string;
+      email: string;
+      address: string;
+    }>
+  >([]);
+  const [supplierDetail, setSupplierDetail] = useState<{
+    id: number;
+    name: string;
+    contact: string;
+    manager: string;
+    email: string;
+    address: string;
+  } | null>(null);
+  const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState<boolean>(false);
+  const [reorderData, setReorderData] = useState<
+    | {
+        supplierId?: number;
+        supplierName?: string;
+        manager?: string;
+        items?: Array<{
+          product_id: string | null;
+          variant: string | null;
+          variant_code: string;
+          quantity: number;
+          cost_price: number;
+          unit_price: number;
+          unit?: string;
+          remark?: string;
+          spec: string;
+        }>;
+        vat_included?: boolean;
+        packaging_included?: boolean;
+        instruction_note?: string;
+        note?: string;
+      }
+    | undefined
+  >(undefined);
 
   const fetchOrderDetails = useCallback(async () => {
     setIsLoading(true);
@@ -159,7 +221,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   }, [orderDetail, suppliers]);
 
   useEscapeKey(onClose, isOpen);
-
 
   const handlePrintOrder = () => {
     // 인쇄 기능 구현
@@ -284,25 +345,25 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                     
                     <div class="info-section">
                         <div class="info-column">
-                            <div class="info-item"><span class="label">사업자번호:</span> 682-88-00080</div>
-                            <div class="info-item"><span class="label">상호:</span> ㈜고대미래</div>
-                            <div class="info-item"><span class="label">대표자:</span> 유시진</div>
-                            <div class="info-item"><span class="label">주소:</span> 서울특별시 성북구 안암로145, 고려대학교 100주년삼성기념관 103호 크림슨 스토어</div>
+                            <div class="info-item"><span class="label">사업자번호:</span> ${ORDER_INFO.BUSINESS_NUMBER}</div>
+                            <div class="info-item"><span class="label">상호:</span> ${ORDER_INFO.COMPANY_NAME}</div>
+                            <div class="info-item"><span class="label">대표자:</span> ${ORDER_INFO.CEO}</div>
+                            <div class="info-item"><span class="label">주소:</span> ${ORDER_INFO.ADDRESS}</div>
                         </div>
                         <div class="info-column">
-                            <div class="info-item"><span class="label">발신:</span> ㈜고대미래</div>
-                            <div class="info-item"><span class="label">전화:</span> 02-3290-5116</div>
+                            <div class="info-item"><span class="label">발신:</span> ${ORDER_INFO.COMPANY_NAME}</div>
+                            <div class="info-item"><span class="label">전화:</span> ${ORDER_INFO.PHONE}</div>
                             <div class="info-item"><span class="label">담당자:</span> ${orderDetail.manager}</div>
-                            <div class="info-item"><span class="label">FAX:</span> 02-923-0578</div>
+                            <div class="info-item"><span class="label">FAX:</span> ${ORDER_INFO.FAX}</div>
                         </div>
                     </div>
                     
                     <div class="info-section">
                         <div class="info-column">
-                            <div class="info-item"><span class="label">수신:</span> ${orderDetail.supplier}</div>
-                            <div class="info-item"><span class="label">전화:</span> 010-6675-7797</div>
-                            <div class="info-item"><span class="label">담당자:</span> 박한솔</div>
-                            <div class="info-item"><span class="label">이메일:</span> hspark_factcorp@kakao.com</div>
+                            <div class="info-item"><span class="label">수신:</span> ${supplierDetail?.name || orderDetail.supplier}</div>
+                            <div class="info-item"><span class="label">전화:</span> ${supplierDetail?.contact || '-'}</div>
+                            <div class="info-item"><span class="label">담당자:</span> ${supplierDetail?.manager || '-'}</div>
+                            <div class="info-item"><span class="label">이메일:</span> ${supplierDetail?.email || '-'}</div>
                         </div>
                     </div>
                     
@@ -316,7 +377,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                             <div class="info-item"><span class="label">납품일자:</span> ${
                               orderDetail.expected_delivery_date
                             }</div>
-                            <div class="info-item"><span class="label">납품장소:</span> 고려대학교 100주년기념관(크림슨스토어)</div>
+                            <div class="info-item"><span class="label">납품장소:</span> ${ORDER_INFO.DELIVERY_LOCATION}</div>
                         </div>
                         <div class="info-column">
                             <div class="info-item"><span class="label">구매비용:</span> 일금 ${numberToKorean(
@@ -327,7 +388,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                             )} (₩${orderDetail.items
                               .reduce((total, item) => total + item.quantity * item.unit_price, 0)
                               .toLocaleString()})</div>
-                            <div class="info-item"><span class="label">부가세:</span> 포함</div>
+                            <div class="info-item"><span class="label">부가세:</span> ${orderDetail.vat_included ? '포함' : '비포함'}</div>
                         </div>
                     </div>
                     
@@ -393,11 +454,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                         <span class="packaging-value">${orderDetail.packaging_included ? '있음' : '없음'}</span>
                     </div>
                     
-                    <div class="note-section">
-                        <div class="label">비고:</div>
-                        <div>${orderDetail.note}</div>
-                    </div>
-                    
                     <button class="print-button" onclick="window.print()">인쇄하기</button>
                 </div>
             </body>
@@ -433,12 +489,8 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
       sheet.cell('E16').value(orderDetail.order_date);
       sheet
-        .cell('Q16')
-        .value(
-          orderDetail.expected_delivery_date
-            ? `납품일자: ${orderDetail.expected_delivery_date}`
-            : '납품일자:'
-        );
+        .cell('R16')
+        .value(orderDetail.expected_delivery_date ? `${orderDetail.expected_delivery_date}` : '');
       sheet.cell('E17').value('고려대학교 100주년기념관(크림슨스토어)');
 
       const totalAmount = orderDetail.items.reduce(
@@ -450,23 +502,21 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
       // 부가세 체크박스 LinkedCell: 포함(AG18), 비포함(AH18)
       sheet
-        .cell('AG18')
-        .value(orderDetail.vat_included ? true : false)
-        .style('numberFormat', ';;;'); // 포함(숨김)
-      sheet
-        .cell('AH18')
-        .value(orderDetail.vat_included ? false : true)
-        .style('numberFormat', ';;;'); // 비포함(숨김)
+        .cell('AB18')
+        .value(orderDetail.vat_included ? '있음' : '없음')
+        .style('bold', true);
       // 포장 체크박스는 기존 LinkedCell(Z101 등) 사용
-      sheet.cell('AB31').value(orderDetail.packaging_included ? true : false); // 포장 체크박스 LinkedCell
+      sheet
+        .cell('AB31')
+        .value(orderDetail.packaging_included ? '있음' : '없음')
+        .style('bold', true);
       // sheet.cell('AA18').value(orderDetail.vat_included ? '■' : '□'); // ← 문자 체크박스는 주석처리
       // sheet.cell('AD18').value(orderDetail.vat_included ? '□' : '■');
       // sheet.cell('Z31').value(orderDetail.packaging_included ? '■' : '□');
       // sheet.cell('AA31').value(orderDetail.packaging_included ? '□' : '■');
 
-      // 작업지시/비고
+      // 작업지시
       sheet.cell('A30').value(orderDetail.instruction_note || '');
-      sheet.cell('A33').value(orderDetail.note || '');
 
       // 4. 품목 테이블 (행 복제 및 데이터 입력)
       const startRow = 21;
@@ -526,15 +576,22 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
       const statusText = getStatusDisplayName(newStatus);
 
       // 실제 재고 변경이 있는 항목만 필터링
-      const actualStockChanges = stock_changes?.filter(
-        (s: { stock_before: number; stock_after: number }) => s.stock_before !== s.stock_after
-      ) || [];
+      const actualStockChanges =
+        stock_changes?.filter(
+          (s: { stock_before: number; stock_after: number }) => s.stock_before !== s.stock_after
+        ) || [];
 
       if (actualStockChanges.length > 0) {
         // 실제 재고 변경이 있는 경우
         const stockMessage = actualStockChanges
           .map(
-            (s: { name: string; option: string; stock_before: number; stock_after: number; quantity: number }) =>
+            (s: {
+              name: string;
+              option: string;
+              stock_before: number;
+              stock_after: number;
+              quantity: number;
+            }) =>
               `${s.name}(${s.option}): ${s.stock_before} → ${s.stock_after} (${s.stock_before > s.stock_after ? '-' : '+'}${Math.abs(s.quantity)})`
           )
           .join('\n');
@@ -549,7 +606,74 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     }
   };
 
-  if (!isOpen || !orderDetail) return null;
+  const handleReorder = () => {
+    if (!orderDetail || !supplierDetail) {
+      alert('주문 정보 또는 공급업체 정보가 없습니다.');
+      return;
+    }
+
+    // OrderDetailItem[]을 OrderItemPayload[]로 변환
+    const reorderItems = orderDetail.items.map((item) => ({
+      product_id: null, // variant_code만으로는 product_id를 찾을 수 없으므로 null
+      variant: null, // variant_code만으로는 variant를 찾을 수 없으므로 null
+      variant_code: item.variant_code,
+      quantity: item.quantity,
+      cost_price: item.unit_price, // VAT 역산 없이 현재 가격 그대로 사용
+      unit_price: item.unit_price, // VAT 역산 없이 현재 가격 그대로 사용
+      unit: item.unit || 'EA',
+      remark: item.remark || '',
+      spec: item.spec || '',
+    }));
+
+    // 재발주 데이터 구성
+    const reorderDataToSet = {
+      supplierId: supplierDetail.id,
+      supplierName: supplierDetail.name,
+      manager: orderDetail.manager,
+      items: reorderItems,
+      vat_included: orderDetail.vat_included,
+      packaging_included: orderDetail.packaging_included,
+      instruction_note: orderDetail.instruction_note,
+      note: orderDetail.note,
+    };
+
+    // 부모 컴포넌트에 재발주 데이터 전달
+    if (onReorder) {
+      onReorder(reorderDataToSet);
+      onClose(); // 현재 모달 닫기
+    } else {
+      // onReorder가 없으면 기존 방식 (내부에서 관리)
+      setReorderData(reorderDataToSet);
+      setIsNewOrderModalOpen(true); // NewOrderModal 열기
+      // 상태 업데이트가 완료된 후 모달 닫기 (비동기 상태 업데이트 대응)
+      setTimeout(() => {
+        onClose(); // 현재 모달 닫기
+      }, 0);
+    }
+  };
+
+  if (!isOpen || !orderDetail) {
+    // OrderDetailModal이 닫혀도 NewOrderModal은 열려있을 수 있도록 별도로 렌더링
+    return (
+      <>
+        {isNewOrderModalOpen && (
+          <NewOrderModal
+            isOpen={isNewOrderModalOpen}
+            onClose={() => {
+              setIsNewOrderModalOpen(false);
+              setReorderData(undefined);
+            }}
+            onSuccess={() => {
+              setIsNewOrderModalOpen(false);
+              setReorderData(undefined);
+              queryClient.invalidateQueries({ queryKey: ['orders'] });
+            }}
+            initialData={reorderData}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black'>
@@ -665,7 +789,8 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                     )
                   </p>
                   <p>
-                    <span className='font-bold'>부가세:</span> 포함
+                    <span className='font-bold'>부가세:</span>{' '}
+                    {orderDetail.vat_included ? '포함' : '비포함'}
                   </p>
                 </div>
               </div>
@@ -746,13 +871,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                   <span>{orderDetail.packaging_included ? '있음' : '없음'}</span>
                 </div>
               </div>
-
-              {/* Notes */}
-              <div className='my-5 px-5'>
-                <p>
-                  <span className='font-bold'>비고:</span> {orderDetail.note}
-                </p>
-              </div>
             </div>
           )}
         </div>
@@ -789,6 +907,12 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
           {/* 우측: PDF/인쇄/승인 버튼 */}
           <div className='flex space-x-3'>
             <button
+              onClick={handleReorder}
+              className='flex items-center rounded bg-yellow-500 px-4 py-2 text-white'>
+              <FiRepeat className='mr-2 h-6 w-6' />
+              재발주
+            </button>
+            <button
               onClick={handleDownloadExcel}
               className='flex items-center rounded bg-green-600 px-4 py-2 text-white'>
               <FiDownload className='mr-2 h-6 w-6' />
@@ -803,6 +927,21 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* 재발주 모달 - 항상 렌더링하되 isOpen으로 제어 */}
+      <NewOrderModal
+        isOpen={isNewOrderModalOpen}
+        onClose={() => {
+          setIsNewOrderModalOpen(false);
+          setReorderData(undefined);
+        }}
+        onSuccess={() => {
+          setIsNewOrderModalOpen(false);
+          setReorderData(undefined);
+          queryClient.invalidateQueries({ queryKey: ['orders'] });
+        }}
+        initialData={reorderData}
+      />
     </div>
   );
 };

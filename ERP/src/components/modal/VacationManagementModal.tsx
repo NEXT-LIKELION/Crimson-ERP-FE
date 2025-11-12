@@ -38,7 +38,8 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
     if (!isAdmin) {
       const currentUserId = Number(currentUser?.id);
       const vacationEmployeeId = Number(vacation.employee);
-      const isMyVacation = !isNaN(currentUserId) && !isNaN(vacationEmployeeId) && vacationEmployeeId === currentUserId;
+      const isMyVacation =
+        !isNaN(currentUserId) && !isNaN(vacationEmployeeId) && vacationEmployeeId === currentUserId;
       return statusMatch && leaveTypeMatch && isMyVacation;
     }
 
@@ -101,7 +102,7 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
 
     // 승인 시 과거 날짜 체크
     if (newStatus === 'APPROVED') {
-      const vacation = vacations.find(v => v.id === vacationId);
+      const vacation = vacations.find((v) => v.id === vacationId);
       if (vacation) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -113,7 +114,6 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
         }
       }
     }
-
 
     try {
       await reviewVacationMutation.mutateAsync({ vacationId, status: newStatus });
@@ -209,7 +209,7 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
             <span>
               {formatDate(vacation.start_date)}
               {vacation.start_date !== vacation.end_date && <> ~ {formatDate(vacation.end_date)}</>}
-              <span className='ml-2 text-blue-600 font-medium'>
+              <span className='ml-2 font-medium text-blue-600'>
                 ({calculateVacationDays(vacation)}일)
               </span>
             </span>
@@ -399,7 +399,6 @@ const VacationManagementModal: React.FC<VacationManagementModalProps> = ({ onClo
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

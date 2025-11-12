@@ -38,11 +38,11 @@ export async function precheckMergeConflicts(
   interface SupplierInfo {
     name: string;
   }
-  
+
   interface VariantData {
     suppliers?: SupplierInfo[];
   }
-  
+
   const targetIds = new Set(
     (target?.suppliers || [])
       .map((s: SupplierInfo) => nameToId.get(normalize(String(s?.name))))

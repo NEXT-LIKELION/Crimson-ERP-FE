@@ -39,7 +39,9 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
   const employeeColors = useMemo(() => {
     const employees = employeesData?.data || [];
     // 재직중인 직원만 필터링
-    const activeEmployees = employees.filter((emp) => emp.is_active && emp.status?.toLowerCase() === 'approved');
+    const activeEmployees = employees.filter(
+      (emp) => emp.is_active && emp.status?.toLowerCase() === 'approved'
+    );
     const colors = [
       'bg-blue-500',
       'bg-green-500',
@@ -97,8 +99,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
         }
       }
 
-      const employeeMatch =
-        selectedEmployeeId === '' || vacation.employee === selectedEmployeeId;
+      const employeeMatch = selectedEmployeeId === '' || vacation.employee === selectedEmployeeId;
 
       // 휴가 유형 필터 (WORK 제외)
       const leaveTypeMatch = selectedLeaveType === '' || vacation.leave_type === selectedLeaveType;
@@ -111,7 +112,10 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
       if (!isAdmin && showManagementPanel) {
         const currentUserId = Number(currentUser?.id);
         const vacationEmployeeId = Number(vacation.employee);
-        const isMyVacation = !isNaN(currentUserId) && !isNaN(vacationEmployeeId) && vacationEmployeeId === currentUserId;
+        const isMyVacation =
+          !isNaN(currentUserId) &&
+          !isNaN(vacationEmployeeId) &&
+          vacationEmployeeId === currentUserId;
         return employeeMatch && leaveTypeMatch && workMatch && isMyVacation;
       }
 
@@ -119,7 +123,16 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
     });
 
     return filtered;
-  }, [vacationsData?.data, employeesData?.data, selectedEmployeeId, selectedLeaveType, showWork, showManagementPanel, isAdmin, currentUser?.id]);
+  }, [
+    vacationsData?.data,
+    employeesData?.data,
+    selectedEmployeeId,
+    selectedLeaveType,
+    showWork,
+    showManagementPanel,
+    isAdmin,
+    currentUser?.id,
+  ]);
 
   // 날짜별 휴가 그룹화
   const vacationsByDate = useMemo(() => {
@@ -192,7 +205,6 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
     }
     setCurrentDate(newDate);
   };
-
 
   // 휴가 상태 변경
   const handleStatusChange = async (vacationId: number, newStatus: VacationStatus) => {
@@ -314,14 +326,12 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                   return (
                     <div
                       key={index}
-                      className={`rounded px-2 py-1 text-xs flex items-center justify-between text-white ${employeeColor}`}
+                      className={`flex items-center justify-between rounded px-2 py-1 text-xs text-white ${employeeColor}`}
                       title={`${getEmployeeName(vacation.employee)} - ${leaveTypeLabel}`}>
                       <span className='mr-1 flex-1 truncate'>
                         {getEmployeeName(vacation.employee)}
                       </span>
-                      <span className='text-xs whitespace-nowrap opacity-75'>
-                        {leaveTypeLabel}
-                      </span>
+                      <span className='text-xs whitespace-nowrap opacity-75'>{leaveTypeLabel}</span>
                     </div>
                   );
                 })}
@@ -332,7 +342,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
             {workOnly.length > 0 && (
               <div className='space-y-1'>
                 {vacationsOnly.length > 0 && (
-                  <div className='border-t border-orange-200 my-1'></div>
+                  <div className='my-1 border-t border-orange-200'></div>
                 )}
                 {workOnly.map((vacation, index) => {
                   const typeStyle = getVacationTypeStyle(vacation.leave_type);
@@ -340,14 +350,12 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                   return (
                     <div
                       key={index}
-                      className={`rounded px-2 py-1 text-xs flex items-center justify-between ${typeStyle.className}`}
+                      className={`flex items-center justify-between rounded px-2 py-1 text-xs ${typeStyle.className}`}
                       title={`${getEmployeeName(vacation.employee)} - 근무`}>
                       <span className='mr-1 flex-1 truncate'>
                         {getEmployeeName(vacation.employee)}
                       </span>
-                      <span className='text-xs whitespace-nowrap opacity-90'>
-                        근무
-                      </span>
+                      <span className='text-xs whitespace-nowrap opacity-90'>근무</span>
                     </div>
                   );
                 })}
@@ -422,9 +430,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
             {/* 근무 섹션 */}
             {workOnly.length > 0 && (
               <div className='space-y-1 border-t border-gray-100 pt-2'>
-                <div className='text-sm font-medium text-orange-600'>
-                  근무: {workOnly.length}건
-                </div>
+                <div className='text-sm font-medium text-orange-600'>근무: {workOnly.length}건</div>
                 <div className='space-y-1'>
                   {workOnly.slice(0, 2).map((vacation, index) => {
                     return (
@@ -468,9 +474,7 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
             <div className='mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100'>
               <FiUsers className='h-8 w-8 text-gray-400' />
             </div>
-            <h3 className='mb-2 text-lg font-semibold text-gray-900'>
-              휴가 신청 내역이 없습니다
-            </h3>
+            <h3 className='mb-2 text-lg font-semibold text-gray-900'>휴가 신청 내역이 없습니다</h3>
             <p className='text-gray-600'>조건에 맞는 휴가 신청이 없습니다.</p>
           </div>
         ) : (
@@ -482,22 +486,29 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
               const isWork = vacation.leave_type === 'WORK';
 
               return (
-                <div key={vacation.id} className='rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-md'>
+                <div
+                  key={vacation.id}
+                  className='rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-md'>
                   <div className='mb-3 flex items-start justify-between'>
                     <div className='flex items-center'>
-                      <div className={`mr-3 flex h-10 w-10 items-center justify-center rounded-lg ${
-                        isWork
-                          ? 'border-2 border-orange-400 bg-orange-50 text-orange-600'
-                          : `${employeeColors[vacation.employee]} text-white`
-                      } text-sm font-semibold`}>
+                      <div
+                        className={`mr-3 flex h-10 w-10 items-center justify-center rounded-lg ${
+                          isWork
+                            ? 'border-2 border-orange-400 bg-orange-50 text-orange-600'
+                            : `${employeeColors[vacation.employee]} text-white`
+                        } text-sm font-semibold`}>
                         {isWork ? (
                           <span className='text-orange-600'>근</span>
                         ) : (
-                          <span className='text-white'>{getEmployeeName(vacation.employee).charAt(0)}</span>
+                          <span className='text-white'>
+                            {getEmployeeName(vacation.employee).charAt(0)}
+                          </span>
                         )}
                       </div>
                       <div>
-                        <h3 className='font-semibold text-gray-900'>{getEmployeeName(vacation.employee)}</h3>
+                        <h3 className='font-semibold text-gray-900'>
+                          {getEmployeeName(vacation.employee)}
+                        </h3>
                         <p className='text-sm text-gray-600'>
                           {getLeaveTypeLabel(vacation.leave_type)}
                         </p>
@@ -512,8 +523,10 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                   <div className='mb-4 space-y-2'>
                     <div className='text-sm text-gray-600'>
                       <strong>기간:</strong> {formatDate(vacation.start_date)}
-                      {vacation.start_date !== vacation.end_date && <> ~ {formatDate(vacation.end_date)}</>}
-                      <span className='ml-2 text-blue-600 font-medium'>
+                      {vacation.start_date !== vacation.end_date && (
+                        <> ~ {formatDate(vacation.end_date)}</>
+                      )}
+                      <span className='ml-2 font-medium text-blue-600'>
                         ({calculateVacationDays(vacation)}일)
                       </span>
                     </div>
@@ -608,13 +621,16 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
             </div>
             <div>
               <h2 className='text-lg font-semibold text-gray-900'>
-                {showManagementPanel ? (isAdmin ? '휴가/근무 관리' : '내 휴가 관리') : '조직 일정 캘린더'}
+                {showManagementPanel
+                  ? isAdmin
+                    ? '휴가/근무 관리'
+                    : '내 휴가 관리'
+                  : '조직 일정 캘린더'}
               </h2>
               <p className='text-sm text-gray-500'>
                 {showManagementPanel
                   ? `총 ${filteredVacations.length}건의 일정이 있습니다`
-                  : '전체 조직의 승인된 휴가 및 근무 일정을 확인하세요'
-                }
+                  : '전체 조직의 승인된 휴가 및 근무 일정을 확인하세요'}
               </p>
             </div>
           </div>
@@ -635,10 +651,10 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                     setShowManagementPanel(false);
                     setViewMode('monthly');
                   }}
-                  className={`px-4 py-2 text-sm font-medium transition-all duration-200 rounded-l-lg border-r border-gray-200 ${
+                  className={`rounded-l-lg border-r border-gray-200 px-4 py-2 text-sm font-medium transition-all duration-200 ${
                     !showManagementPanel && viewMode === 'monthly'
                       ? 'bg-blue-500 text-white shadow-sm'
-                      : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                      : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
                   }`}>
                   📅 월간 캘린더
                 </button>
@@ -647,26 +663,26 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
                     setShowManagementPanel(false);
                     setViewMode('yearly');
                   }}
-                  className={`px-4 py-2 text-sm font-medium transition-all duration-200 rounded-r-lg ${
+                  className={`rounded-r-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
                     !showManagementPanel && viewMode === 'yearly'
                       ? 'bg-blue-500 text-white shadow-sm'
-                      : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                      : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
                   }`}>
                   📊 연간 캘린더
                 </button>
               </div>
-              
+
               {/* 구분선 */}
               <div className='h-8 w-px bg-gray-300'></div>
-              
+
               {/* 관리 섹션 */}
               <div className='flex rounded-lg border border-gray-200 bg-white shadow-sm'>
                 <button
                   onClick={() => setShowManagementPanel(true)}
-                  className={`px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg ${
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
                     showManagementPanel
                       ? 'bg-indigo-500 text-white shadow-sm'
-                      : 'text-gray-600 hover:text-indigo-600 hover:bg-indigo-50'
+                      : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'
                   }`}>
                   📋 {isAdmin ? '휴가/근무 관리' : '내 휴가 관리'}
                 </button>
@@ -701,15 +717,14 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
           </div>
 
           {/* 필터 영역 */}
-          <div className={`grid grid-cols-1 gap-4 ${(isAdmin || !showManagementPanel) ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+          <div
+            className={`grid grid-cols-1 gap-4 ${isAdmin || !showManagementPanel ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
             {/* 직원 필터 - 관리자는 항상 표시, 일반직원은 캘린더 뷰에서만 표시 */}
             {(isAdmin || !showManagementPanel) && (
               <div>
                 <label className='mb-1 block text-sm font-medium text-gray-700'>
                   직원 선택
-                  {!isAdmin && (
-                    <span className='ml-1 text-xs text-gray-500'>(캘린더 뷰 전용)</span>
-                  )}
+                  {!isAdmin && <span className='ml-1 text-xs text-gray-500'>(캘린더 뷰 전용)</span>}
                 </label>
                 <select
                   value={selectedEmployeeId}
@@ -747,15 +762,17 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
             {/* 근무 표시 필터 */}
             <div>
               <label className='mb-1 block text-sm font-medium text-gray-700'>근무 일정</label>
-              <div className='flex items-center h-[42px] px-3 py-2 rounded-lg border border-gray-200 bg-white'>
+              <div className='flex h-[42px] items-center rounded-lg border border-gray-200 bg-white px-3 py-2'>
                 <input
                   type='checkbox'
                   id='showWork'
                   checked={showWork}
                   onChange={(e) => setShowWork(e.target.checked)}
-                  className='h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-2 focus:ring-orange-500 cursor-pointer'
+                  className='h-4 w-4 cursor-pointer rounded border-gray-300 text-orange-600 focus:ring-2 focus:ring-orange-500'
                 />
-                <label htmlFor='showWork' className='ml-2 text-sm text-gray-700 cursor-pointer select-none'>
+                <label
+                  htmlFor='showWork'
+                  className='ml-2 cursor-pointer text-sm text-gray-700 select-none'>
                   근무 일정 표시
                 </label>
               </div>
@@ -763,13 +780,13 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
           </div>
         </div>
 
-
         {/* 캘린더 콘텐츠 */}
         <div className='flex-1 overflow-y-auto p-6'>
           {showManagementPanel
             ? renderManagementPanel()
-            : (viewMode === 'monthly' ? renderMonthlyCalendar() : renderYearlyView())
-          }
+            : viewMode === 'monthly'
+              ? renderMonthlyCalendar()
+              : renderYearlyView()}
         </div>
 
         {/* 푸터 */}

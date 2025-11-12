@@ -3,6 +3,7 @@ import { FiX, FiLoader, FiAlertTriangle, FiPackage } from 'react-icons/fi';
 import { useSupplierById, useSupplierOrders } from '../../hooks/queries/useSuppliers';
 import { SupplierOrder, SupplierOrderItem } from '../../types/product';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { formatPhoneNumber } from '../../utils/formatters';
 
 interface SupplierDetailModalProps {
   isOpen: boolean;
@@ -61,7 +62,9 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
               <div className='mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100'>
                 <FiAlertTriangle className='h-6 w-6 text-red-600' />
               </div>
-              <h3 className='mb-2 text-lg font-semibold text-red-800'>데이터를 불러올 수 없습니다</h3>
+              <h3 className='mb-2 text-lg font-semibold text-red-800'>
+                데이터를 불러올 수 없습니다
+              </h3>
               <p className='text-red-600'>잠시 후 다시 시도해주세요.</p>
             </div>
           </div>
@@ -111,8 +114,12 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
   };
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm' onClick={handleBackdropClick}>
-      <div className='max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg' onClick={(e) => e.stopPropagation()}>
+    <div
+      className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm'
+      onClick={handleBackdropClick}>
+      <div
+        className='max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg'
+        onClick={(e) => e.stopPropagation()}>
         {/* 헤더 */}
         <div className='flex items-center justify-between border-b border-gray-200 px-6 py-4'>
           <div className='flex items-center'>
@@ -148,7 +155,7 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
                     </div>
                     <div>
                       <span className='block text-sm font-medium text-gray-600'>연락처</span>
-                      <span className='text-gray-900'>{supplier.contact}</span>
+                      <span className='text-gray-900'>{formatPhoneNumber(supplier.contact)}</span>
                     </div>
                   </div>
                 </div>

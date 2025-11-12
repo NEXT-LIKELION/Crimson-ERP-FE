@@ -6,16 +6,19 @@ import { FiChevronLeft, FiChevronRight, FiCalendar, FiX, FiUser, FiClock } from 
 import { Link } from 'react-router-dom';
 import { useVacations } from '../../hooks/queries/useVacations';
 import { useEmployees } from '../../hooks/queries/useEmployees';
+import { useDashboard } from '../../hooks/queries/useDashboard';
 import { Vacation, LEAVE_TYPE_OPTIONS, EmployeeList } from '../../api/hr';
+import { useAuthStore } from '../../store/authStore';
 
 const DashboardPage = () => {
   const { data: vacationsData, isLoading, error } = useVacations();
   const { data: employeesData } = useEmployees();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedVacation, setSelectedVacation] = useState<Vacation | null>(null);
+  const role = useAuthStore((state) => state.user?.role);
+  const { data: dashboardNotifications } = useDashboard(role); // role이 MANAGER일 때만 쿼리 실행
 
-
-  // 날짜별 휴가 그룹화 (취소, 대기중, 퇴사자 휴가 제외)
+  // 날짜별 휴가 그룹화 (취소, 퇴사자 휴가 제외)
   const vacationsByDate = useMemo(() => {
     const grouped: Record<string, Vacation[]> = {};
     const vacations = vacationsData?.data || [];
@@ -28,12 +31,14 @@ const DashboardPage = () => {
         .map((emp: EmployeeList) => emp.id)
     );
 
-    // 승인된 휴가 중 재직중인 직원의 휴가만 필터링
-    const approvedVacations = vacations.filter(
-      (vacation) => vacation.status === 'APPROVED' && activeEmployeeIds.has(vacation.employee)
+    // 승인된 휴가 및 대기중인 휴가 중 재직중인 직원의 휴가만 필터링
+    const approvedAndPendingVacations = vacations.filter(
+      (vacation) =>
+        (vacation.status === 'APPROVED' || vacation.status === 'PENDING') &&
+        activeEmployeeIds.has(vacation.employee)
     );
 
-    approvedVacations.forEach((vacation) => {
+    approvedAndPendingVacations.forEach((vacation) => {
       const start = new Date(vacation.start_date);
       const end = new Date(vacation.end_date);
 
@@ -101,7 +106,9 @@ const DashboardPage = () => {
     const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
     weekdays.forEach((day) => {
       days.push(
-        <div key={`header-${day}`} className='bg-gray-100 p-2 text-center text-xs font-medium text-gray-600'>
+        <div
+          key={`header-${day}`}
+          className='bg-gray-100 p-2 text-center text-xs font-medium text-gray-600'>
           {day}
         </div>
       );
@@ -122,8 +129,9 @@ const DashboardPage = () => {
         <div
           key={date}
           // Increased min-h from min-h-20 to min-h-24 to accommodate the new work assignment display layout
-          className={`min-h-24 border-b border-r border-gray-200 p-1 ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
-          <div className={`mb-1 text-xs font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+          className={`min-h-24 border-r border-b border-gray-200 p-1 ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
+          <div
+            className={`mb-1 text-xs font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
             {date}
           </div>
           <div className='space-y-1'>
@@ -131,7 +139,11 @@ const DashboardPage = () => {
               // 재직중인 직원인지 확인
               const employees = employeesData?.data || [];
               const employee = employees.find((emp: EmployeeList) => emp.id === vacation.employee);
-              if (!employee || !employee.is_active || employee.status?.toLowerCase() !== 'approved') {
+              if (
+                !employee ||
+                !employee.is_active ||
+                employee.status?.toLowerCase() !== 'approved'
+              ) {
                 // 퇴사한 직원의 휴가는 표시하지 않음
                 return null;
               }
@@ -141,22 +153,29 @@ const DashboardPage = () => {
 
               // 근무 타입인지 확인
               const isWork = vacation.leave_type === 'WORK';
+              // PENDING 상태인지 확인
+              const isPending = vacation.status === 'PENDING';
 
               return (
                 <div
                   key={`${vacation.id}-${index}`}
-                  className={`rounded px-1 py-0.5 text-xs cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-between ${
+                  className={`flex cursor-pointer items-center justify-between rounded px-1 py-0.5 text-xs transition-opacity hover:opacity-80 ${
                     isWork
-                      ? 'border-2 border-orange-400 bg-orange-50 text-orange-800'
-                      : 'text-white bg-blue-500'
+                      ? isPending
+                        ? 'border-2 border-dashed border-orange-400 bg-orange-50 text-orange-800'
+                        : 'border-2 border-orange-400 bg-orange-50 text-orange-800'
+                      : isPending
+                        ? 'border-2 border-dashed border-blue-400 bg-blue-100 text-blue-800'
+                        : 'bg-blue-500 text-white'
                   }`}
-                  title={`${employeeName} - ${leaveTypeLabel}${isWork ? ' (근무)' : ''}`}
+                  title={`${employeeName} - ${leaveTypeLabel}${isWork ? ' (근무)' : ''}${isPending ? ' [대기중]' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedVacation(vacation);
                   }}>
-                  <span className='truncate flex-1'>{employeeName}</span>
-                  <span className={`text-xs whitespace-nowrap ml-1 ${isWork ? 'opacity-90' : 'opacity-75'}`}>
+                  <span className='flex-1 truncate'>{employeeName}</span>
+                  <span
+                    className={`ml-1 text-xs whitespace-nowrap ${isWork ? 'opacity-90' : 'opacity-75'}`}>
                     {isWork ? '💼' : '🌴'} {leaveTypeLabel}
                   </span>
                 </div>
@@ -199,21 +218,37 @@ const DashboardPage = () => {
       <h1 className='mb-4 text-2xl font-bold'>대시보드</h1>
       <div className='mb-6 grid grid-cols-3 gap-4'>
         <Link to='/inventory' className='flex items-center rounded-lg bg-indigo-600 p-4 text-white'>
-          <HiArchiveBox className='mr-3 h-10 w-9' />
+          <div className='relative mr-2 w-12'>
+            <HiArchiveBox className='mr-3 h-10 w-9' />
+          </div>
           <div className='flex-col'>
             <h3 className='text-lg font-bold'>재고 관리</h3>
             <p>전체 상품 재고 확인 및 관리</p>
           </div>
         </Link>
         <Link to='/orders' className='flex items-center rounded-lg bg-green-600 p-4 text-white'>
-          <IoClipboard className='mr-3 h-10 w-9' />
+          <div className='relative mr-2 w-12'>
+            <IoClipboard className='mr-3 h-10 w-9' />
+            {role === 'MANAGER' && (
+              <span className='absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white'>
+                {dashboardNotifications?.pending_order_count}
+              </span>
+            )}
+          </div>
           <div className='flex-col'>
             <h3 className='text-lg font-bold'>발주 관리</h3>
             <p>발주 요청 및 승인 프로세스 관리</p>
           </div>
         </Link>
         <Link to='/hr' className='flex items-center rounded-lg bg-purple-600 p-4 text-white'>
-          <IoPeopleSharp className='mr-3 h-10 w-9' />
+          <div className='relative mr-2 w-12'>
+            <IoPeopleSharp className='h-10 w-9' />
+            {role === 'MANAGER' && (
+              <span className='absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white'>
+                {dashboardNotifications?.pending_vacation_count}
+              </span>
+            )}
+          </div>
           <div className='flex-col'>
             <h3 className='text-lg font-bold'>HR 관리</h3>
             <p>직원 정보 및 관리</p>
@@ -293,25 +328,33 @@ const DashboardPage = () => {
                   </div>
                   <div className='ml-3'>
                     <p className='text-sm font-medium text-gray-900'>직원명</p>
-                    <p className='text-sm text-gray-600'>{getEmployeeName(selectedVacation.employee)}</p>
+                    <p className='text-sm text-gray-600'>
+                      {getEmployeeName(selectedVacation.employee)}
+                    </p>
                   </div>
                 </div>
 
                 {/* 휴가/근무 유형 */}
                 <div className='flex items-center'>
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                    selectedVacation.leave_type === 'WORK' ? 'bg-orange-100' : 'bg-green-100'
-                  }`}>
-                    <FiCalendar className={`h-5 w-5 ${
-                      selectedVacation.leave_type === 'WORK' ? 'text-orange-600' : 'text-green-600'
-                    }`} />
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                      selectedVacation.leave_type === 'WORK' ? 'bg-orange-100' : 'bg-green-100'
+                    }`}>
+                    <FiCalendar
+                      className={`h-5 w-5 ${
+                        selectedVacation.leave_type === 'WORK'
+                          ? 'text-orange-600'
+                          : 'text-green-600'
+                      }`}
+                    />
                   </div>
                   <div className='ml-3'>
                     <p className='text-sm font-medium text-gray-900'>
                       {selectedVacation.leave_type === 'WORK' ? '근무 유형' : '휴가 유형'}
                     </p>
                     <p className='text-sm text-gray-600'>
-                      {selectedVacation.leave_type === 'WORK' ? '💼' : '🌴'} {getLeaveTypeLabel(selectedVacation.leave_type)}
+                      {selectedVacation.leave_type === 'WORK' ? '💼' : '🌴'}{' '}
+                      {getLeaveTypeLabel(selectedVacation.leave_type)}
                     </p>
                   </div>
                 </div>
@@ -327,24 +370,23 @@ const DashboardPage = () => {
                     </p>
                     <p className='text-sm text-gray-600'>
                       {selectedVacation.start_date} ~ {selectedVacation.end_date}
-                      <span className='ml-2 text-blue-600 font-medium'>
+                      <span className='ml-2 font-medium text-blue-600'>
                         ({calculateVacationDays(selectedVacation)}일)
                       </span>
                     </p>
                   </div>
                 </div>
 
-
                 {/* 사유 */}
                 {selectedVacation.reason && (
                   <div className='rounded-lg bg-gray-50 p-3'>
-                    <p className='text-sm font-medium text-gray-900 mb-1'>사유</p>
+                    <p className='mb-1 text-sm font-medium text-gray-900'>사유</p>
                     <p className='text-sm text-gray-600'>{selectedVacation.reason}</p>
                   </div>
                 )}
 
                 {/* 신청일 */}
-                <div className='text-xs text-gray-500 text-center pt-2 border-t'>
+                <div className='border-t pt-2 text-center text-xs text-gray-500'>
                   신청일: {new Date(selectedVacation.created_at).toLocaleDateString('ko-KR')}
                 </div>
               </div>

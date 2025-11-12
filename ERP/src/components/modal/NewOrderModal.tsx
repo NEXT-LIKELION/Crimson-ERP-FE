@@ -27,10 +27,22 @@ import {
 } from '../../utils/orderUtils';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 
+interface ReorderData {
+  supplierId?: number;
+  supplierName?: string;
+  manager?: string;
+  items?: OrderItemPayload[];
+  vat_included?: boolean;
+  packaging_included?: boolean;
+  instruction_note?: string;
+  note?: string;
+}
+
 interface NewOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (newOrder: Order) => void;
+  initialData?: ReorderData;
 }
 
 interface OrderItemPayload {
@@ -45,7 +57,12 @@ interface OrderItemPayload {
   spec: string;
 }
 
-const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const NewOrderModal: React.FC<NewOrderModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialData,
+}) => {
   const queryClient = useQueryClient();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
@@ -98,6 +115,38 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         .then((res) => {
           const supplierData = Array.isArray(res.data) ? res.data : [];
           setSuppliers(supplierData);
+
+          // initialData가 있으면 재발주 데이터로 폼 초기화
+          if (initialData) {
+            if (initialData.supplierId) {
+              setSupplier(initialData.supplierId);
+            }
+            if (initialData.supplierName) {
+              setSupplierName(initialData.supplierName);
+            }
+            if (initialData.manager) {
+              setSelectedManager(initialData.manager);
+            }
+            if (initialData.items && initialData.items.length > 0) {
+              setItems(initialData.items);
+            }
+            if (initialData.vat_included !== undefined) {
+              setIncludesTax(initialData.vat_included);
+            }
+            if (initialData.packaging_included !== undefined) {
+              setHasPackaging(initialData.packaging_included);
+            }
+            if (initialData.instruction_note) {
+              setWorkInstructions(initialData.instruction_note);
+            }
+            if (initialData.note) {
+              setNote(initialData.note);
+            }
+            // orderDate와 deliveryDate는 null로 유지 (사용자가 입력)
+          } else {
+            resetForm();
+            setSupplierName('');
+          }
         })
         .catch((error) => {
           console.error('Failed to fetch suppliers:', error);
@@ -109,17 +158,89 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         .then((res) => {
           const productData = Array.isArray(res.data) ? res.data : [];
           setProducts(productData);
+
+          // initialData가 있고 items에 variant_code만 있는 경우, 상품 정보 조회
+          if (initialData?.items && initialData.items.length > 0) {
+            const itemsWithProductInfo = initialData.items.map((item) => {
+              // product_id와 variant가 이미 있으면 그대로 사용
+              if (item.product_id && item.variant) {
+                return item;
+              }
+              // variant_code만 있으면 null로 설정 (나중에 조회)
+              return item;
+            });
+
+            // variant_code로 상품 정보 조회
+            Promise.all(
+              itemsWithProductInfo.map(async (item) => {
+                if (item.variant_code && !item.product_id) {
+                  try {
+                    const variantDetailRes = await fetchVariantDetail(item.variant_code);
+                    const variantDetail = variantDetailRes.data;
+
+                    // product_id와 variant 정보 추출 (ProductVariant 타입 기준)
+                    return {
+                      ...item,
+                      product_id: variantDetail.product_id || null,
+                      variant: variantDetail.option || null,
+                    };
+                  } catch (error) {
+                    console.error(
+                      `Failed to fetch variant detail for ${item.variant_code}:`,
+                      error
+                    );
+                    return item; // 에러 발생 시 원본 유지
+                  }
+                }
+                return item;
+              })
+            ).then((updatedItems) => {
+              setItems(updatedItems);
+
+              // variantsByProduct도 업데이트 (드롭다운 작동을 위해)
+              const productIds = new Set(
+                updatedItems
+                  .map((item) => item.product_id)
+                  .filter((id): id is string => id !== null)
+              );
+
+              // 각 product_id에 대해 variants 조회
+              Promise.all(
+                Array.from(productIds).map(async (productId) => {
+                  try {
+                    const variantsRes = await fetchVariantsByProductId(productId);
+                    const variants = variantsRes.data?.variants || [];
+                    return {
+                      productId,
+                      variants: variants.map((v: { variant_code: string; option: string }) => ({
+                        variant_code: v.variant_code,
+                        option: v.option,
+                      })),
+                    };
+                  } catch (error) {
+                    console.error(`Failed to fetch variants for product ${productId}:`, error);
+                    return { productId, variants: [] };
+                  }
+                })
+              ).then((variantsData) => {
+                const variantsMap: {
+                  [productId: string]: Array<{ variant_code: string; option: string }>;
+                } = {};
+                variantsData.forEach(({ productId, variants }) => {
+                  variantsMap[productId] = variants;
+                });
+                setVariantsByProduct(variantsMap);
+              });
+            });
+          }
         })
         .catch((error) => {
           console.error('Failed to fetch product options:', error);
           setProducts([]);
           setFormErrors((prev) => [...prev, '상품 목록을 불러오는데 실패했습니다.']);
         });
-
-      resetForm();
-      setSupplierName('');
     }
-  }, [isOpen]);
+  }, [isOpen, initialData]);
 
   const resetForm = () => {
     setSupplier(0);
@@ -205,10 +326,18 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
     }
     setIsSubmitting(true);
     try {
+      // 로컬 시간 기준으로 YYYY-MM-DD 형식 변환 (타임존 문제 방지)
+      const formatDateToString = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       const payload = {
         supplier,
-        order_date: orderDate ? orderDate.toISOString().slice(0, 10) : '',
-        expected_delivery_date: deliveryDate ? deliveryDate.toISOString().slice(0, 10) : undefined,
+        order_date: orderDate ? formatDateToString(orderDate) : '',
+        expected_delivery_date: deliveryDate ? formatDateToString(deliveryDate) : undefined,
         status: 'PENDING',
         instruction_note: workInstructions || undefined,
         note: note || undefined,
@@ -238,7 +367,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
         // 공급업체 캐시 무효화 (매핑 업데이트 반영)
         queryClient.invalidateQueries({ queryKey: ['suppliers'] });
         queryClient.invalidateQueries({ queryKey: ['supplier', supplier] });
-      } catch (error) {
+      } catch {
         alert('오류가 발생했습니다.');
         // 매핑 오류는 발주 성공에 영향을 주지 않음
       }
@@ -246,12 +375,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
       alert('발주가 성공적으로 신청되었습니다.');
       if (onSuccess) onSuccess(res.data);
       onClose();
-    } catch (error: any) {
-      const errorMessage = error?.response?.data?.message
-        || error?.response?.data?.error
-        || error?.message
-        || '발주 신청 중 오류가 발생했습니다.';
-      alert(`발주 실패: ${errorMessage}`);
+    } catch (error) {
+      console.error('Failed to submit order:', error);
+      alert('발주 신청 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);
     }
@@ -645,48 +771,44 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
             <div className='overflow-visible rounded-md border border-gray-200'>
               <div className='min-w-[1100px] table-fixed'>
                 {/* Table Header */}
-                <div className='h-12 bg-gray-50 border-b border-gray-200'>
+                <div className='h-12 border-b border-gray-200 bg-gray-50'>
                   <div className='flex h-12 items-center'>
-                    <div className='flex w-36 items-center justify-start px-3 py-2 flex-shrink-0'>
+                    <div className='flex w-36 flex-shrink-0 items-center justify-start px-3 py-2'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>
                         상품 <span className='text-red-500'>*</span>
                       </span>
                     </div>
-                    <div className='flex w-36 items-center justify-start px-3 py-2 flex-shrink-0'>
+                    <div className='flex w-36 flex-shrink-0 items-center justify-start px-3 py-2'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>
                         옵션 <span className='text-red-500'>*</span>
                       </span>
                     </div>
-                    <div className='flex w-32 items-center justify-start px-3 py-2 flex-shrink-0'>
-                      <span className='text-xs font-medium text-gray-500 uppercase'>
-                        규격
-                      </span>
+                    <div className='flex w-32 flex-shrink-0 items-center justify-start px-3 py-2'>
+                      <span className='text-xs font-medium text-gray-500 uppercase'>규격</span>
                     </div>
-                    <div className='flex w-20 items-center justify-center px-3 py-2 flex-shrink-0'>
+                    <div className='flex w-20 flex-shrink-0 items-center justify-center px-3 py-2'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>단위</span>
                     </div>
-                    <div className='flex w-24 items-center justify-center px-3 py-2 flex-shrink-0'>
+                    <div className='flex w-24 flex-shrink-0 items-center justify-center px-3 py-2'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>
                         수량 <span className='text-red-500'>*</span>
                       </span>
                     </div>
-                    <div className='flex w-28 items-center justify-center px-3 py-2 flex-shrink-0'>
+                    <div className='flex w-28 flex-shrink-0 items-center justify-center px-3 py-2'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>
                         매입가 <span className='text-red-500'>*</span>
                       </span>
                     </div>
-                    <div className='flex w-28 items-center justify-center px-3 py-2 flex-shrink-0'>
-                      <span className='text-xs font-medium text-gray-500 uppercase'>
-                        판매가
-                      </span>
+                    <div className='flex w-28 flex-shrink-0 items-center justify-center px-3 py-2'>
+                      <span className='text-xs font-medium text-gray-500 uppercase'>판매가</span>
                     </div>
-                    <div className='flex w-24 items-center justify-center px-3 py-2 flex-shrink-0'>
+                    <div className='flex w-24 flex-shrink-0 items-center justify-center px-3 py-2'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>금액</span>
                     </div>
-                    <div className='flex w-32 items-center justify-start px-3 py-2 flex-shrink-0'>
+                    <div className='flex w-32 flex-shrink-0 items-center justify-start px-3 py-2'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>비고</span>
                     </div>
-                    <div className='flex w-16 items-center justify-center px-2 py-2 flex-shrink-0'>
+                    <div className='flex w-16 flex-shrink-0 items-center justify-center px-2 py-2'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>삭제</span>
                     </div>
                   </div>
@@ -694,9 +816,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                 {/* Table Body */}
                 <div className='bg-white'>
                   {items.map((item, idx) => (
-                    <div key={idx} className='flex h-24 border-t border-gray-200 items-center'>
+                    <div key={idx} className='flex h-24 items-center border-t border-gray-200'>
                       {/* 상품 검색 및 드롭다운 */}
-                      <div className='flex w-36 items-center px-3 py-2 flex-shrink-0'>
+                      <div className='flex w-36 flex-shrink-0 items-center px-3 py-2'>
                         <div className='flex w-full flex-col gap-2'>
                           {/* 상품 검색 */}
                           <ProductSearchInput
@@ -719,7 +841,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                         </div>
                       </div>
                       {/* 품목 드롭다운 */}
-                      <div className='flex w-36 items-center px-3 py-2 flex-shrink-0'>
+                      <div className='flex w-36 flex-shrink-0 items-center px-3 py-2'>
                         <SelectInput
                           defaultText='품목 선택'
                           options={
@@ -734,7 +856,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting || !item.product_id}
                         />
                       </div>
-                      <div className='flex w-32 items-center px-3 py-2 flex-shrink-0'>
+                      <div className='flex w-32 flex-shrink-0 items-center px-3 py-2'>
                         <input
                           type='text'
                           value={item.spec}
@@ -746,7 +868,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-20 items-center justify-center px-3 py-2 flex-shrink-0'>
+                      <div className='flex w-20 flex-shrink-0 items-center justify-center px-3 py-2'>
                         <input
                           type='text'
                           value={item.unit}
@@ -755,7 +877,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-24 items-center justify-center px-3 py-2 flex-shrink-0'>
+                      <div className='flex w-24 flex-shrink-0 items-center justify-center px-3 py-2'>
                         <input
                           type='number'
                           value={item.quantity}
@@ -767,7 +889,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-28 items-center justify-center px-3 py-2 flex-shrink-0'>
+                      <div className='flex w-28 flex-shrink-0 items-center justify-center px-3 py-2'>
                         <input
                           type='text'
                           inputMode='numeric'
@@ -781,7 +903,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-28 items-center justify-center px-3 py-2 flex-shrink-0'>
+                      <div className='flex w-28 flex-shrink-0 items-center justify-center px-3 py-2'>
                         <input
                           type='text'
                           inputMode='numeric'
@@ -793,8 +915,8 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-24 items-center justify-center px-3 py-2 flex-shrink-0'>
-                        <div className='text-sm font-medium text-gray-900 text-center'>
+                      <div className='flex w-24 flex-shrink-0 items-center justify-center px-3 py-2'>
+                        <div className='text-center text-sm font-medium text-gray-900'>
                           {(item.quantity && item.cost_price
                             ? includesTax
                               ? item.quantity * item.cost_price
@@ -804,7 +926,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           원
                         </div>
                       </div>
-                      <div className='flex w-32 items-center px-3 py-2 flex-shrink-0'>
+                      <div className='flex w-32 flex-shrink-0 items-center px-3 py-2'>
                         <input
                           type='text'
                           value={item.remark}
@@ -814,10 +936,10 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                           disabled={isSubmitting}
                         />
                       </div>
-                      <div className='flex w-16 items-center justify-center px-2 py-2 flex-shrink-0'>
+                      <div className='flex w-16 flex-shrink-0 items-center justify-center px-2 py-2'>
                         <button
                           type='button'
-                          className='text-red-500 hover:text-red-700 p-1'
+                          className='p-1 text-red-500 hover:text-red-700'
                           onClick={() => handleRemoveItem(idx)}
                           disabled={isSubmitting}>
                           <FiTrash2 className='h-4 w-4' />
@@ -827,7 +949,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSucces
                   ))}
 
                   {/* Total Row */}
-                  <div className='flex h-12 border-t-2 border-gray-300 bg-gray-50 items-center'>
+                  <div className='flex h-12 items-center border-t-2 border-gray-300 bg-gray-50'>
                     <div className='flex w-[624px] items-center justify-end px-3 py-2'>
                       <span className='text-sm font-semibold text-gray-900'>합계</span>
                     </div>

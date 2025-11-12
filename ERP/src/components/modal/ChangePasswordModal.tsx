@@ -45,7 +45,6 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       return;
     }
 
-
     try {
       setIsLoading(true);
       await onChangePassword(employeeId, password);
@@ -129,7 +128,11 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                 type='button'
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className='absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600'>
-                {showConfirmPassword ? <FiEyeOff className='h-4 w-4' /> : <FiEye className='h-4 w-4' />}
+                {showConfirmPassword ? (
+                  <FiEyeOff className='h-4 w-4' />
+                ) : (
+                  <FiEye className='h-4 w-4' />
+                )}
               </button>
             </div>
             {confirmPassword && password !== confirmPassword && (
@@ -139,7 +142,6 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               <p className='mt-2 text-xs text-green-600'>비밀번호가 일치합니다.</p>
             )}
           </div>
-
 
           {/* 버튼 */}
           <div className='flex space-x-3'>

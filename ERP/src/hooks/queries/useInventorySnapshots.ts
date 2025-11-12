@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import {
   fetchInventorySnapshots,
   fetchInventorySnapshot,
-  rollbackToSnapshot
+  rollbackToSnapshot,
 } from '../../api/inventory';
 import { detectUploadChannel, getAllChannelUpdateDates } from '../../utils/snapshotAnalyzer';
 import { InventorySnapshot } from '../../types/product';
@@ -42,7 +42,7 @@ export const useSnapshotsWithChannelInfo = ({ page = 1 }: { page?: number } = {}
 
       return {
         ...snapshot,
-        detectedChannel
+        detectedChannel,
       };
     });
   }, [snapshotsData]);
@@ -54,7 +54,7 @@ export const useSnapshotsWithChannelInfo = ({ page = 1 }: { page?: number } = {}
   return {
     snapshots: snapshotsWithChannel,
     channelUpdateDates,
-    ...rest
+    ...rest,
   };
 };
 
