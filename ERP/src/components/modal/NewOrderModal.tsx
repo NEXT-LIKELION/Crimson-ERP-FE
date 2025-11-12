@@ -105,7 +105,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
   const employees = employeesData?.data || [];
   const activeEmployees = employees.filter(
     (employee: { is_active?: boolean; status?: string; role?: string }) =>
-      employee.role === 'MANAGER' || (employee.is_active === true && employee.status === 'approved')
+      employee.role === 'MANAGER' || (employee.is_active === true && employee.status === 'APPROVED')
   );
   const user = useAuthStore((state) => state.user);
 
