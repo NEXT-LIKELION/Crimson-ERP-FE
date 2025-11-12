@@ -148,11 +148,6 @@ const EditProductModal = ({
       description: form.description || '',
       memo: form.memo || '',
       channels: form.channels, // 판매 채널 추가
-      suppliers: filteredSuppliers.map((s) => ({
-        name: s.supplier_name, // 백엔드가 기대하는 'name' 필드로 변경
-        cost_price: Number(s.cost_price) || 0, // 원가 데이터가 없는 경우 0으로 설정
-        is_primary: s.is_primary,
-      })),
     };
 
     onSave(updated);

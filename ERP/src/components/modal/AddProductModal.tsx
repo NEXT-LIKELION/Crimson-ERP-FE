@@ -10,14 +10,11 @@ import {
   fetchAllInventoriesForMerge,
   fetchCategories,
 } from '../../api/inventory';
-import { ProductSupplierData } from '../../types/product';
-import { useSuppliers } from '../../hooks/queries/useSuppliers';
 import { useQuery } from '@tanstack/react-query';
 import {
   ProductFormData,
   ProductVariant,
   ProductVariantCreate,
-  Supplier,
   ProductOption,
   CreatedProductData,
 } from '../../types/product';
@@ -30,9 +27,6 @@ interface AddProductModalProps {
 }
 
 const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
-  const { data: suppliersData } = useSuppliers();
-  const supplierOptions = suppliersData?.data?.map((s: Supplier) => s.name) || [];
-
   // 상태 선언
   const [productType, setProductType] = useState<'new' | 'existing'>('new');
 
@@ -78,7 +72,6 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     description: '',
     memo: '',
     channels: [],
-    suppliers: [{ supplier_name: '', cost_price: 0, is_primary: true }],
   });
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -105,7 +98,6 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
         description: '',
         memo: '',
         channels: [],
-        suppliers: [{ supplier_name: '', cost_price: 0, is_primary: true }],
       });
       setErrors([]);
     }
@@ -127,32 +119,11 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     }
   };
 
-  const handleSupplierChange = (index: number, field: string, value: string | number | boolean) => {
-    const newSuppliers = [...form.suppliers];
-    newSuppliers[index] = { ...newSuppliers[index], [field]: value };
-    setForm((prev) => ({ ...prev, suppliers: newSuppliers }));
-  };
-
   // 활성 상품 중복 체크 (variants 데이터 기반)
   const checkDuplicateInActiveProducts = (name: string): boolean => {
     if (!allInventoriesData) return false;
     const activeProductNames = new Set(allInventoriesData.map((v) => v.name.trim().toLowerCase()));
     return activeProductNames.has(name.trim().toLowerCase());
-  };
-
-  const handleAddSupplier = () => {
-    setForm((prev) => ({
-      ...prev,
-      suppliers: [...prev.suppliers, { supplier_name: '', cost_price: 0, is_primary: false }],
-    }));
-  };
-
-  const handleRemoveSupplier = (index: number) => {
-    if (form.suppliers.length > 1) {
-      const newSuppliers = [...form.suppliers];
-      newSuppliers.splice(index, 1);
-      setForm((prev) => ({ ...prev, suppliers: newSuppliers }));
-    }
   };
 
   const handleSubmit = async () => {
@@ -161,8 +132,6 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     // 공통 유효성 검사
     if (!form.option?.trim()) errs.push('옵션을 입력해주세요.');
     if (!form.price || isNaN(Number(form.price))) errs.push('판매가는 숫자여야 합니다.');
-    if (!form.suppliers || !form.suppliers[0]?.supplier_name)
-      errs.push('공급업체 정보는 필수입니다.');
     if (!form.channels || form.channels.length === 0)
       errs.push('판매 채널을 최소 하나 이상 선택해주세요.');
 
@@ -211,13 +180,6 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
           description: form.description || '',
           memo: form.memo || '',
           channels: form.channels,
-          suppliers: form.suppliers
-            .filter((s: { supplier_name: string }) => s.supplier_name)
-            .map((s: ProductSupplierData) => ({
-              name: s.supplier_name,
-              cost_price: Number(s.cost_price) || 0,
-              is_primary: s.is_primary ?? false,
-            })),
         };
       } else {
         // 기존 상품에 옵션 추가
@@ -241,13 +203,6 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
           description: form.description || '',
           memo: form.memo || '',
           channels: form.channels,
-          suppliers: form.suppliers
-            .filter((s: { supplier_name: string }) => s.supplier_name)
-            .map((s: ProductSupplierData) => ({
-              name: s.supplier_name,
-              cost_price: Number(s.cost_price) || 0,
-              is_primary: s.is_primary ?? false,
-            })),
         };
       }
 
@@ -470,60 +425,6 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
               value={form.description || ''}
               onChange={(e) => handleChange('description', e.target.value)}
             />
-
-            <div className='space-y-4'>
-              <div className='mb-2 flex items-center justify-between'>
-                <h4 className='text-sm font-medium text-gray-700'>공급업체 정보</h4>
-                <button
-                  type='button'
-                  onClick={handleAddSupplier}
-                  className='rounded-md bg-blue-50 px-3 py-1 text-sm text-blue-600 hover:bg-blue-100'>
-                  + 공급업체 추가
-                </button>
-              </div>
-              {form.suppliers.map((supplier: ProductSupplierData, index: number) => (
-                <div
-                  key={index}
-                  className='space-y-3 rounded-md border border-gray-300 bg-gray-50 p-4'>
-                  <div className='flex items-center justify-between'>
-                    <span className='text-sm font-medium text-gray-700'>공급업체 {index + 1}</span>
-                    {form.suppliers.length > 1 && (
-                      <button
-                        type='button'
-                        onClick={() => handleRemoveSupplier(index)}
-                        className='text-sm text-red-500 hover:text-red-700'>
-                        삭제
-                      </button>
-                    )}
-                  </div>
-                  <SelectInput
-                    label='공급업체명'
-                    value={supplier.supplier_name || ''}
-                    options={supplierOptions}
-                    onChange={(val) => handleSupplierChange(index, 'supplier_name', val)}
-                  />
-                  <TextInput
-                    label='매입가'
-                    type='number'
-                    value={Math.max(0, Number(supplier.cost_price) || 0).toString()}
-                    onChange={(val) =>
-                      handleSupplierChange(index, 'cost_price', Math.max(0, Number(val) || 0))
-                    }
-                    onKeyDown={handleNumberKeyDown}
-                    noSpinner
-                  />
-                  <label className='inline-flex items-center text-sm text-gray-600'>
-                    <input
-                      type='checkbox'
-                      className='mr-2'
-                      checked={supplier.is_primary}
-                      onChange={(e) => handleSupplierChange(index, 'is_primary', e.target.checked)}
-                    />
-                    주요 공급업체
-                  </label>
-                </div>
-              ))}
-            </div>
 
             <div className='mt-4'>
               <label className='mb-2 block text-sm font-medium text-gray-700'>관리자 메모</label>
