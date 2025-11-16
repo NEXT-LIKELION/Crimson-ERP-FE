@@ -210,7 +210,7 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
                             <React.Fragment key={order.id}>
                               {/* 발주의 품목들 */}
                               {order.items.map((item: SupplierOrderItem, itemIndex: number) => (
-                                <tr key={`${order.id}-${item.variant_code}`} className={`border-b border-gray-100 hover:bg-gray-50 ${bgColor}`}>
+                                <tr key={`${order.id}-${item.variant_code}`} className={`border-b border-gray-100 ${bgColor}`}>
                                   {/* 발주 정보는 첫 행에만 표시 */}
                                   {itemIndex === 0 && (
                                     <>

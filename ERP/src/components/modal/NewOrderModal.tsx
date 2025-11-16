@@ -361,16 +361,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
       };
       const res = await createOrder(payload);
 
-      // 발주 생성 성공
-      try {
-
-        // 공급업체 캐시 무효화 (매핑 업데이트 반영)
-        queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-        queryClient.invalidateQueries({ queryKey: ['supplier', supplier] });
-      } catch {
-        alert('오류가 발생했습니다.');
-        // 매핑 오류는 발주 성공에 영향을 주지 않음
-      }
+      // 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['supplier', supplier] });
 
       alert('발주가 성공적으로 신청되었습니다.');
       if (onSuccess) onSuccess(res.data);
