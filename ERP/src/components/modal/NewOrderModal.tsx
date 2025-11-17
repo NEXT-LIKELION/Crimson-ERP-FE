@@ -9,7 +9,7 @@ import AddSupplierModal from './AddSupplierModal';
 import ProductSearchInput from '../input/ProductSearchInput';
 import { Order } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
-import { fetchSuppliers, createSupplier, addSupplierVariantMapping } from '../../api/supplier';
+import { fetchSuppliers, createSupplier } from '../../api/supplier';
 import {
   fetchProductOptions,
   fetchVariantDetail,
@@ -105,7 +105,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
   const employees = employeesData?.data || [];
   const activeEmployees = employees.filter(
     (employee: { is_active?: boolean; status?: string; role?: string }) =>
-      employee.role === 'MANAGER' || (employee.is_active === true && employee.status === 'approved')
+      employee.role === 'MANAGER' || (employee.is_active === true && employee.status === 'APPROVED')
   );
   const user = useAuthStore((state) => state.user);
 
@@ -361,35 +361,9 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
       };
       const res = await createOrder(payload);
 
-      // 발주 생성 성공 후 자동으로 상품 매핑 추가
-      try {
-        const itemsToMap = items.filter(
-          (item) => extractVariantCode(item, variantsByProduct) !== ''
-        );
-
-        const mappingPromises = itemsToMap.map(async (item) => {
-          const variant_code = extractVariantCode(item, variantsByProduct);
-          try {
-            await addSupplierVariantMapping(supplier, {
-              variant_code,
-              cost_price: item.cost_price,
-              is_primary: false,
-            });
-          } catch (error) {
-            console.error('Failed to add supplier variant mapping:', error);
-            // 이미 매핑된 경우는 무시 (409 에러 등)
-          }
-        });
-
-        await Promise.allSettled(mappingPromises);
-
-        // 공급업체 캐시 무효화 (매핑 업데이트 반영)
-        queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-        queryClient.invalidateQueries({ queryKey: ['supplier', supplier] });
-      } catch {
-        alert('오류가 발생했습니다.');
-        // 매핑 오류는 발주 성공에 영향을 주지 않음
-      }
+      // 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['supplier', supplier] });
 
       alert('발주가 성공적으로 신청되었습니다.');
       if (onSuccess) onSuccess(res.data);
@@ -427,18 +401,8 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
         const variantsData = res.data.variants || res.data || [];
         const variants = Array.isArray(variantsData) ? variantsData : [];
 
-        // 업체가 선택된 경우 해당 업체의 variant_codes만 필터링
-        let filteredVariants = variants;
-        if (supplier > 0) {
-          const selectedSupplier = suppliers.find((s) => s.id === supplier);
-          if (selectedSupplier && selectedSupplier.variant_codes) {
-            filteredVariants = variants.filter((variant: { variant_code: string }) =>
-              selectedSupplier.variant_codes.includes(variant.variant_code)
-            );
-          }
-        }
-
-        setVariantsByProduct((prev) => ({ ...prev, [product_id]: filteredVariants }));
+        // 모든 variants를 표시 (공급업체 필터링 제거됨)
+        setVariantsByProduct((prev) => ({ ...prev, [product_id]: variants }));
       } catch (e) {
         console.error('Failed to fetch variants:', e);
         setVariantsByProduct((prev) => ({ ...prev, [product_id]: [] }));
@@ -537,15 +501,12 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
       setProducts([...productData, newProductOption]);
 
       // 발주 품목에 신상품 자동 추가
-      const primarySupplier = newProduct.suppliers.find((s) => s.is_primary);
-      const costPrice = primarySupplier?.cost_price || 0;
-
       const newItem: OrderItemPayload = {
         product_id: newProduct.product_id,
         variant: newProduct.option,
         variant_code: newProduct.variant_id,
         quantity: 1,
-        cost_price: costPrice,
+        cost_price: 0, // 초기값 0, 사용자가 직접 입력
         unit_price: newProduct.price || 0,
         unit: 'EA',
         remark: '',
@@ -581,7 +542,6 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
         manager: supplierData.manager as string,
         email: supplierData.email as string,
         address: supplierData.address as string,
-        variant_codes: [], // 선택사항이므로 빈 배열로 설정
       });
 
       // 성공 후 공급자 목록 다시 불러오기
