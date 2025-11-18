@@ -7,7 +7,7 @@ import { useLogout } from '../hooks/queries/useLogout';
 
 const MENU_ITEMS = [
   { icon: FiGrid, label: '대시보드', path: '/' },
-  { icon: FiBox, label: '재고 관리', path: '/inventory' },
+  // { icon: FiBox, label: '재고 관리', path: '/inventory' },
   { icon: FiShoppingCart, label: '발주 관리', path: '/orders' },
   { icon: FiUsers, label: 'HR 관리', path: '/hr' },
   { icon: FiHome, label: '업체 관리', path: '/supplier' },
