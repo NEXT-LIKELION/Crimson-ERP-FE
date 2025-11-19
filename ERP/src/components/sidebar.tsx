@@ -2,7 +2,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { IconType } from 'react-icons';
-import { FiGrid, FiBox, FiShoppingCart, FiUsers, FiLogOut, FiHome } from 'react-icons/fi';
+import { FiGrid, FiShoppingCart, FiUsers, FiLogOut, FiHome } from 'react-icons/fi';
 import { useLogout } from '../hooks/queries/useLogout';
 
 const MENU_ITEMS = [
