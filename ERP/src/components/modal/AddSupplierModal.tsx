@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FiX, FiAlertTriangle } from 'react-icons/fi';
 import TextInput from '../input/TextInput';
-import { formatPhoneNumber } from '../../utils/formatters';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface AddSupplierModalProps {
@@ -29,10 +28,6 @@ const AddSupplierModal = ({
   useEffect(() => {
     if (isOpen) {
       const data = (initialData as Record<string, string>) ?? defaultForm;
-      // 초기 연락처가 숫자만 있는 경우 포맷팅 적용
-      if (data.contact && /^[0-9]+$/.test(data.contact)) {
-        data.contact = formatPhoneNumber(data.contact);
-      }
       setForm(data);
       setErrors([]);
     }
@@ -43,7 +38,7 @@ const AddSupplierModal = ({
   const handleChange = (field: string, value: string) => {
     if (field === 'contact') {
       const numbers = value.replace(/[^0-9]/g, '');
-      setForm((prev) => ({ ...prev, [field]: formatPhoneNumber(numbers) }));
+      setForm((prev) => ({ ...prev, [field]: numbers }));
     } else {
       setForm((prev) => ({ ...prev, [field]: value }));
     }
@@ -52,14 +47,14 @@ const AddSupplierModal = ({
   const handleSubmit = () => {
     const errs = [];
     if (!form.name?.trim()) errs.push('업체명을 입력해주세요.');
-    if (!form.contact?.trim()) errs.push('연락처를 입력해주세요.');
-    if (!form.manager?.trim()) errs.push('담당자를 입력해주세요.');
-    if (!form.email?.trim()) {
-      errs.push('이메일을 입력해주세요.');
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      errs.push('올바른 이메일 형식을 입력해주세요.');
-    }
-    if (!form.address?.trim()) errs.push('주소를 입력해주세요.');
+    // if (!form.contact?.trim()) errs.push('연락처를 입력해주세요.');
+    // if (!form.manager?.trim()) errs.push('담당자를 입력해주세요.');
+    // if (!form.email?.trim()) {
+    //   errs.push('이메일을 입력해주세요.');
+    // } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+    //   errs.push('올바른 이메일 형식을 입력해주세요.');
+    // }
+    // if (!form.address?.trim()) errs.push('주소를 입력해주세요.');
     if (errs.length > 0) {
       setErrors(errs);
       return;
@@ -68,7 +63,7 @@ const AddSupplierModal = ({
     // 올바른 형태로 데이터 구성
     const submitData = {
       name: form.name?.trim(),
-      contact: form.contact?.trim(), // 하이픈 포함 문자열 전송
+      contact: form.contact?.trim(),
       manager: form.manager?.trim(),
       email: form.email?.trim(),
       address: form.address?.trim(),
