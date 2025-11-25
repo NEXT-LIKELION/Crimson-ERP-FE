@@ -279,9 +279,9 @@ export const handleDownloadExcel = async (
     // 3. 셀 값 매핑 (스타일/병합/수식 유지)
     sheet.cell('I10').value(orderDetail.manager);
     sheet.cell('I11').value(supplierDetail.name);
-    sheet.cell('W11').value(supplierDetail.contact);
+    sheet.cell('X11').value(supplierDetail.contact);
     sheet.cell('I12').value(supplierDetail.manager);
-    sheet.cell('W12').value(supplierDetail.email);
+    sheet.cell('X12').value(supplierDetail.email);
 
     sheet.cell('E16').value(orderDetail.order_date);
     sheet
@@ -311,9 +311,9 @@ export const handleDownloadExcel = async (
     sheet.cell('A30').value(orderDetail.instruction_note || '');
 
     // 발주 이유 (내부 공유용) - 옵션에 따라 포함
-    if (options?.includeNote && orderDetail.note) {
-      sheet.cell('A33').value(orderDetail.note);
-    }
+    // if (options?.includeNote && orderDetail.note) {
+    //   sheet.cell('A33').value(orderDetail.note);
+    // }
 
     // 4. 품목 테이블 (행 복제 및 데이터 입력)
     const startRow = 21;
