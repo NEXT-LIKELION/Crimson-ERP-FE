@@ -12,7 +12,6 @@ import SupplierDetailModal from '../../components/modal/SupplierDetailModal';
 import { Supplier, SupplierCreateData } from '../../types/product';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useEnterKey } from '../../hooks/useEnterKey';
-import { formatPhoneNumber } from '../../utils/formatters';
 // Supplier 인터페이스는 types/product.ts에서 import됨
 
 const SupplierPage: React.FC = () => {
