@@ -83,9 +83,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
       spec: '',
     },
   ]);
-  const [workInstructions, setWorkInstructions] = useState<string>(
-    '로고 디자인은 첨부파일대로 적용해 주시기 바랍니다. 샘플 확인 후 본 생산 진행 예정입니다.'
-  );
+  const [workInstructions, setWorkInstructions] = useState<string>('');
   const [note, setNote] = useState<string>(''); // 발주 이유 (내부 공유용)
   const [includesTax, setIncludesTax] = useState<boolean>(true);
   const [hasPackaging, setHasPackaging] = useState<boolean>(true);
@@ -260,9 +258,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
         spec: '',
       },
     ]);
-    setWorkInstructions(
-      '로고 디자인은 첨부파일대로 적용해 주시기 바랍니다. 샘플 확인 후 본 생산 진행 예정입니다.'
-    );
+    setWorkInstructions('');
     setNote('');
     setIncludesTax(true);
     setHasPackaging(true);
