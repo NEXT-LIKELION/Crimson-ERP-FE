@@ -489,12 +489,8 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
       const res = await fetchProductOptions();
       const productData = Array.isArray(res.data) ? res.data : [];
 
-      // 신상품을 products 배열에 추가 (즉시 UI 반영)
-      const newProductOption = {
-        product_id: newProduct.product_id,
-        name: newProduct.name,
-      };
-      setProducts([...productData, newProductOption]);
+      // 최신 상품 목록으로 교체 (신상품 포함)
+      setProducts(productData);
 
       // 발주 품목에 신상품 자동 추가
       const newItem: OrderItemPayload = {
@@ -516,10 +512,18 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
         price: newProduct.price || 0,
         stock: newProduct.stock || 0,
       };
-      setVariantsByProduct((prev) => ({
-        ...prev,
-        [newProduct.product_id]: [newVariant],
-      }));
+      setVariantsByProduct((prev) => {
+        const prevVariants = prev[newProduct.product_id] || [];
+        const duplicate = prevVariants.some(
+          (variant) => variant.variant_code === newVariant.variant_code
+        );
+        const mergedVariants = duplicate ? prevVariants : [...prevVariants, newVariant];
+
+        return {
+          ...prev,
+          [newProduct.product_id]: mergedVariants,
+        };
+      });
 
       setItems([newItem, ...items]);
       setIsAddProductModalOpen(false);
