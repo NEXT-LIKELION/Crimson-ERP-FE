@@ -109,7 +109,7 @@ const AddSupplierModal = ({
               label='연락처'
               value={form.contact || ''}
               onChange={(val) => handleChange('contact', val)}
-              placeholder='연락처를 입력해주세요 (예: 01012345678)'
+              placeholder='연락처를 입력해주세요(여러개 가능) (예: 010-1234-5678, 02-123-5678, 031-123-5678)'
               className='!w-full'
             />
             <TextInput
