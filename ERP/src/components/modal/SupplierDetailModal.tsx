@@ -17,10 +17,18 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
   supplierId,
 }) => {
   // 공급업체 기본 정보 조회
-  const { data: supplierData, isLoading: supplierLoading, error: supplierError } = useSupplierById(supplierId ?? 0);
+  const {
+    data: supplierData,
+    isLoading: supplierLoading,
+    error: supplierError,
+  } = useSupplierById(supplierId ?? 0);
 
   // 공급업체 발주 내역 조회
-  const { data: ordersData, isLoading: ordersLoading, error: ordersError } = useSupplierOrders(supplierId ?? 0);
+  const {
+    data: ordersData,
+    isLoading: ordersLoading,
+    error: ordersError,
+  } = useSupplierOrders(supplierId ?? 0);
 
   const supplier = supplierData?.data;
   const ordersResponse = ordersData?.data;
@@ -39,7 +47,9 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
   // 로딩 상태
   if (supplierLoading || ordersLoading) {
     return (
-      <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm' onClick={handleBackdropClick}>
+      <div
+        className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm'
+        onClick={handleBackdropClick}>
         <div className='w-full max-w-5xl rounded-xl border border-gray-200 bg-white p-6 shadow-lg'>
           <div className='flex h-64 items-center justify-center'>
             <div className='flex flex-col items-center'>
@@ -55,7 +65,9 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
   // 에러 상태
   if (supplierError || ordersError) {
     return (
-      <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm' onClick={handleBackdropClick}>
+      <div
+        className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm'
+        onClick={handleBackdropClick}>
         <div className='w-full max-w-5xl rounded-xl border border-gray-200 bg-white p-6 shadow-lg'>
           <div className='flex h-64 items-center justify-center'>
             <div className='rounded-lg border border-red-200 bg-red-50 p-8 text-center'>
@@ -190,15 +202,33 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
                     <table className='w-full border-collapse text-sm text-gray-700'>
                       <thead className='border-b border-gray-300 bg-gray-50'>
                         <tr>
-                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>발주번호</th>
-                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>발주일</th>
-                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>예정일</th>
-                          <th className='border-b px-4 py-3 text-center font-medium text-gray-900'>상태</th>
-                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>품목코드</th>
-                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>품목명</th>
-                          <th className='border-b px-4 py-3 text-center font-medium text-gray-900'>수량</th>
-                          <th className='border-b px-4 py-3 text-right font-medium text-gray-900'>매입가</th>
-                          <th className='border-b px-4 py-3 text-right font-medium text-gray-900'>합계</th>
+                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>
+                            발주번호
+                          </th>
+                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>
+                            발주일
+                          </th>
+                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>
+                            예정일
+                          </th>
+                          <th className='border-b px-4 py-3 text-center font-medium text-gray-900'>
+                            상태
+                          </th>
+                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>
+                            품목코드
+                          </th>
+                          <th className='border-b px-4 py-3 text-left font-medium text-gray-900'>
+                            품목명
+                          </th>
+                          <th className='border-b px-4 py-3 text-center font-medium text-gray-900'>
+                            수량
+                          </th>
+                          <th className='border-b px-4 py-3 text-right font-medium text-gray-900'>
+                            매입가
+                          </th>
+                          <th className='border-b px-4 py-3 text-right font-medium text-gray-900'>
+                            합계
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -210,21 +240,34 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
                             <React.Fragment key={order.id}>
                               {/* 발주의 품목들 */}
                               {order.items.map((item: SupplierOrderItem, itemIndex: number) => (
-                                <tr key={`${order.id}-${item.variant_code}`} className={`border-b border-gray-100 ${bgColor}`}>
+                                <tr
+                                  key={`${order.id}-${item.variant_code}`}
+                                  className={`border-b border-gray-100 ${bgColor}`}>
                                   {/* 발주 정보는 첫 행에만 표시 */}
                                   {itemIndex === 0 && (
                                     <>
-                                      <td className='px-4 py-3 font-medium text-gray-900' rowSpan={order.items.length}>
+                                      <td
+                                        className='px-4 py-3 font-medium text-gray-900'
+                                        rowSpan={order.items.length}>
                                         {order.id}
                                       </td>
-                                      <td className='px-4 py-3 text-gray-700' rowSpan={order.items.length}>
+                                      <td
+                                        className='px-4 py-3 text-gray-700'
+                                        rowSpan={order.items.length}>
                                         {new Date(order.order_date).toLocaleDateString('ko-KR')}
                                       </td>
-                                      <td className='px-4 py-3 text-gray-700' rowSpan={order.items.length}>
-                                        {new Date(order.expected_delivery_date).toLocaleDateString('ko-KR')}
+                                      <td
+                                        className='px-4 py-3 text-gray-700'
+                                        rowSpan={order.items.length}>
+                                        {new Date(order.expected_delivery_date).toLocaleDateString(
+                                          'ko-KR'
+                                        )}
                                       </td>
-                                      <td className='px-4 py-3 text-center' rowSpan={order.items.length}>
-                                        <span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(order.status)}`}>
+                                      <td
+                                        className='px-4 py-3 text-center'
+                                        rowSpan={order.items.length}>
+                                        <span
+                                          className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(order.status)}`}>
                                           {getStatusLabel(order.status)}
                                         </span>
                                       </td>
@@ -233,14 +276,22 @@ const SupplierDetailModal: React.FC<SupplierDetailModalProps> = ({
                                   {/* 품목 정보는 매 행마다 표시 */}
                                   <td className='px-4 py-3 font-medium'>{item.variant_code}</td>
                                   <td className='px-4 py-3'>{item.item_name}</td>
-                                  <td className='px-4 py-3 text-center'>{item.quantity.toLocaleString()}</td>
-                                  <td className='px-4 py-3 text-right'>{item.unit_price.toLocaleString()}원</td>
-                                  <td className='px-4 py-3 text-right font-semibold'>{item.total.toLocaleString()}원</td>
+                                  <td className='px-4 py-3 text-center'>
+                                    {item.quantity.toLocaleString()}
+                                  </td>
+                                  <td className='px-4 py-3 text-right'>
+                                    {item.unit_price.toLocaleString()}원
+                                  </td>
+                                  <td className='px-4 py-3 text-right font-semibold'>
+                                    {item.total.toLocaleString()}원
+                                  </td>
                                 </tr>
                               ))}
                               {/* 발주 소계 행 */}
                               <tr className='border-b-2 border-gray-300 bg-gray-100'>
-                                <td colSpan={8} className='px-4 py-2 text-right font-semibold text-gray-700'>
+                                <td
+                                  colSpan={8}
+                                  className='px-4 py-2 text-right font-semibold text-gray-700'>
                                   발주 {order.id} 소계
                                 </td>
                                 <td className='px-4 py-2 text-right font-bold text-blue-900'>

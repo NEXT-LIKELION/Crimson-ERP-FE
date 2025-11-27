@@ -12,7 +12,6 @@ import SupplierDetailModal from '../../components/modal/SupplierDetailModal';
 import { Supplier, SupplierCreateData } from '../../types/product';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useEnterKey } from '../../hooks/useEnterKey';
-import { formatPhoneNumber } from '../../utils/formatters';
 // Supplier 인터페이스는 types/product.ts에서 import됨
 
 const SupplierPage: React.FC = () => {
@@ -97,7 +96,7 @@ const SupplierPage: React.FC = () => {
                 <th className='border-b border-gray-300 px-4 py-3 text-left'>연락처</th>
                 <th className='border-b border-gray-300 px-4 py-3 text-left'>이메일</th>
                 <th className='border-b border-gray-300 px-4 py-3 text-left'>주소</th>
-                <th className='border-b border-gray-300 px-4 py-3 text-left'>상세</th>
+                <th className='min-w-[170px] border-b border-gray-300 px-4 py-3 text-left'>상세</th>
               </tr>
             </thead>
             <tbody>
@@ -106,13 +105,11 @@ const SupplierPage: React.FC = () => {
                   <td className='border-b border-gray-200 px-4 py-2 text-center'>{supplier.id}</td>
                   <td className='border-b border-gray-200 px-4 py-2'>{supplier.name}</td>
                   <td className='border-b border-gray-200 px-4 py-2'>{supplier.manager}</td>
-                  <td className='border-b border-gray-200 px-4 py-2'>
-                    {formatPhoneNumber(supplier.contact)}
-                  </td>
+                  <td className='border-b border-gray-200 px-4 py-2'>{supplier.contact}</td>
                   <td className='border-b border-gray-200 px-4 py-2'>{supplier.email}</td>
                   <td className='border-b border-gray-200 px-4 py-2'>{supplier.address}</td>
                   <td className='border-b border-gray-200 px-4 py-2'>
-                    <div className='flex gap-2'>
+                    <div className='flex justify-center gap-2'>
                       <button
                         className='rounded bg-gray-200 px-3 py-1 text-xs text-gray-800 hover:bg-gray-300'
                         onClick={() => setDetailId(supplier.id)}>
