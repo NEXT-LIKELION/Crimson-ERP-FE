@@ -142,7 +142,6 @@ export const useChangePassword = () => {
     onError: (error) => {
       console.error('비밀번호 변경 실패:', error);
       alert('비밀번호 변경 실패');
-      throw error;
     },
   });
 };
