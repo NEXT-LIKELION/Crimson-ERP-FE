@@ -8,6 +8,7 @@ export interface OrderItem {
   variant_code: string;
   item_name: string;
   quantity: number;
+  option?: string;
   unit: string;
   unit_price: number;
   remark?: string;

@@ -128,6 +128,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         items: orderData.items.map((item: StoreOrderItem) => ({
           id: item.id,
           variant_code: item.variant_code,
+          option: item.option || '',
           quantity: item.quantity,
           unit_price: item.unit_price,
           unit: item.unit || '',

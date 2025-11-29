@@ -408,7 +408,6 @@ const InventoryPage = () => {
       await refetch();
     } catch (err) {
       alert('POS 데이터 업로드 중 오류 발생: ' + getErrorMessage(err));
-      console.log(err);
     } finally {
       setIsPOSUploading(false);
       e.target.value = '';

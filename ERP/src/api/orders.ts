@@ -125,9 +125,6 @@ export const searchProducts = async (query: string) => {
     });
 
     const productOptions = Array.from(uniqueVariants.values());
-    console.log(
-      `✅ 상품 검색 완료: ${productOptions.length}개 (총 variants: ${allVariants.length}개)`
-    );
     return { data: productOptions };
   } catch (error) {
     console.error('Failed to search products:', error);

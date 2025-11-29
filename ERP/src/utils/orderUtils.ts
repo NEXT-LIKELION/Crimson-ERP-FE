@@ -1,7 +1,7 @@
 // src/utils/orderUtils.ts
 import XlsxPopulate from 'xlsx-populate/browser/xlsx-populate';
 import { saveAs } from 'file-saver';
-
+import { formatOption } from './formatters';
 /**
  * 부가세 계산 유틸리티
  * @param price 원가
@@ -191,6 +191,7 @@ export interface OrderDetailItem {
   unit_price: number;
   quantity: number;
   remark?: string;
+  option?: string;
 }
 
 export interface OrderDetail {
@@ -330,7 +331,7 @@ export const handleDownloadExcel = async (
     // 품목 데이터 입력 (합계행은 건드리지 않음)
     orderDetail.items.forEach((item, idx) => {
       const row = startRow + idx;
-      sheet.cell(`C${row}`).value(item.item_name);
+      sheet.cell(`C${row}`).value(formatOption(item.option, item.item_name));
       sheet.cell(`H${row}`).value(item.spec || '');
       sheet.cell(`K${row}`).value('EA');
       sheet.cell(`N${row}`).value(item.quantity);

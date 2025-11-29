@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import { numberToKorean, OrderDetail } from '../../utils/orderUtils';
 import { ORDER_INFO } from '../../constant';
+import { formatOption } from '../../utils/formatters';
 
 interface SupplierDetailLite {
   id: number;
@@ -130,7 +131,9 @@ const OrderDetailDocument = forwardRef<HTMLDivElement, OrderDetailDocumentProps>
             {orderDetail.items.map((item, index) => (
               <tr key={item.id}>
                 <td className='border border-stone-300 p-2 text-center'>{index + 1}</td>
-                <td className='border border-stone-300 p-2'>{item.item_name}</td>
+                <td className='border border-stone-300 p-2'>
+                  {formatOption(item.option, item.item_name)}
+                </td>
                 <td className='border border-stone-300 p-2'>{item.spec}</td>
                 <td className='border border-stone-300 p-2 text-center'>{item.unit}</td>
                 <td className='border border-stone-300 p-2 text-center'>{item.quantity}</td>
