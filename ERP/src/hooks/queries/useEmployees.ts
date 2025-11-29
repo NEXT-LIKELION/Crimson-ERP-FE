@@ -127,7 +127,6 @@ export const useApproveEmployee = () => {
     },
     onError: (error) => {
       console.error('직원 승인/거절 처리 실패:', error);
-      throw error;
     },
   });
 };
