@@ -8,7 +8,9 @@ import { FaHistory, FaUndo } from 'react-icons/fa';
 import { FiInfo } from 'react-icons/fi';
 import InputField from '../../components/inputfield/InputField';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
+import VariantStatusTable from '../../components/table/VariantStatusTable';
 import { useInventories } from '../../hooks/queries/useInventories';
+import { useVariantStatus } from '../../hooks/queries/useVariantStatus';
 import {
   deleteProductVariant,
   updateInventoryVariant,
@@ -16,6 +18,7 @@ import {
   fetchAllInventoriesForMerge,
   fetchFilteredInventoriesForExport,
   fetchCategories,
+  uploadVariantStatusExcel,
 } from '../../api/inventory';
 import { useSearchParams } from 'react-router-dom';
 import EditProductModal from '../../components/modal/EditProductModal';
@@ -49,6 +52,13 @@ const InventoryPage = () => {
   const [isRollbackModalOpen, setRollbackModalOpen] = useState(false);
   const [isPOSUploading, setIsPOSUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'offline' | 'online'>('all');
+
+  // 월별 재고 현황 관련 state
+  const [viewMode, setViewMode] = useState<'variant' | 'status'>('variant'); // 'variant': 기존 뷰, 'status': 월별 현황
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [isExcelUploading, setIsExcelUploading] = useState(false);
+  const excelFileInputRef = useRef<HTMLInputElement>(null);
 
   // POS 마지막 업데이트 날짜 조회 (기존 방식 유지)
   const { data: snapshotsData } = useInventorySnapshots({ page: 1 });
@@ -198,6 +208,17 @@ const InventoryPage = () => {
     isFetchingNextPage,
     infiniteScroll,
   } = useInventories(appliedFilters);
+
+  // 월별 재고 현황 데이터 조회
+  const {
+    data: variantStatusData,
+    isLoading: isStatusLoading,
+    refetch: refetchStatus,
+  } = useVariantStatus({
+    year: selectedYear,
+    month: selectedMonth,
+    page: 1,
+  });
 
   const adjustStockMutation = useAdjustStock();
 
@@ -415,6 +436,31 @@ const InventoryPage = () => {
     }
   };
 
+  // 월별 재고 현황 엑셀 업로드
+  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsExcelUploading(true);
+    try {
+      await uploadVariantStatusExcel(file, selectedYear, selectedMonth);
+      alert(`${selectedYear}년 ${selectedMonth}월 재고 현황이 성공적으로 업로드되었습니다.`);
+      // 월별 재고 현황 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['variantStatus'] });
+      await refetchStatus();
+    } catch (err) {
+      alert('엑셀 업로드 중 오류 발생: ' + getErrorMessage(err));
+      console.log(err);
+    } finally {
+      setIsExcelUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleExcelButtonClick = () => {
+    excelFileInputRef.current?.click();
+  };
+
   const handleReset = () => {
     setProductName('');
     setCategory('');
@@ -599,10 +645,34 @@ const InventoryPage = () => {
     <div className='relative p-6'>
       {isLoading && <LoadingSpinner overlay text='재고 데이터를 불러오는 중...' />}
       {isPOSUploading && <LoadingSpinner overlay text='POS 데이터를 업로드하는 중...' />}
+      {isExcelUploading && <LoadingSpinner overlay text='엑셀 데이터를 업로드하는 중...' />}
       <div className='mb-4 flex items-center justify-between'>
-        <h1 className='text-2xl font-bold'>재고 관리</h1>
+        <div className='flex items-center space-x-4'>
+          <h1 className='text-2xl font-bold'>재고 관리</h1>
+          {/* 뷰 모드 전환 버튼 */}
+          <div className='flex rounded-lg border border-gray-300 bg-white'>
+            <button
+              onClick={() => setViewMode('variant')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                viewMode === 'variant'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-50'
+              } rounded-l-lg`}>
+              상품 관리
+            </button>
+            <button
+              onClick={() => setViewMode('status')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                viewMode === 'status'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-50'
+              } rounded-r-lg border-l border-gray-300`}>
+              월별 재고 현황
+            </button>
+          </div>
+        </div>
         <div className='flex space-x-2'>
-          {permissions.canCreate('INVENTORY') && (
+          {viewMode === 'variant' && permissions.canCreate('INVENTORY') && (
             <>
               <GreenButton
                 text='상품 추가'
@@ -666,6 +736,24 @@ const InventoryPage = () => {
               </div>
             </>
           )}
+          {viewMode === 'status' && (
+            <>
+              <PrimaryButton
+                text='엑셀 업로드'
+                icon={<FaFileArrowUp size={16} />}
+                onClick={handleExcelButtonClick}
+                disabled={isExcelUploading}
+              />
+              <SecondaryButton
+                text='엑셀 다운로드'
+                icon={<FaFileArrowUp size={16} />}
+                onClick={() => {
+                  // TODO: 엑셀 다운로드 기능 구현
+                  alert('엑셀 다운로드 기능은 추후 구현 예정입니다.');
+                }}
+              />
+            </>
+          )}
           <input
             ref={fileInputRef}
             id='posUploadInput'
@@ -674,30 +762,74 @@ const InventoryPage = () => {
             className='hidden'
             onChange={handlePOSUpload}
           />
+          <input
+            ref={excelFileInputRef}
+            id='excelUploadInput'
+            type='file'
+            accept='.xlsx,.xls'
+            className='hidden'
+            onChange={handleExcelUpload}
+          />
         </div>
       </div>
 
-      {/* 탭 메뉴 */}
-      <InventoryTabs activeTab={activeTab} onTabChange={handleTabChange} />
+      {/* 월별 재고 현황 모드일 때 년/월 선택 필터 */}
+      {viewMode === 'status' && (
+        <div className='mb-6 rounded-lg border border-gray-200 bg-white p-4'>
+          <div className='flex items-center space-x-4'>
+            <label className='text-sm font-medium text-gray-700'>조회 기간:</label>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className='rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500'>
+              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                <option key={year} value={year}>
+                  {year}년
+                </option>
+              ))}
+            </select>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className='rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500'>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                <option key={month} value={month}>
+                  {month}월
+                </option>
+              ))}
+            </select>
+            <span className='text-sm text-gray-500'>
+              {selectedYear}년 {selectedMonth}월 재고 현황
+            </span>
+          </div>
+        </div>
+      )}
 
-      <div className='mb-6'>
-        <InputField
-          productName={productName}
-          onProductNameChange={setProductName}
-          category={category}
-          onCategoryChange={setCategory}
-          categoryOptions={categoryOptions}
-          status={status}
-          onStatusChange={setStatus}
-          minStock={minStock}
-          onMinStockChange={setMinStock}
-          maxStock={maxStock}
-          onMaxStockChange={setMaxStock}
-          minSales={minSales}
-          onMinSalesChange={setMinSales}
-          maxSales={maxSales}
-          onMaxSalesChange={setMaxSales}
-          onSearch={() => {
+      {/* 탭 메뉴 - 상품 관리 모드일 때만 표시 */}
+      {viewMode === 'variant' && (
+        <InventoryTabs activeTab={activeTab} onTabChange={handleTabChange} />
+      )}
+
+      {/* 검색 필터 - 상품 관리 모드일 때만 표시 */}
+      {viewMode === 'variant' && (
+        <div className='mb-6'>
+          <InputField
+            productName={productName}
+            onProductNameChange={setProductName}
+            category={category}
+            onCategoryChange={setCategory}
+            categoryOptions={categoryOptions}
+            status={status}
+            onStatusChange={setStatus}
+            minStock={minStock}
+            onMinStockChange={setMinStock}
+            maxStock={maxStock}
+            onMaxStockChange={setMaxStock}
+            minSales={minSales}
+            onMinSalesChange={setMinSales}
+            maxSales={maxSales}
+            onMaxSalesChange={setMaxSales}
+            onSearch={() => {
             // 유효성 검사
             const minSalesValue = parseInt(minSales) || 0;
             const maxSalesValue = parseInt(maxSales) || 5000000;
@@ -751,24 +883,30 @@ const InventoryPage = () => {
               newFilters.max_sales = maxSalesValue;
             }
 
-            setAppliedFilters(newFilters);
-            updateURL(newFilters);
-          }}
-          onReset={handleReset}
-        />
-      </div>
+              setAppliedFilters(newFilters);
+              updateURL(newFilters);
+            }}
+            onReset={handleReset}
+          />
+        </div>
+      )}
 
-      <InventoryTable
-        inventories={tabData}
-        onDelete={handleVariantDelete}
-        onExportToExcel={handleExportToExcel}
-        lastUpdateDate={currentUpdateDate}
-        // 무한 스크롤 관련 props
-        fetchNextPage={fetchNextPage}
-        hasNextPage={hasNextPage}
-        isFetchingNextPage={isFetchingNextPage}
-        infiniteScroll={infiniteScroll}
-      />
+      {/* 테이블 - 뷰 모드에 따라 다른 테이블 표시 */}
+      {viewMode === 'variant' ? (
+        <InventoryTable
+          inventories={tabData}
+          onDelete={handleVariantDelete}
+          onExportToExcel={handleExportToExcel}
+          lastUpdateDate={currentUpdateDate}
+          // 무한 스크롤 관련 props
+          fetchNextPage={fetchNextPage}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          infiniteScroll={infiniteScroll}
+        />
+      ) : (
+        <VariantStatusTable data={variantStatusData?.results || []} isLoading={isStatusLoading} />
+      )}
       {selectedProduct && (
         <EditProductModal
           isOpen={!!editId}

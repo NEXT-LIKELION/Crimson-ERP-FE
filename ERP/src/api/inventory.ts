@@ -279,3 +279,44 @@ export const mergeVariants = async (payload: {
 
 // 카테고리 목록 조회
 export const fetchCategories = () => api.get('/inventory/category/');
+
+// 월별 재고 현황 조회
+export const fetchVariantStatus = (params: {
+  year: number;
+  month: number;
+  page?: number;
+  ordering?: string;
+}) => {
+  return api.get('/inventory/variant-status/', { params });
+};
+
+// 엑셀 파일 업로드 (월별 재고 현황)
+export const uploadVariantStatusExcel = (file: File, year?: number, month?: number) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const params: { year?: number; month?: number } = {};
+  if (year) params.year = year;
+  if (month) params.month = month;
+
+  return api.post('/inventory/variants/upload-excel/', formData, {
+    params,
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
+// 월별 재고 현황 개별 항목 수정
+export const updateVariantStatus = (
+  variantCode: string,
+  data: {
+    warehouse_stock_start?: number;
+    store_stock_start?: number;
+    inbound_quantity?: number;
+    store_sales?: number;
+    online_sales?: number;
+  }
+) => {
+  return api.patch(`/inventory/variant-status/${variantCode}/`, data);
+};
