@@ -135,8 +135,12 @@ export const useChangePassword = () => {
   return useMutation({
     mutationFn: ({ employeeId, password }: { employeeId: number; password: string }) =>
       changePassword(employeeId, password),
+    onSuccess: () => {
+      alert('비밀번호 변경 성공');
+    },
     onError: (error) => {
       console.error('비밀번호 변경 실패:', error);
+      alert('비밀번호 변경 실패');
     },
   });
 };
