@@ -103,7 +103,11 @@ const OrdersPage: React.FC = () => {
     endDate: null,
   });
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  useEffect(() => {
+    console.log('currentPage', currentPage);
+  }, [currentPage]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10); // 주석 처리된 UI에서 사용 예정
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [debugInfo, setDebugInfo] = useState<{
     lastFetch: string;
@@ -114,17 +118,101 @@ const OrdersPage: React.FC = () => {
     dataLength: 0,
     error: null,
   });
-  const { data, isLoading, isError, error, refetch } = useOrder();
+
+  // searchFilters를 OrderApiParams 형식으로 변환
+  const orderApiParams = useMemo(() => {
+    const params: {
+      page?: number;
+      product_name?: string;
+      supplier?: string;
+      status?: string;
+      start_date?: string;
+      end_date?: string;
+    } = {
+      page: currentPage,
+    };
+
+    // 상품명 검색 (orderId 필터를 product_name으로 사용)
+    if (searchFilters.orderId) {
+      params.product_name = searchFilters.orderId;
+    }
+
+    // 공급업체 필터
+    if (searchFilters.supplier) {
+      params.supplier = searchFilters.supplier;
+    }
+
+    // 상태 필터
+    const statusMap: Record<string, string> = {
+      '승인 대기': 'PENDING',
+      승인됨: 'APPROVED',
+      취소됨: 'CANCELLED',
+      완료: 'COMPLETED',
+    };
+    if (searchFilters.status !== '모든 상태') {
+      const filterStatus = statusMap[searchFilters.status];
+      if (filterStatus) {
+        params.status = filterStatus;
+      }
+    }
+
+    // 날짜 필터
+    if (searchFilters.dateRange === '사용자 지정') {
+      if (searchFilters.startDate) {
+        params.start_date = searchFilters.startDate.toISOString().split('T')[0];
+      }
+      if (searchFilters.endDate) {
+        params.end_date = searchFilters.endDate.toISOString().split('T')[0];
+      }
+    } else if (searchFilters.dateRange !== '전체 기간') {
+      // 기존 고정 기간 처리
+      const today = new Date();
+      let startDate: Date;
+
+      switch (searchFilters.dateRange) {
+        case '최근 1개월':
+          startDate = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+          break;
+        case '최근 3개월':
+          startDate = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
+          break;
+        case '최근 6개월':
+          startDate = new Date(today.getFullYear(), today.getMonth() - 6, today.getDate());
+          break;
+        default:
+          startDate = new Date(0);
+      }
+      params.start_date = startDate.toISOString().split('T')[0];
+      params.end_date = today.toISOString().split('T')[0];
+    }
+
+    return params;
+  }, [currentPage, searchFilters]);
+
+  const { data, isLoading, isError, error, refetch } = useOrder(orderApiParams);
+  console.log('data', data);
   // isManager 대신 permissions.hasPermission('ORDER') 사용로 변경
   // const user = useAuthStore((state) => state.user); // 제거
   // const isManager = user?.role === 'MANAGER'; // 제거
+
+  const formatDate = useCallback((dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return '날짜 없음';
+      }
+      return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+    } catch {
+      return '날짜 오류';
+    }
+  }, []);
 
   useEffect(() => {
     if (data) {
       setDebugInfo((prev) => ({
         ...prev,
         lastFetch: new Date().toISOString(),
-        dataLength: data.data?.length || 0,
+        dataLength: data.data?.results?.length || 0,
         error: null,
       }));
     }
@@ -142,14 +230,28 @@ const OrdersPage: React.FC = () => {
   useEffect(() => {
     if (data?.data) {
       if (data.data.results) {
-        // 페이지네이션된 응답
-        setOrders(Array.isArray(data.data.results) ? data.data.results : []);
+        // 페이지네이션된 응답 - 날짜 형식 변환만 수행
+        const formattedOrders = (Array.isArray(data.data.results) ? data.data.results : []).map(
+          (order) =>
+            ({
+              ...order,
+              order_date: order.order_date ? formatDate(order.order_date) : '',
+            }) as Order
+        );
+        setOrders(formattedOrders);
       } else {
         // 기존 배열 응답 (호환성)
-        setOrders(Array.isArray(data.data) ? data.data : []);
+        const formattedOrders = (Array.isArray(data.data) ? data.data : []).map(
+          (order) =>
+            ({
+              ...order,
+              order_date: order.order_date ? formatDate(order.order_date) : '',
+            }) as Order
+        );
+        setOrders(formattedOrders);
       }
     }
-  }, [data]);
+  }, [data, formatDate]);
 
   useEffect(() => {
     fetchInventories({ page_size: 1000 }) // OrdersPage에서는 매핑용으로 많은 데이터 필요
@@ -185,135 +287,24 @@ const OrdersPage: React.FC = () => {
       });
   }, []);
 
-  const formatDate = useCallback((dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return '날짜 없음';
-      }
-      return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
-    } catch {
-      return '날짜 오류';
-    }
-  }, []);
-
-  const filteredOrders = useMemo(() => {
-    if (!Array.isArray(orders)) {
-      return [];
-    }
-    let result = [...orders];
-
-    if (searchFilters.orderId) {
-      result = result.filter((order) => {
-        if (!order.product_names) return false;
-
-        // product_names가 배열인 경우
-        if (Array.isArray(order.product_names)) {
-          return order.product_names.some((name) =>
-            String(name).toLowerCase().includes(searchFilters.orderId.toLowerCase())
-          );
-        }
-
-        // product_names가 문자열인 경우
-        return String(order.product_names)
-          .toLowerCase()
-          .includes(searchFilters.orderId.toLowerCase());
-      });
-    }
-
-    // 공급업체명으로 부분 검색 (대소문자 무시)
-    if (searchFilters.supplier) {
-      result = result.filter((order) =>
-        String(order.supplier).toLowerCase().includes(searchFilters.supplier.toLowerCase())
-      );
-    }
-
-    // 상태 필터링
-    const statusMap: Record<string, OrderStatus> = {
-      '승인 대기': 'PENDING',
-      승인됨: 'APPROVED',
-      취소됨: 'CANCELLED',
-      완료: 'COMPLETED',
-    };
-
-    if (searchFilters.status !== '모든 상태') {
-      const filterStatus = statusMap[searchFilters.status];
-      if (filterStatus) {
-        result = result.filter((order) => order.status === filterStatus);
-      }
-    }
-
-    // 날짜 필터링
-    if (searchFilters.dateRange === '사용자 지정') {
-      // 커스텀 날짜 범위 처리
-      if (searchFilters.startDate || searchFilters.endDate) {
-        result = result.filter((order) => {
-          if (!order.order_date) return false;
-          const orderDate = new Date(order.order_date);
-
-          let isValid = true;
-          if (searchFilters.startDate) {
-            const startDate = new Date(searchFilters.startDate);
-            startDate.setHours(0, 0, 0, 0);
-            isValid = isValid && orderDate >= startDate;
-          }
-          if (searchFilters.endDate) {
-            const endDate = new Date(searchFilters.endDate);
-            endDate.setHours(23, 59, 59, 999); // 해당 날짜 끝까지 포함
-            isValid = isValid && orderDate <= endDate;
-          }
-
-          return isValid;
-        });
-      }
-    } else if (searchFilters.dateRange !== '전체 기간') {
-      // 기존 고정 기간 처리
-      const today = new Date();
-      let startDate: Date;
-
-      switch (searchFilters.dateRange) {
-        case '최근 1개월':
-          startDate = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
-          break;
-        case '최근 3개월':
-          startDate = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
-          break;
-        case '최근 6개월':
-          startDate = new Date(today.getFullYear(), today.getMonth() - 6, today.getDate());
-          break;
-        default:
-          startDate = new Date(0);
-      }
-
-      result = result.filter((order) => {
-        if (!order.order_date) return false;
-        const orderDate = new Date(order.order_date);
-        return orderDate >= startDate && orderDate <= today;
-      });
-    }
-
-    // 날짜 형식 변환
-    result = result.map(
-      (order) =>
-        ({
-          ...order,
-          order_date: order.order_date ? formatDate(order.order_date) : '',
-        }) as Order
-    );
-
-    return result;
-  }, [orders, searchFilters, formatDate]);
-
+  // 서버 사이드 페이지네이션을 사용하므로 클라이언트 사이드 필터링/페이지네이션 제거
+  // 서버에서 받은 데이터를 그대로 사용
   const paginatedOrders = useMemo(() => {
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    return filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
-  }, [filteredOrders, currentPage, itemsPerPage]);
+    return orders;
+  }, [orders]);
 
   const totalPages = useMemo(
-    () => Math.ceil(filteredOrders.length / itemsPerPage),
-    [filteredOrders, itemsPerPage]
+    () => Math.ceil((data?.data?.count || 0) / itemsPerPage) || 1,
+    [data?.data?.count, itemsPerPage]
   );
+  useEffect(() => {
+    console.log('totalPages', totalPages);
+  }, [totalPages]);
+
+  // itemsPerPage가 변경되면 페이지를 1로 리셋
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [itemsPerPage]);
 
   const handleOpenOrderDetail = useCallback((orderId: number) => {
     setSelectedOrderId(orderId);
@@ -744,65 +735,101 @@ const OrdersPage: React.FC = () => {
             </thead>
             <tbody className='divide-y divide-gray-200 bg-white'>
               {paginatedOrders.length > 0 ? (
-                paginatedOrders.map((order) => {
-                  const isPending = order.status === 'PENDING';
-                  return (
-                    <tr
-                      key={order.id}
-                      className={`${
-                        isPending ? 'bg-yellow-50' : ''
-                      } transition-colors hover:bg-gray-50`}>
-                      <td className='px-4 py-4 text-center text-sm font-medium text-gray-900'>
-                        {Array.isArray(order.product_names)
-                          ? order.product_names.join(', ')
-                          : order.product_names || '-'}
-                      </td>
-                      <td className='px-4 py-4 text-center text-sm text-gray-500'>
-                        {order.supplier}
-                      </td>
-                      <td className='px-4 py-4 text-center text-sm text-gray-500'>
-                        {order.order_date}
-                      </td>
-                      <td className='px-4 py-4 text-center text-sm font-medium text-gray-900'>
-                        {formatCurrency(order.total_price)}
-                      </td>
-                      <td className='px-4 py-3.5 text-center'>{renderStatusBadge(order.status)}</td>
-                      <td className='px-4 py-4 text-center text-sm text-gray-500'>
-                        {order.manager}
-                      </td>
-                      <td className='px-7 py-3.5 text-center'>
-                        <button
-                          onClick={() => handleOpenOrderDetail(order.id)}
-                          className='rounded-md bg-indigo-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-indigo-700'
-                          aria-label={`${Array.isArray(order.product_names) ? order.product_names.join(', ') : order.product_names || '-'} 상세보기`}>
-                          상세보기
-                        </button>
-                      </td>
-                      <td className='px-6 py-3 text-center'>
-                        <button
-                          onClick={() => handleDownloadOrderExcel(order)}
-                          className='rounded p-2 text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-800'
-                          aria-label={`${Array.isArray(order.product_names) ? order.product_names.join(', ') : order.product_names || '-'} 다운로드`}>
-                          <FiDownload className='h-4 w-4' />
-                        </button>
-                      </td>
-                      <td className='px-6 py-3.5 text-center'>
-                        <button
-                          onClick={() => handleDeleteOrder(order)}
-                          className='mx-auto flex items-center justify-center rounded bg-red-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-red-700'
-                          aria-label={`${Array.isArray(order.product_names) ? order.product_names.join(', ') : order.product_names || '-'} 삭제`}>
-                          삭제
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
+                <>
+                  {paginatedOrders.map((order) => {
+                    const isPending = order.status === 'PENDING';
+                    return (
+                      <tr
+                        key={order.id}
+                        className={`${
+                          isPending ? 'bg-yellow-50' : ''
+                        } transition-colors hover:bg-gray-50`}>
+                        <td className='px-4 py-4 text-center text-sm font-medium text-gray-900'>
+                          {Array.isArray(order.product_names)
+                            ? order.product_names.join(', ')
+                            : order.product_names || '-'}
+                        </td>
+                        <td className='px-4 py-4 text-center text-sm text-gray-500'>
+                          {order.supplier}
+                        </td>
+                        <td className='px-4 py-4 text-center text-sm text-gray-500'>
+                          {order.order_date}
+                        </td>
+                        <td className='px-4 py-4 text-center text-sm font-medium text-gray-900'>
+                          {formatCurrency(order.total_price)}
+                        </td>
+                        <td className='px-4 py-3.5 text-center'>
+                          {renderStatusBadge(order.status)}
+                        </td>
+                        <td className='px-4 py-4 text-center text-sm text-gray-500'>
+                          {order.manager}
+                        </td>
+                        <td className='px-7 py-3.5 text-center'>
+                          <button
+                            onClick={() => handleOpenOrderDetail(order.id)}
+                            className='rounded-md bg-indigo-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-indigo-700'
+                            aria-label={`${Array.isArray(order.product_names) ? order.product_names.join(', ') : order.product_names || '-'} 상세보기`}>
+                            상세보기
+                          </button>
+                        </td>
+                        <td className='px-6 py-3 text-center'>
+                          <button
+                            onClick={() => handleDownloadOrderExcel(order)}
+                            className='rounded p-2 text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-800'
+                            aria-label={`${Array.isArray(order.product_names) ? order.product_names.join(', ') : order.product_names || '-'} 다운로드`}>
+                            <FiDownload className='h-4 w-4' />
+                          </button>
+                        </td>
+                        <td className='px-6 py-3.5 text-center'>
+                          <button
+                            onClick={() => handleDeleteOrder(order)}
+                            className='mx-auto flex items-center justify-center rounded bg-red-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-red-700'
+                            aria-label={`${Array.isArray(order.product_names) ? order.product_names.join(', ') : order.product_names || '-'} 삭제`}>
+                            삭제
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {/* 빈 행으로 테이블 높이 일정하게 유지 (항상 10개 행 표시) */}
+                  {Array.from({ length: Math.max(0, itemsPerPage - paginatedOrders.length) }).map(
+                    (_, index) => (
+                      <tr key={`empty-${index}`} className='h-[57px]'>
+                        <td className='px-4 py-4'></td>
+                        <td className='px-4 py-4'></td>
+                        <td className='px-4 py-4'></td>
+                        <td className='px-4 py-4'></td>
+                        <td className='px-4 py-3.5'></td>
+                        <td className='px-4 py-4'></td>
+                        <td className='px-7 py-3.5'></td>
+                        <td className='px-6 py-3'></td>
+                        <td className='px-6 py-3.5'></td>
+                      </tr>
+                    )
+                  )}
+                </>
               ) : (
-                <tr>
-                  <td colSpan={8} className='px-4 py-8 text-center text-sm text-gray-500'>
-                    검색 결과가 없습니다.
-                  </td>
-                </tr>
+                <>
+                  <tr>
+                    <td colSpan={9} className='px-4 py-8 text-center text-sm text-gray-500'>
+                      검색 결과가 없습니다.
+                    </td>
+                  </tr>
+                  {/* 빈 행으로 테이블 높이 일정하게 유지 (항상 10개 행 표시) */}
+                  {Array.from({ length: itemsPerPage - 1 }).map((_, index) => (
+                    <tr key={`empty-${index}`} className='h-[57px]'>
+                      <td className='px-4 py-4'></td>
+                      <td className='px-4 py-4'></td>
+                      <td className='px-4 py-4'></td>
+                      <td className='px-4 py-4'></td>
+                      <td className='px-4 py-3.5'></td>
+                      <td className='px-4 py-4'></td>
+                      <td className='px-7 py-3.5'></td>
+                      <td className='px-6 py-3'></td>
+                      <td className='px-6 py-3.5'></td>
+                    </tr>
+                  ))}
+                </>
               )}
             </tbody>
           </table>
@@ -811,7 +838,8 @@ const OrdersPage: React.FC = () => {
         {/* 페이지네이션 */}
         <div className='flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3'>
           <div className='flex items-center'>
-            <span className='text-sm text-gray-700'>항목당 표시</span>
+            {/* 페이지당 항목 수 선택 기능 (현재 주석 처리, 기본값 10개 사용) */}
+            {/* <span className='text-sm text-gray-700'>항목당 표시</span>
             <select
               className='mx-2 rounded-md border border-gray-300 bg-gray-100 px-2 py-1 text-sm'
               value={itemsPerPage}
@@ -821,7 +849,7 @@ const OrdersPage: React.FC = () => {
               <option value={20}>20</option>
               <option value={50}>50</option>
             </select>
-            <span className='text-sm text-gray-700'>/ 페이지</span>
+            <span className='text-sm text-gray-700'>/ 페이지</span> */}
           </div>
 
           <div className='flex items-center space-x-2'>
