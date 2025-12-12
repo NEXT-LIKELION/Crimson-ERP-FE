@@ -70,7 +70,6 @@ export const useSignup = (onSuccess?: () => void, onError?: (msg: string) => voi
         }
       }
       const translatedMsg = translateErrorMessage(msg);
-      console.log('실제 msg:', msg);
       if (onError) onError(translatedMsg);
       // 필요시 콜백 등 추가
     },
