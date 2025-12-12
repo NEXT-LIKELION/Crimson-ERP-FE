@@ -60,7 +60,6 @@ export const usePatchEmployee = () => {
 
     // 성공 시 전체 데이터 새로 가져오기
     onSuccess: (response, { employeeId, data }) => {
-
       // 현재 로그인한 사용자의 정보가 업데이트된 경우 authStore도 업데이트
       const currentUser = useAuthStore.getState().user;
       if (
