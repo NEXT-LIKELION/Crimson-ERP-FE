@@ -103,9 +103,6 @@ const OrdersPage: React.FC = () => {
     endDate: null,
   });
   const [currentPage, setCurrentPage] = useState<number>(1);
-  useEffect(() => {
-    console.log('currentPage', currentPage);
-  }, [currentPage]);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [itemsPerPage, setItemsPerPage] = useState<number>(10); // 주석 처리된 UI에서 사용 예정
   const [isExporting, setIsExporting] = useState<boolean>(false);
@@ -190,7 +187,6 @@ const OrdersPage: React.FC = () => {
   }, [currentPage, searchFilters]);
 
   const { data, isLoading, isError, error, refetch } = useOrder(orderApiParams);
-  console.log('data', data);
   // isManager 대신 permissions.hasPermission('ORDER') 사용로 변경
   // const user = useAuthStore((state) => state.user); // 제거
   // const isManager = user?.role === 'MANAGER'; // 제거
@@ -297,10 +293,6 @@ const OrdersPage: React.FC = () => {
     () => Math.ceil((data?.data?.count || 0) / itemsPerPage) || 1,
     [data?.data?.count, itemsPerPage]
   );
-  useEffect(() => {
-    console.log('totalPages', totalPages);
-  }, [totalPages]);
-
   // itemsPerPage가 변경되면 페이지를 1로 리셋
   useEffect(() => {
     setCurrentPage(1);
