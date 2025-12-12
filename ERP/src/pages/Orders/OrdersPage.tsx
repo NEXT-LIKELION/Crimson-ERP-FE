@@ -104,7 +104,8 @@ const OrdersPage: React.FC = () => {
   });
   const [currentPage, setCurrentPage] = useState<number>(1);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10); // 주석 처리된 UI에서 사용 예정
+  // const [itemsPerPage, setItemsPerPage] = useState<number>(10); // 주석 처리된 UI에서 사용 예정
+  const itemsPerPage = 10;
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [debugInfo, setDebugInfo] = useState<{
     lastFetch: string;
