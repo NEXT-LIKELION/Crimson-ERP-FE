@@ -52,12 +52,12 @@ const SidebarFooter: React.FC<SidebarFooterProps> = ({ collapsed }) => {
 
   return (
     <div
-      className={`flex cursor-pointer items-center border-t border-gray-200 px-4 py-4 hover:bg-gray-100 transition-colors ${
+      className={`flex cursor-pointer items-center border-t border-gray-200 px-4 py-4 transition-colors hover:bg-gray-100 ${
         collapsed ? 'justify-center' : ''
       }`}
       onClick={() => logoutMutation.mutate()}
       title={collapsed ? '로그아웃' : undefined}>
-      <FiLogOut className={`h-6 w-6 text-gray-600 flex-shrink-0 ${collapsed ? '' : 'mr-3'}`} />
+      <FiLogOut className={`h-6 w-6 flex-shrink-0 text-gray-600 ${collapsed ? '' : 'mr-3'}`} />
       {!collapsed && (
         <span className='text-sm leading-tight font-medium text-gray-600'>
           {logoutMutation.isPending ? '로그아웃 중...' : '로그아웃'}
@@ -91,7 +91,7 @@ const Sidebar: React.FC = () => {
             </div>
             <button
               onClick={toggleSidebar}
-              className='rounded p-1 hover:bg-gray-100 transition-colors'
+              className='rounded p-1 transition-colors hover:bg-gray-100'
               aria-label='사이드바 접기'>
               <FiMenu className='h-6 w-6 text-gray-600' />
             </button>
@@ -99,7 +99,7 @@ const Sidebar: React.FC = () => {
         ) : (
           <button
             onClick={toggleSidebar}
-            className='w-full rounded p-1 hover:bg-gray-100 transition-colors'
+            className='w-full rounded p-1 transition-colors hover:bg-gray-100'
             aria-label='사이드바 펼치기'>
             <FiMenu className='h-6 w-6 text-gray-600' />
           </button>

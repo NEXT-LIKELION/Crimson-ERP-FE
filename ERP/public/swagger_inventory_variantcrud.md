@@ -1,585 +1,172 @@
 inventory - Variant CRUD
 
+GET /inventory/variants/ 상품 상세 목록 조회 inventory_variants_list
 
-GET
-/inventory/variants/
-상품 상세 목록 조회
-inventory_variants_list
+POST : 상품 상세 추가 GET : 쿼리 파라미터 기반 Product Variant 조회
 
-POST : 상품 상세 추가
-GET : 쿼리 파라미터 기반 Product Variant 조회
+Parameters Try it out Name Description ordering string (query) 정렬 필드 (-price, stock 등)
 
-Parameters
-Try it out
-Name	Description
-ordering
-string
-(query)
-정렬 필드 (-price, stock 등)
+ordering stock_lt integer (query) 재고 수량 미만
 
-ordering
-stock_lt
-integer
-(query)
-재고 수량 미만
+stock_lt stock_gt integer (query) 재고 수량 초과
 
-stock_lt
-stock_gt
-integer
-(query)
-재고 수량 초과
+stock_gt sales_min integer (query) 최소 매출
 
-stock_gt
-sales_min
-integer
-(query)
-최소 매출
+sales_min sales_max integer (query) 최대 매출
 
-sales_min
-sales_max
-integer
-(query)
-최대 매출
+sales_max page integer (query) 페이지 번호 (default = 1)
 
-sales_max
-page
-integer
-(query)
-페이지 번호 (default = 1)
+page product_name string (query) 상품명 검색 (부분일치)
 
-page
-product_name
-string
-(query)
-상품명 검색 (부분일치)
+product_name category string (query) 상품 카테고리 (부분일치)
 
-product_name
-category
-string
-(query)
-상품 카테고리 (부분일치)
+category channel string (query) 채널 필터 (online/offline)
 
-category
-channel
-string
-(query)
-채널 필터 (online/offline)
+channel Responses Response content type
 
-channel
-Responses
-Response content type
+application/json Code Description 200 Example Value Model [ProductVariant{ product_id Product
+idstring title: Product id readOnly: true minLength: 1 offline_name Offline namestring title:
+Offline name readOnly: true minLength: 1 online_name Online namestring title: Online name readOnly:
+true minLength: 1 big_category Big categorystring title: Big category readOnly: true minLength: 1
+middle_category Middle categorystring title: Middle category readOnly: true minLength: 1 category
+Categorystring title: Category readOnly: true minLength: 1 variant_code* Variant codestring title:
+Variant code maxLength: 50 minLength: 1 option* Optionstring title: Option maxLength: 255 minLength:
+1 stock Stockinteger title: Stock readOnly: true price Priceinteger title: Price maximum: 2147483647
+minimum: 0 min_stock Min stockinteger title: Min stock maximum: 2147483647 minimum: 0 description
+Descriptionstring title: Description readOnly: true minLength: 1 memo Memostring title: Memo
+channels [ readOnly: true [...]]
 
-application/json
-Code	Description
-200	
-Example Value
-Model
-[ProductVariant{
-product_id	Product idstring
-title: Product id
-readOnly: true
-minLength: 1
-offline_name	Offline namestring
-title: Offline name
-readOnly: true
-minLength: 1
-online_name	Online namestring
-title: Online name
-readOnly: true
-minLength: 1
-big_category	Big categorystring
-title: Big category
-readOnly: true
-minLength: 1
-middle_category	Middle categorystring
-title: Middle category
-readOnly: true
-minLength: 1
-category	Categorystring
-title: Category
-readOnly: true
-minLength: 1
-variant_code*	Variant codestring
-title: Variant code
-maxLength: 50
-minLength: 1
-option*	Optionstring
-title: Option
-maxLength: 255
-minLength: 1
-stock	Stockinteger
-title: Stock
-readOnly: true
-price	Priceinteger
-title: Price
-maximum: 2147483647
-minimum: 0
-min_stock	Min stockinteger
-title: Min stock
-maximum: 2147483647
-minimum: 0
-description	Descriptionstring
-title: Description
-readOnly: true
-minLength: 1
-memo	Memostring
-title: Memo
-channels	[
-readOnly: true
-[...]]
- 
 }]
 
-POST
-/inventory/variants/
-상품 상세 정보 생성 (방패 필통 크림슨)
-inventory_variants_create
+POST /inventory/variants/ 상품 상세 정보 생성 (방패 필통 크림슨) inventory_variants_create
 
 기존 product_id가 있으면 연결하고, 없으면 새로 생성한 뒤 variant_code 자동 생성
 
-Parameters
-Try it out
-Name	Description
-data *
-object
-(body)
-Example Value
-Model
-{
-product_id*	string
-example: P00000YC
-상품 식별자
+Parameters Try it out Name Description data _ object (body) Example Value Model { product_id_ string
+example: P00000YC 상품 식별자
 
-name*	string
-example: 방패 필통
-상품명
+name\* string example: 방패 필통 상품명
 
-category	string
-example: 문구
-상품 카테고리
+category string example: 문구 상품 카테고리
 
-option	string
-example: 색상 : 크림슨
-옵션
+option string example: 색상 : 크림슨 옵션
 
-stock	integer
-example: 100
-초기 재고
+stock integer example: 100 초기 재고
 
-price	integer
-example: 5900
-판매가
+price integer example: 5900 판매가
 
-min_stock	integer
-example: 5
-최소 재고
+min_stock integer example: 5 최소 재고
 
-description	string
-example: 튼튼한 크림슨 컬러 방패 필통
-설명
+description string example: 튼튼한 크림슨 컬러 방패 필통 설명
 
-memo	string
-example: 23FW 신상품
-메모
+memo string example: 23FW 신상품 메모
 
-channels	[
-example: List [ "online", "offline" ]
-판매 채널 태그
+channels [ example: List [ "online", "offline" ] 판매 채널 태그
 
 string]
- 
-}
-example: OrderedMap { "product_id": "P00000YC", "name": "방패 필통", "category": "문구", "option": "색상 : 크림슨", "stock": 100, "price": 5900, "min_stock": 5, "description": "튼튼한 크림슨 컬러 방패 필통", "memo": "23FW 신상품", "channels": List [ "online", "offline" ] }
-Responses
-Response content type
 
-application/json
-Code	Description
-201	
-Example Value
-Model
-ProductVariant{
-product_id	string
-title: Product id
-readOnly: true
-minLength: 1
-offline_name	string
-title: Offline name
-readOnly: true
-minLength: 1
-online_name	string
-title: Online name
-readOnly: true
-minLength: 1
-big_category	string
-title: Big category
-readOnly: true
-minLength: 1
-middle_category	string
-title: Middle category
-readOnly: true
-minLength: 1
-category	string
-title: Category
-readOnly: true
-minLength: 1
-variant_code*	string
-title: Variant code
-maxLength: 50
-minLength: 1
-option*	string
-title: Option
-maxLength: 255
-minLength: 1
-stock	integer
-title: Stock
-readOnly: true
-price	integer
-title: Price
-maximum: 2147483647
-minimum: 0
-min_stock	integer
-title: Min stock
-maximum: 2147483647
-minimum: 0
-description	string
-title: Description
-readOnly: true
-minLength: 1
-memo	string
-title: Memo
-channels	[
-readOnly: true
-string
-minLength: 1]
- 
-}
-400	
-Bad Request
+} example: OrderedMap { "product_id": "P00000YC", "name": "방패 필통", "category": "문구", "option":
+"색상 : 크림슨", "stock": 100, "price": 5900, "min_stock": 5, "description": "튼튼한 크림슨 컬러
+방패 필통", "memo": "23FW 신상품", "channels": List [ "online", "offline" ] } Responses Response
+content type
 
+application/json Code Description 201 Example Value Model ProductVariant{ product_id string title:
+Product id readOnly: true minLength: 1 offline_name string title: Offline name readOnly: true
+minLength: 1 online_name string title: Online name readOnly: true minLength: 1 big_category string
+title: Big category readOnly: true minLength: 1 middle_category string title: Middle category
+readOnly: true minLength: 1 category string title: Category readOnly: true minLength: 1
+variant_code* string title: Variant code maxLength: 50 minLength: 1 option* string title: Option
+maxLength: 255 minLength: 1 stock integer title: Stock readOnly: true price integer title: Price
+maximum: 2147483647 minimum: 0 min_stock integer title: Min stock maximum: 2147483647 minimum: 0
+description string title: Description readOnly: true minLength: 1 memo string title: Memo channels [
+readOnly: true string minLength: 1]
 
-GET
-/inventory/variants/export/
-전체 상품 상세 정보 Export (엑셀용)
-inventory_variants_export_list
+} 400 Bad Request
 
-Parameters
-Try it out
-Name	Description
-ordering
-string
-(query)
-ordering
-stock_lt
-integer
-(query)
-stock_lt
-stock_gt
-integer
-(query)
-stock_gt
-sales_min
-integer
-(query)
-sales_min
-sales_max
-integer
-(query)
-sales_max
-product_name
-string
-(query)
-product_name
-category
-string
-(query)
-category
-channel
-string
-(query)
-채널 필터 (online/offline)
+GET /inventory/variants/export/ 전체 상품 상세 정보 Export (엑셀용) inventory_variants_export_list
 
-channel
-Responses
-Response content type
+Parameters Try it out Name Description ordering string (query) ordering stock_lt integer (query)
+stock_lt stock_gt integer (query) stock_gt sales_min integer (query) sales_min sales_max integer
+(query) sales_max product_name string (query) product_name category string (query) category channel
+string (query) 채널 필터 (online/offline)
 
-application/json
-Code	Description
-200	
-Example Value
-Model
-[ProductVariant{
-product_id	Product idstring
-title: Product id
-readOnly: true
-minLength: 1
-offline_name	Offline namestring
-title: Offline name
-readOnly: true
-minLength: 1
-online_name	Online namestring
-title: Online name
-readOnly: true
-minLength: 1
-big_category	Big categorystring
-title: Big category
-readOnly: true
-minLength: 1
-middle_category	Middle categorystring
-title: Middle category
-readOnly: true
-minLength: 1
-category	Categorystring
-title: Category
-readOnly: true
-minLength: 1
-variant_code*	Variant codestring
-title: Variant code
-maxLength: 50
-minLength: 1
-option*	Optionstring
-title: Option
-maxLength: 255
-minLength: 1
-stock	Stockinteger
-title: Stock
-readOnly: true
-price	Priceinteger
-title: Price
-maximum: 2147483647
-minimum: 0
-min_stock	Min stockinteger
-title: Min stock
-maximum: 2147483647
-minimum: 0
-description	Descriptionstring
-title: Description
-readOnly: true
-minLength: 1
-memo	Memostring
-title: Memo
-channels	[
-readOnly: true
-[...]]
- 
+channel Responses Response content type
+
+application/json Code Description 200 Example Value Model [ProductVariant{ product_id Product
+idstring title: Product id readOnly: true minLength: 1 offline_name Offline namestring title:
+Offline name readOnly: true minLength: 1 online_name Online namestring title: Online name readOnly:
+true minLength: 1 big_category Big categorystring title: Big category readOnly: true minLength: 1
+middle_category Middle categorystring title: Middle category readOnly: true minLength: 1 category
+Categorystring title: Category readOnly: true minLength: 1 variant_code* Variant codestring title:
+Variant code maxLength: 50 minLength: 1 option* Optionstring title: Option maxLength: 255 minLength:
+1 stock Stockinteger title: Stock readOnly: true price Priceinteger title: Price maximum: 2147483647
+minimum: 0 min_stock Min stockinteger title: Min stock maximum: 2147483647 minimum: 0 description
+Descriptionstring title: Description readOnly: true minLength: 1 memo Memostring title: Memo
+channels [ readOnly: true [...]]
+
 }]
 
-GET
-/inventory/variants/{variant_code}/
-세부 품목 정보 조회 (방패필통 크림슨)
+GET /inventory/variants/{variant_code}/ 세부 품목 정보 조회 (방패필통 크림슨)
 inventory_variants_read
 
 GET / PATCH / DELETE: 특정 상품의 상세 정보 접근
 
-Parameters
-Try it out
-Name	Description
-variant_code *
-string
-(path)
-조회할 variant_code (예: P00000XN000A)
+Parameters Try it out Name Description variant_code \* string (path) 조회할 variant_code (예:
+P00000XN000A)
 
-variant_code
-Responses
-Response content type
+variant_code Responses Response content type
 
-application/json
-Code	Description
-200	
-Example Value
-Model
-ProductVariant{
-product_id	string
-title: Product id
-readOnly: true
-minLength: 1
-offline_name	string
-title: Offline name
-readOnly: true
-minLength: 1
-online_name	string
-title: Online name
-readOnly: true
-minLength: 1
-big_category	string
-title: Big category
-readOnly: true
-minLength: 1
-middle_category	string
-title: Middle category
-readOnly: true
-minLength: 1
-category	string
-title: Category
-readOnly: true
-minLength: 1
-variant_code*	string
-title: Variant code
-maxLength: 50
-minLength: 1
-option*	string
-title: Option
-maxLength: 255
-minLength: 1
-stock	integer
-title: Stock
-readOnly: true
-price	integer
-title: Price
-maximum: 2147483647
-minimum: 0
-min_stock	integer
-title: Min stock
-maximum: 2147483647
-minimum: 0
-description	string
-title: Description
-readOnly: true
-minLength: 1
-memo	string
-title: Memo
-channels	[
-readOnly: true
-string
-minLength: 1]
- 
-}
-404	
-Not Found
+application/json Code Description 200 Example Value Model ProductVariant{ product_id string title:
+Product id readOnly: true minLength: 1 offline_name string title: Offline name readOnly: true
+minLength: 1 online_name string title: Online name readOnly: true minLength: 1 big_category string
+title: Big category readOnly: true minLength: 1 middle_category string title: Middle category
+readOnly: true minLength: 1 category string title: Category readOnly: true minLength: 1
+variant_code* string title: Variant code maxLength: 50 minLength: 1 option* string title: Option
+maxLength: 255 minLength: 1 stock integer title: Stock readOnly: true price integer title: Price
+maximum: 2147483647 minimum: 0 min_stock integer title: Min stock maximum: 2147483647 minimum: 0
+description string title: Description readOnly: true minLength: 1 memo string title: Memo channels [
+readOnly: true string minLength: 1]
 
+} 404 Not Found
 
-PATCH
-/inventory/variants/{variant_code}/
-세부 품목 정보 수정 (방패필통 크림슨)
+PATCH /inventory/variants/{variant_code}/ 세부 품목 정보 수정 (방패필통 크림슨)
 inventory_variants_partial_update
 
 GET / PATCH / DELETE: 특정 상품의 상세 정보 접근
 
-Parameters
-Try it out
-Name	Description
-data *
-object
-(body)
-Example Value
-Model
-{
-product_id*	string
-example: P00000YC
-name*	string
-example: 방패 필통
-option*	string
-example: 색상 : 크림슨
-price*	integer
-example: 5000
-min_stock	integer
-example: 4
-description	string
-example:
-memo	string
-example:
- 
-}
-variant_code *
-string
-(path)
-수정할 variant_code (예: P00000YC000A)
+Parameters Try it out Name Description data _ object (body) Example Value Model { product_id_ string
+example: P00000YC name* string example: 방패 필통 option* string example: 색상 : 크림슨 price\*
+integer example: 5000 min_stock integer example: 4 description string example: memo string example:
 
-variant_code
-Responses
-Response content type
+} variant_code \* string (path) 수정할 variant_code (예: P00000YC000A)
 
-application/json
-Code	Description
-200	
-Example Value
-Model
-ProductVariant{
-product_id	string
-title: Product id
-readOnly: true
-minLength: 1
-offline_name	string
-title: Offline name
-readOnly: true
-minLength: 1
-online_name	string
-title: Online name
-readOnly: true
-minLength: 1
-big_category	string
-title: Big category
-readOnly: true
-minLength: 1
-middle_category	string
-title: Middle category
-readOnly: true
-minLength: 1
-category	string
-title: Category
-readOnly: true
-minLength: 1
-variant_code*	string
-title: Variant code
-maxLength: 50
-minLength: 1
-option*	string
-title: Option
-maxLength: 255
-minLength: 1
-stock	integer
-title: Stock
-readOnly: true
-price	integer
-title: Price
-maximum: 2147483647
-minimum: 0
-min_stock	integer
-title: Min stock
-maximum: 2147483647
-minimum: 0
-description	string
-title: Description
-readOnly: true
-minLength: 1
-memo	string
-title: Memo
-channels	[
-readOnly: true
-string
-minLength: 1]
- 
-}
-400	
-Bad Request
+variant_code Responses Response content type
 
-404	
-Not Found
+application/json Code Description 200 Example Value Model ProductVariant{ product_id string title:
+Product id readOnly: true minLength: 1 offline_name string title: Offline name readOnly: true
+minLength: 1 online_name string title: Online name readOnly: true minLength: 1 big_category string
+title: Big category readOnly: true minLength: 1 middle_category string title: Middle category
+readOnly: true minLength: 1 category string title: Category readOnly: true minLength: 1
+variant_code* string title: Variant code maxLength: 50 minLength: 1 option* string title: Option
+maxLength: 255 minLength: 1 stock integer title: Stock readOnly: true price integer title: Price
+maximum: 2147483647 minimum: 0 min_stock integer title: Min stock maximum: 2147483647 minimum: 0
+description string title: Description readOnly: true minLength: 1 memo string title: Memo channels [
+readOnly: true string minLength: 1]
 
+} 400 Bad Request
 
-DELETE
-/inventory/variants/{variant_code}/
-세부 품목 정보 삭제 (방패필통 크림슨)
+404 Not Found
+
+DELETE /inventory/variants/{variant_code}/ 세부 품목 정보 삭제 (방패필통 크림슨)
 inventory_variants_delete
 
 GET / PATCH / DELETE: 특정 상품의 상세 정보 접근
 
-Parameters
-Try it out
-Name	Description
-variant_code *
-string
-(path)
-삭제할 variant_code (예: P00000XN000A)
+Parameters Try it out Name Description variant_code \* string (path) 삭제할 variant_code (예:
+P00000XN000A)
 
-variant_code
-Responses
-Response content type
+variant_code Responses Response content type
 
-application/json
-Code	Description
-204	
-삭제 완료
+application/json Code Description 204 삭제 완료
 
-404	
-Not Found
+404 Not Found
