@@ -35,8 +35,7 @@ export const useProductSearch = (filters?: ProductSearchFilters) => {
         page: pageParam,
         page_size: 20, // 페이지당 20개
       };
-      console.log('🔍 Product Search API Request:', finalParams);
-      const response = await fetchInventories(finalParams);
+      const response = await api.get('/inventory/variants/', { params: finalParams });
       return response.data;
     },
     getNextPageParam: (lastPage: ProductSearchPageData) => {

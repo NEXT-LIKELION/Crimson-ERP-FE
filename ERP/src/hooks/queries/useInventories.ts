@@ -157,12 +157,10 @@ export const useInventories = (filters?: {
   // 수동 fetchNextPage - React Query의 queryClient를 사용해서 직접 새 페이지 데이터 추가
   const fetchNextPage = async () => {
     if (!hasNextPage || query.isFetching) {
-      console.log('⏸️ fetchNextPage blocked:', { hasNextPage, isFetching: query.isFetching });
       return;
     }
 
     const nextPageParam = query.data?.pages?.length ? query.data.pages.length + 1 : 2;
-    console.log('🔘 Manual fetchNextPage called for page:', nextPageParam);
 
     try {
       const finalParams = {
@@ -170,7 +168,6 @@ export const useInventories = (filters?: {
         page: nextPageParam,
         page_size: 20,
       };
-      console.log('🔍 API Request Parameters (수동 페치):', finalParams);
       const response = await fetchInventories(finalParams);
 
       // QueryClient를 통해 기존 데이터에 새 페이지 추가
