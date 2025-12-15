@@ -1,4 +1,5 @@
 // src/types/product.ts
+import type { components } from './api';
 
 // ProductVariant (API 응답용 - 읽기 전용 필드들)
 export interface ProductVariant {
@@ -32,7 +33,7 @@ export interface InventorySnapshot {
     upload_reason?: string;
     filename?: string;
     filesize?: number;
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
   };
 }
 
@@ -205,31 +206,8 @@ export interface CreatedProductData extends ProductFormData {
   product_id: string;
 }
 
-// 월별 재고 현황 타입 (10월 크림슨스토어 재고목록.xlsx 구조)
-export interface ProductVariantStatus {
-  year: number; // 연도
-  month: number; // 월
-  big_category: string; // 대분류
-  middle_category: string; // 중분류
-  category: string; // 카테고리
-  description: string; // 설명
-  online_name: string; // 온라인 품목명
-  offline_name: string; // 오프라인 품목명
-  option: string; // 옵션
-  detail_option: string; // 상세옵션
-  product_code: string; // 상품코드 (product_id)
-  variant_code: string; // 품목코드 (variant_code)
-  warehouse_stock_start: number; // 월초창고 재고
-  store_stock_start: number; // 월초매장 재고
-  initial_stock: number; // 기초재고 (계산값)
-  inbound_quantity: number; // 당월입고물량
-  store_sales: number; // 매장 판매물량
-  online_sales: number; // 쇼핑몰 판매물량
-  total_sales: number; // 판매물량 합 (계산값)
-  stock_adjustment: number; // 재고조정
-  stock_adjustment_reason: string; // 재고조정사유
-  ending_stock: number; // 기말 재고 (계산값)
-}
+// 월별 재고 현황 타입 (백엔드 OpenAPI 스키마 재사용)
+export type ProductVariantStatus = components['schemas']['ProductVariantStatus'];
 
 // 월별 재고 현황 API 응답
 export type ProductVariantStatusResponse = PaginatedResponse<ProductVariantStatus>;
