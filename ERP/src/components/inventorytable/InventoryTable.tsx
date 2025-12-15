@@ -4,20 +4,21 @@ import { MdOutlineDownload } from 'react-icons/md';
 import { RxCaretSort } from 'react-icons/rx';
 import { HiArrowUp } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
-import { Product } from '../../types/product';
+import type { ApiProductVariant } from '../../hooks/queries/useInventories';
 
 // Custom type for table data with string variant_id
-interface TableProduct extends Omit<Product, 'variant_id'> {
+interface TableProduct extends ApiProductVariant {
   variant_id: string;
   orderCount: number;
   returnCount: number;
   totalSales: string;
   status: string;
   category: string;
+  sales?: number | string; // sales 필드 추가 (정렬용)
 }
 
 interface InventoryTableProps {
-  inventories: Product[];
+  inventories: ApiProductVariant[];
   onDelete: (productId: string) => Promise<void>;
   onExportToExcel: () => void;
   lastUpdateDate?: string | { onlineDate?: string; offlineDate?: string }; // POS 마지막 업데이트 날짜 (채널별 구분)
@@ -221,8 +222,18 @@ const InventoryTable = ({
 
         // totalSales는 문자열이므로 원본 sales 값으로 정렬
         if (key === 'totalSales') {
-          const aSales = (a as any).sales || 0;
-          const bSales = (b as any).sales || 0;
+          const aSales =
+            typeof a.sales === 'number'
+              ? a.sales
+              : typeof a.sales === 'string'
+                ? Number(a.sales.replace(/\D/g, '')) || 0
+                : 0;
+          const bSales =
+            typeof b.sales === 'number'
+              ? b.sales
+              : typeof b.sales === 'string'
+                ? Number(b.sales.replace(/\D/g, '')) || 0
+                : 0;
           return order === 'asc' ? aSales - bSales : bSales - aSales;
         }
 
@@ -299,14 +310,14 @@ const InventoryTable = ({
               />
               <SortableHeader
                 label='품목코드'
-                sortKey='variant_id'
-                sortOrder={sortConfig.key === 'variant_id' ? sortConfig.order : null}
+                sortKey='variant_code'
+                sortOrder={sortConfig.key === 'variant_code' ? sortConfig.order : null}
                 onSort={handleSort}
               />
               <SortableHeader
                 label='상품명'
-                sortKey='name'
-                sortOrder={sortConfig.key === 'name' ? sortConfig.order : null}
+                sortKey='offline_name'
+                sortOrder={sortConfig.key === 'offline_name' ? sortConfig.order : null}
                 onSort={handleSort}
               />
               <SortableHeader
@@ -359,8 +370,8 @@ const InventoryTable = ({
                   Number(product.stock) < Number(product.min_stock) ? 'bg-red-50' : 'bg-white'
                 }`}>
                 <td className='px-4 py-2'>{product.product_id}</td>
-                <td className='px-4 py-2'>{product.variant_id}</td>
-                <td className='px-4 py-2'>{product.name}</td>
+                <td className='px-4 py-2'>{product.variant_code}</td>
+                <td className='px-4 py-2'>{product.offline_name}</td>
                 <td className='px-4 py-2'>{product.category}</td>
                 <td className='px-4 py-2'>{product.option}</td>
                 <td className='px-4 py-2'>{Number(product.price).toLocaleString()}원</td>

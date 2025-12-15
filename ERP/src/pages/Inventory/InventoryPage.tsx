@@ -9,7 +9,7 @@ import { FiInfo } from 'react-icons/fi';
 import InputField from '../../components/inputfield/InputField';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import VariantStatusTable from '../../components/table/VariantStatusTable';
-import { useInventories } from '../../hooks/queries/useInventories';
+import { useInventories, type ApiProductVariant } from '../../hooks/queries/useInventories';
 import { useVariantStatus } from '../../hooks/queries/useVariantStatus';
 import {
   deleteProductVariant,
@@ -199,7 +199,7 @@ const InventoryPage = () => {
   }, [searchParams, isInitialized]);
 
   const {
-    data,
+    data: rawData,
     isLoading,
     error,
     refetch,
@@ -208,6 +208,9 @@ const InventoryPage = () => {
     isFetchingNextPage,
     infiniteScroll,
   } = useInventories(appliedFilters);
+
+  // data 타입을 명시적으로 보장 (ApiProductVariant[])
+  const data: ApiProductVariant[] = useMemo(() => rawData ?? [], [rawData]);
 
   // 월별 재고 현황 데이터 조회
   const {
@@ -288,25 +291,30 @@ const InventoryPage = () => {
   );
 
   const editId = searchParams.get('edit');
-  const selectedProduct = useMemo(() => {
+  const selectedProduct = useMemo(():
+    | (ApiProductVariant & {
+        variant_id: string;
+        orderCount: number;
+        returnCount: number;
+        totalSales: string;
+      })
+    | null => {
     if (!data || !editId) return null;
     // 백엔드에서 이미 평면화된 데이터를 직접 사용
-    const result = data.find(
-      (item: { variant_code: string }) => item.variant_code === String(editId)
-    );
+    const result = data.find((item) => item.variant_code === String(editId));
     if (!result) return null;
 
     const processedResult = {
       ...result,
       cost_price: result.cost_price || 0,
       min_stock: result.min_stock || 0,
-      variant_id: result.variant_code,
+      variant_id: result.variant_code || '',
       orderCount: result.order_count ?? 0,
       returnCount: result.return_count ?? 0,
-      totalSales: result.sales ? `${result.sales.toLocaleString()}원` : '0원',
+      totalSales: result.sales ? `${String(result.sales).replace(/\D/g, '')}` : '0',
       description: result.description || '',
       memo: result.memo || '',
-      suppliers: result.suppliers || [],
+      suppliers: result.suppliers || '',
     };
 
     return processedResult;
@@ -333,10 +341,12 @@ const InventoryPage = () => {
     }
   };
 
-  const handleUpdateSave = async (updatedProduct: Product) => {
+  const handleUpdateSave = async (updatedProduct: Product | ApiProductVariant) => {
     try {
-      // variant_code를 우선 사용하고, 없으면 variant_id 사용
-      const variantIdentifier = updatedProduct.variant_code || updatedProduct.variant_id;
+      // variant_code를 우선 사용하고, 없으면 variant_id 사용 (Product 타입 호환성)
+      const variantIdentifier =
+        updatedProduct.variant_code ||
+        ('variant_id' in updatedProduct ? updatedProduct.variant_id : undefined);
       if (!variantIdentifier) {
         throw new Error('variant 식별자를 찾을 수 없습니다.');
       }
@@ -638,6 +648,7 @@ const InventoryPage = () => {
 
   // 모든 탭에서 동일한 API 기반 데이터 사용
   const tabData = data ?? [];
+  console.log('tabData', tabData);
 
   if (error) return <p>에러가 발생했습니다!</p>;
 
@@ -781,7 +792,7 @@ const InventoryPage = () => {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className='rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500'>
+              className='rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none'>
               {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
                 <option key={year} value={year}>
                   {year}년
@@ -791,7 +802,7 @@ const InventoryPage = () => {
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className='rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500'>
+              className='rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none'>
               {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
                 <option key={month} value={month}>
                   {month}월
@@ -813,6 +824,7 @@ const InventoryPage = () => {
       {/* 검색 필터 - 상품 관리 모드일 때만 표시 */}
       {viewMode === 'variant' && (
         <div className='mb-6'>
+          {/* TODO: 이 부분 작동 한번 더 확인. 현재 엉망임 */}
           <InputField
             productName={productName}
             onProductNameChange={setProductName}
@@ -830,58 +842,58 @@ const InventoryPage = () => {
             maxSales={maxSales}
             onMaxSalesChange={setMaxSales}
             onSearch={() => {
-            // 유효성 검사
-            const minSalesValue = parseInt(minSales) || 0;
-            const maxSalesValue = parseInt(maxSales) || 5000000;
-            const minStockValue = parseInt(minStock) || 0;
-            const maxStockValue = maxStock ? parseInt(maxStock) : 1000;
+              // 유효성 검사
+              const minSalesValue = parseInt(minSales) || 0;
+              const maxSalesValue = parseInt(maxSales) || 5000000;
+              const minStockValue = parseInt(minStock) || 0;
+              const maxStockValue = maxStock ? parseInt(maxStock) : 1000;
 
-            if (minSalesValue > maxSalesValue) {
-              alert('판매합계 최소값이 최대값보다 클 수 없습니다.');
-              return;
-            }
+              if (minSalesValue > maxSalesValue) {
+                alert('판매합계 최소값이 최대값보다 클 수 없습니다.');
+                return;
+              }
 
-            if (minStockValue > maxStockValue) {
-              alert('재고수량 최소값이 최대값보다 클 수 없습니다.');
-              return;
-            }
+              if (minStockValue > maxStockValue) {
+                alert('재고수량 최소값이 최대값보다 클 수 없습니다.');
+                return;
+              }
 
-            // 검색 실행
-            const newFilters: Record<string, string | number> = {};
+              // 검색 실행
+              const newFilters: Record<string, string | number> = {};
 
-            // 채널 필터 (탭에 따라)
-            if (activeTab !== 'all') {
-              newFilters.channel = activeTab;
-            }
+              // 채널 필터 (탭에 따라)
+              if (activeTab !== 'all') {
+                newFilters.channel = activeTab;
+              }
 
-            // 상품명 필터
-            if (productName.trim()) {
-              newFilters.product_name = productName.trim();
-            }
+              // 상품명 필터
+              if (productName.trim()) {
+                newFilters.product_name = productName.trim();
+              }
 
-            // 카테고리 필터
-            if (category && category !== '모든 카테고리') {
-              newFilters.category = category;
-            }
+              // 카테고리 필터
+              if (category && category !== '모든 카테고리') {
+                newFilters.category = category;
+              }
 
-            // 상태 필터
-            if (status && status !== '모든 상태') {
-              newFilters.status = status;
-            }
+              // 상태 필터
+              if (status && status !== '모든 상태') {
+                newFilters.status = status;
+              }
 
-            // 재고 필터 (기본값이 아닌 경우만)
-            const isDefaultStock = minStockValue === 0 && maxStockValue === 1000;
-            if (!isDefaultStock) {
-              newFilters.min_stock = minStockValue;
-              newFilters.max_stock = maxStockValue;
-            }
+              // 재고 필터 (기본값이 아닌 경우만)
+              const isDefaultStock = minStockValue === 0 && maxStockValue === 1000;
+              if (!isDefaultStock) {
+                newFilters.min_stock = minStockValue;
+                newFilters.max_stock = maxStockValue;
+              }
 
-            // 판매 필터 (기본값이 아닌 경우만)
-            const isDefaultSales = minSalesValue === 0 && maxSalesValue === 5000000;
-            if (!isDefaultSales) {
-              newFilters.min_sales = minSalesValue;
-              newFilters.max_sales = maxSalesValue;
-            }
+              // 판매 필터 (기본값이 아닌 경우만)
+              const isDefaultSales = minSalesValue === 0 && maxSalesValue === 5000000;
+              if (!isDefaultSales) {
+                newFilters.min_sales = minSalesValue;
+                newFilters.max_sales = maxSalesValue;
+              }
 
               setAppliedFilters(newFilters);
               updateURL(newFilters);
@@ -911,7 +923,7 @@ const InventoryPage = () => {
         <EditProductModal
           isOpen={!!editId}
           onClose={handleCloseModal}
-          product={selectedProduct}
+          product={selectedProduct as Product}
           onSave={handleUpdateSave}
           onStockAdjustClick={handleStockClick}
         />

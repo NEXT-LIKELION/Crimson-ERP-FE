@@ -37,7 +37,7 @@ const InputField: React.FC<InputFieldProps> = ({
   onProductNameChange,
   category,
   onCategoryChange,
-  categoryOptions = ['모든 카테고리', '일반', '특가', '한정판'],
+  categoryOptions,
   status,
   onStatusChange,
   minStock,
@@ -120,9 +120,10 @@ const InputField: React.FC<InputFieldProps> = ({
         </div>
         <div className='flex flex-col'>
           <p className='text-sm font-semibold text-gray-700'>카테고리</p>
+          {/*TODO: 재고 카테고리 조회 파트에서 어떤 카테고리를 보일지 여기서 정해야 함. 현재는 작동 x */}
           <SelectInput
             defaultText='모든 카테고리'
-            options={categoryOptions}
+            options={categoryOptions || []}
             value={category}
             onChange={onCategoryChange}
           />
