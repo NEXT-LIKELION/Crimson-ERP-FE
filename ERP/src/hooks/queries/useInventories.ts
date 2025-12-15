@@ -1,14 +1,51 @@
 import { useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { fetchInventories } from '../../api/inventory';
-import { Product, ProductVariant } from '../../types/product';
+import type { components } from '../../types/api';
+
+// OpenAPI 스키마 기반 Variant 타입 (실제 응답 구조)
+export type ApiProductVariant = components['schemas']['ProductVariant'] & {
+  // 백엔드 응답에 name 필드가 포함되는 경우를 위한 확장
+  name?: string;
+  // 백엔드에서 추가로 내려주는 필드들 (스키마에는 없지만 실제 응답에 포함될 수 있음)
+  product_id?: string;
+  category?: string;
+  cost_price?: number;
+  order_count?: number;
+  return_count?: number;
+  sales?: number | string;
+  suppliers?: string;
+};
 
 // API 응답 타입 정의
 interface InventoryPageData {
-  results: ProductVariant[];
+  results: ApiProductVariant[];
   count: number;
   next: string | null;
   previous: string | null;
+}
+
+// useInventories 훅의 반환 타입 정의
+export interface UseInventoriesReturn {
+  data: ApiProductVariant[];
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => void;
+  fetchNextPage: () => Promise<void>;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  infiniteScroll: {
+    totalLoaded: number;
+    totalFiltered: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    isLoadingMore: boolean;
+  };
+  pagination: {
+    count: number;
+    next: string | null;
+    previous: string | null;
+  };
 }
 
 export const useInventories = (filters?: {
@@ -19,7 +56,7 @@ export const useInventories = (filters?: {
   max_stock?: number;
   min_sales?: number;
   max_sales?: number;
-}) => {
+}): UseInventoriesReturn => {
   const queryClient = useQueryClient();
 
   // API 파라미터명 변환
@@ -89,7 +126,7 @@ export const useInventories = (filters?: {
 
   // 프론트엔드 상태 필터링 적용 (점진적으로 서버로 이동 예정)
   const filteredData = useMemo(() => {
-    return allData.filter((item: Product) => {
+    return allData.filter((item: ApiProductVariant) => {
       // 상태 필터 확인 (나머지 필터는 이미 서버에서 처리됨)
       if (frontendStatus && frontendStatus !== '모든 상태') {
         const stock = item.stock;

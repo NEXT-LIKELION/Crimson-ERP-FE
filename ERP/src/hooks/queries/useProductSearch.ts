@@ -1,15 +1,22 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { api } from '../../api/axios';
-import { ProductOption, ProductVariant } from '../../types/product';
 import { useMemo } from 'react';
+import { fetchInventories } from '../../api/inventory';
+import { ProductOption } from '../../types/product';
+import type { components } from '../../types/api';
+
+// OpenAPI 스키마 기반 Variant 타입 (실제 응답 구조)
+type ApiProductVariant = components['schemas']['ProductVariant'] & {
+  // 백엔드 응답에 name 필드가 포함되는 경우를 위한 확장
+  name?: string;
+};
 
 interface ProductSearchFilters {
   product_name?: string;
 }
 
-// API 응답 타입 정의
+// API 응답 타입 정의 (페이지네이션 래퍼 + OpenAPI Variant 스키마)
 interface ProductSearchPageData {
-  results: ProductVariant[];
+  results: ApiProductVariant[];
   count: number;
   next: string | null;
   previous: string | null;
@@ -29,7 +36,7 @@ export const useProductSearch = (filters?: ProductSearchFilters) => {
         page_size: 20, // 페이지당 20개
       };
       console.log('🔍 Product Search API Request:', finalParams);
-      const response = await api.get('/inventory/variants/', { params: finalParams });
+      const response = await fetchInventories(finalParams);
       return response.data;
     },
     getNextPageParam: (lastPage: ProductSearchPageData) => {
@@ -59,12 +66,16 @@ export const useProductSearch = (filters?: ProductSearchFilters) => {
 
   // product_id 기준 중복 제거하여 ProductOption 형태로 변환 (기존 방식)
   const productOptions = useMemo(() => {
-    const uniqueProducts = new Map();
-    allData.forEach((variant: ProductVariant) => {
-      if (!uniqueProducts.has(variant.product_id)) {
-        uniqueProducts.set(variant.product_id, {
-          product_id: variant.product_id,
-          name: variant.name,
+    const uniqueProducts = new Map<string, ProductOption>();
+
+    allData.forEach((variant: ApiProductVariant) => {
+      const productId = variant.product_id ?? variant.variant_code;
+      const displayName = variant.name ?? variant.offline_name ?? variant.online_name ?? productId;
+
+      if (!uniqueProducts.has(productId)) {
+        uniqueProducts.set(productId, {
+          product_id: productId,
+          name: displayName,
         });
       }
     });
