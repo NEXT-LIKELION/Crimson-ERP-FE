@@ -6,29 +6,19 @@ GET
 재고 조정 이력 조회
 inventory_adjustments_list
 
-variant_code 기준 필터링 및 페이지네이션 지원
+재고 조정 이력을 조회합니다.
 
+variant_code, year, month 기준 필터 가능
+최신순 정렬
 Parameters
 Try it out
 Name	Description
-ordering
-string
-(query)
-Which field to use when ordering the results.
-
-ordering
 page
 integer
 (query)
-페이지 번호 (기본=1)
+A page number within the paginated result set.
 
 page
-variant_code
-string
-(query)
-조회할 variant_code (예: P00000YC000A)
-
-variant_code
 Responses
 Response content type
 
@@ -57,13 +47,18 @@ created_at	Created at[...]
  
 }
 
-PUT
-/inventory/variants/stock/{variant_code}/
-재고량 수동 업데이트
-inventory_variants_stock_update
+POST
+/inventory/adjustments/
+재고 조정 등록
+inventory_adjustments_create
 
-실사 재고량을 입력하여 재고를 업데이트하고 조정 이력을 자동 생성합니다.
+재고 조정을 등록합니다.
 
+처리 흐름:
+
+InventoryAdjustment 생성 (이력 저장)
+해당 year/month의 ProductVariantStatus 조회 또는 생성
+stock_adjustment에 delta 누적 반영
 Parameters
 Try it out
 Name	Description
@@ -73,33 +68,75 @@ object
 Example Value
 Model
 {
-actual_stock*	integer
-example: 125
-실사한 실제 재고량
+variant_code*	string
+example: P00001-A
+조정 대상 variant_code
 
-reason	string
-example: 2025년 2분기 실사
+year	integer
+example: 2025
+조정 연도 (미입력 시 현재 연도)
+
+month	integer
+example: 12
+조정 월 (미입력 시 현재 월)
+
+delta*	integer
+example: -5
+재고 조정 수량 (음수/양수 가능)
+
+reason*	string
+example: 분기 실사 재고 차이
 조정 사유
 
-updated_by	string
-example: 유시진
-작업자
+created_by*	string
+example: 김정현
+조정 작업자
 
  
 }
-variant_code *
-string
-(path)
-수정할 variant_code (예: P00000YC000A)
-
-variant_code
 Responses
 Response content type
 
 application/json
 Code	Description
-200	
-Stock updated successfully
+201	
+Example Value
+Model
+InventoryAdjustment{
+id	integer
+title: ID
+readOnly: true
+variant_code	string
+title: Variant code
+readOnly: true
+minLength: 1
+product_id	string
+title: Product id
+readOnly: true
+minLength: 1
+product_name	string
+title: Product name
+readOnly: true
+minLength: 1
+delta	integer
+title: Delta
+readOnly: true
+보정 수량: 양수/음수 모두 가능
 
-404	
-Not Found
+reason	string
+title: Reason
+readOnly: true
+minLength: 1
+보정 사유 설명
+
+created_by	string
+title: Created by
+readOnly: true
+minLength: 1
+보정 작업 수행자(사용자명 또는 ID)
+
+created_at	string($date-time)
+title: Created at
+readOnly: true
+ 
+}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import TextInput from '../input/TextInput';
 import SelectInput from '../input/SelectInput';
+import CategorySelect from '../input/CategorySelect';
 import PrimaryButton from '../button/PrimaryButton';
 import { MdSearch, MdRefresh } from 'react-icons/md';
 import Slider from 'rc-slider';
@@ -120,12 +121,13 @@ const InputField: React.FC<InputFieldProps> = ({
         </div>
         <div className='flex flex-col'>
           <p className='text-sm font-semibold text-gray-700'>카테고리</p>
-          {/*TODO: 재고 카테고리 조회 파트에서 어떤 카테고리를 보일지 여기서 정해야 함. 현재는 작동 x */}
-          <SelectInput
-            defaultText='모든 카테고리'
-            options={categoryOptions || []}
+          <CategorySelect
             value={category}
             onChange={onCategoryChange}
+            options={categoryOptions || []}
+            placeholder='카테고리 선택'
+            searchable={false}
+            showCount={false}
           />
         </div>
         <div className='flex flex-col'>

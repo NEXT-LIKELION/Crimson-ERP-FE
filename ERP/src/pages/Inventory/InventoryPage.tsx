@@ -30,7 +30,7 @@ import InventoryRollbackModal from '../../components/modal/InventoryRollbackModa
 import { Product, InventorySnapshot } from '../../types/product';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { uploadInventoryExcel } from '../../api/upload';
 import { usePermissions } from '../../hooks/usePermissions';
 import * as XLSX from 'xlsx';
@@ -149,7 +149,7 @@ const InventoryPage = () => {
     const urlMaxSales = searchParams.get('max_sales') || '5000000';
 
     setProductName(urlName);
-    setCategory(urlCategory === '모든 카테고리' ? '' : urlCategory);
+    setCategory(urlCategory);
     setStatus(urlStatus === '모든 상태' ? '' : urlStatus);
     setMinStock(urlMinStock);
     setMaxStock(urlMaxStock);
@@ -158,7 +158,7 @@ const InventoryPage = () => {
 
     const filters: Record<string, string | number> = {};
     if (urlName) filters.product_name = urlName;
-    if (urlCategory && urlCategory !== '모든 카테고리') filters.category = urlCategory;
+    if (urlCategory) filters.category = urlCategory;
     if (urlStatus && urlStatus !== '모든 상태') filters.status = urlStatus;
     if (urlMinStock !== '0' || urlMaxStock !== '1000') {
       filters.min_stock = parseInt(urlMinStock);
@@ -204,25 +204,21 @@ const InventoryPage = () => {
   const [allMergeData, setAllMergeData] = useState<unknown[]>([]);
   const [isMergeDataLoading, setIsMergeDataLoading] = useState(false);
 
-  // 카테고리 목록 상태 관리
-  const [categoryOptions, setCategoryOptions] = useState<string[]>(['모든 카테고리']);
+  // 카테고리 목록 조회 (React Query 사용)
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
+    gcTime: 1000 * 60 * 10, // 10분간 가비지 컬렉션 방지
+  });
 
-  // 카테고리 목록 불러오기
-  const loadCategories = async () => {
-    try {
-      const response = await fetchCategories();
-      const categories = response.data || [];
-      setCategoryOptions(['모든 카테고리', ...categories.sort()]);
-    } catch (error) {
-      console.error('카테고리 목록 로드 실패:', error);
-      setCategoryOptions(['모든 카테고리']);
-    }
-  };
-
-  // 컴포넌트 마운트 시 카테고리 목록 로드
-  useEffect(() => {
-    loadCategories();
-  }, []);
+  // 카테고리 옵션 처리 (중복 제거 및 정렬)
+  const categoryOptions = useMemo(() => {
+    const categories = categoriesData?.data || [];
+    // 중복 제거 및 정렬
+    const uniqueCategories = [...new Set(categories)].sort();
+    return uniqueCategories;
+  }, [categoriesData]);
 
   // 병합 모달이 열릴 때만 데이터 로드 (lazy loading)
   const loadMergeData = async () => {
@@ -307,6 +303,7 @@ const InventoryPage = () => {
       await queryClient.invalidateQueries({ queryKey: ['productOptions'] });
       await queryClient.invalidateQueries({ queryKey: ['products'] });
       await queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      await queryClient.invalidateQueries({ queryKey: ['categories'] }); // 카테고리 목록도 새로고침
 
       // 데이터 새로고침
       await refetch();
@@ -355,6 +352,7 @@ const InventoryPage = () => {
       alert('상품이 성공적으로 수정되었습니다.');
       handleCloseModal();
       await queryClient.invalidateQueries({ queryKey: ['inventories'] });
+      await queryClient.invalidateQueries({ queryKey: ['categories'] }); // 카테고리 목록도 새로고침
       await refetch();
     } catch (err) {
       alert('상품 수정 중 오류가 발생했습니다: ' + getErrorMessage(err));
@@ -835,7 +833,7 @@ const InventoryPage = () => {
               }
 
               // 카테고리 필터
-              if (category && category !== '모든 카테고리') {
+              if (category) {
                 newFilters.category = category;
               }
 

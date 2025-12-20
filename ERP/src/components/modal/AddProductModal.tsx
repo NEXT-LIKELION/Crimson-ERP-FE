@@ -57,7 +57,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
   });
 
   // 동적 카테고리 옵션 생성 + 새 카테고리 추가 옵션
-  const existingCategories = categoriesData?.data || ['일반', '한정', '신상품'];
+  const existingCategories = categoriesData?.data || [];
   const categoryOptions = [...existingCategories, '직접 입력'];
 
   const [isCustomCategory, setIsCustomCategory] = useState(false);
