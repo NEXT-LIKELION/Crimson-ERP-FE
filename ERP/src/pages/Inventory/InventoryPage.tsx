@@ -4,8 +4,7 @@ import PrimaryButton from '../../components/button/PrimaryButton';
 import SecondaryButton from '../../components/button/SecondaryButton';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { FaPlus, FaFileArrowUp, FaCodePullRequest } from 'react-icons/fa6';
-import { FaHistory, FaUndo } from 'react-icons/fa';
-import { FiInfo } from 'react-icons/fi';
+import { FaHistory } from 'react-icons/fa';
 import InputField from '../../components/inputfield/InputField';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import VariantStatusTable from '../../components/table/VariantStatusTable';
@@ -18,7 +17,6 @@ import {
   fetchAllInventoriesForMerge,
   fetchFilteredInventoriesForExport,
   fetchCategories,
-  uploadVariantStatusExcel,
 } from '../../api/inventory';
 import { useSearchParams } from 'react-router-dom';
 import EditProductModal from '../../components/modal/EditProductModal';
@@ -26,17 +24,12 @@ import AddProductModal from '../../components/modal/AddProductModal';
 import MergeVariantsModal from '../../components/modal/MergeVariantsModal';
 import StockAdjustmentModal from '../../components/modal/StockAdjustmentModal';
 import StockHistoryModal from '../../components/modal/StockHistoryModal';
-import InventoryRollbackModal from '../../components/modal/InventoryRollbackModal';
-import { Product, InventorySnapshot } from '../../types/product';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { Product } from '../../types/product';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { uploadInventoryExcel } from '../../api/upload';
 import { usePermissions } from '../../hooks/usePermissions';
 import * as XLSX from 'xlsx';
 import { useAdjustStock } from '../../hooks/queries/useStockAdjustment';
-import { useInventorySnapshots } from '../../hooks/queries/useInventorySnapshots';
-import { getAllChannelUpdateDates, detectUploadChannel } from '../../utils/snapshotAnalyzer';
 import { getErrorMessage } from '../../utils/errorHandling';
 
 const InventoryPage = () => {
@@ -48,65 +41,12 @@ const InventoryPage = () => {
   const [isMergeModalOpen, setMergeModalOpen] = useState(false);
   const [isStockAdjustModalOpen, setStockAdjustModalOpen] = useState(false);
   const [isStockHistoryModalOpen, setStockHistoryModalOpen] = useState(false);
-  const [isRollbackModalOpen, setRollbackModalOpen] = useState(false);
   const [isPOSUploading, setIsPOSUploading] = useState(false);
 
   // 월별 재고 현황 관련 state
   const [viewMode, setViewMode] = useState<'variant' | 'status'>('variant'); // 'variant': 기존 뷰, 'status': 월별 현황
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [isExcelUploading, setIsExcelUploading] = useState(false);
-  const excelFileInputRef = useRef<HTMLInputElement>(null);
-
-  // POS 마지막 업데이트 날짜 조회 (기존 방식 유지)
-  const { data: snapshotsData } = useInventorySnapshots({ page: 1 });
-
-  // 스냅샷에 채널 정보 추가 (기존 데이터 활용)
-  const snapshotsWithChannel = useMemo(() => {
-    if (!snapshotsData?.results || snapshotsData.results.length === 0) {
-      return [];
-    }
-
-    const snapshots = snapshotsData.results;
-
-    return snapshots.map((snapshot: InventorySnapshot) => {
-      const detectedChannel = detectUploadChannel(snapshot);
-
-      return {
-        ...snapshot,
-        detectedChannel,
-      };
-    });
-  }, [snapshotsData]);
-
-  const channelUpdateDates = useMemo(() => {
-    return getAllChannelUpdateDates(snapshotsWithChannel);
-  }, [snapshotsWithChannel]);
-
-  const lastUpdateDates = useMemo(() => {
-    const formatDate = (dateString: string | null) => {
-      if (!dateString) return null;
-      const date = new Date(dateString);
-      return isNaN(date.getTime()) ? null : format(date, 'yyyy-MM-dd', { locale: ko });
-    };
-
-    const result = {
-      onlineDate: formatDate(channelUpdateDates.onlineDate),
-      offlineDate: formatDate(channelUpdateDates.offlineDate),
-      allDate: formatDate(channelUpdateDates.allDate),
-    };
-
-    return result;
-  }, [channelUpdateDates]);
-
-  // 현재 탭에 따른 업데이트 날짜 결정 (전체 탭만 사용)
-  const currentUpdateDate = useMemo(() => {
-    // 전체 탭인 경우 온라인/오프라인 날짜 객체 반환
-    const result: { onlineDate?: string; offlineDate?: string } = {};
-    if (lastUpdateDates.onlineDate) result.onlineDate = lastUpdateDates.onlineDate;
-    if (lastUpdateDates.offlineDate) result.offlineDate = lastUpdateDates.offlineDate;
-    return Object.keys(result).length > 0 ? result : undefined;
-  }, [lastUpdateDates]);
 
   const [selectedVariantForStock, setSelectedVariantForStock] = useState<{
     variant_code: string;
@@ -191,7 +131,6 @@ const InventoryPage = () => {
   const {
     data: variantStatusData,
     isLoading: isStatusLoading,
-    refetch: refetchStatus,
   } = useVariantStatus({
     year: selectedYear,
     month: selectedMonth,
@@ -406,9 +345,8 @@ const InventoryPage = () => {
     try {
       await uploadInventoryExcel(file);
       alert('POS 데이터가 성공적으로 업로드되었습니다.');
-      // 재고 데이터와 스냅샷 캐시 무효화
+      // 재고 데이터 캐시 무효화
       queryClient.invalidateQueries({ queryKey: ['inventories'] });
-      queryClient.invalidateQueries({ queryKey: ['inventorySnapshots'] });
       await refetch();
     } catch (err) {
       alert('POS 데이터 업로드 중 오류 발생: ' + getErrorMessage(err));
@@ -416,31 +354,6 @@ const InventoryPage = () => {
       setIsPOSUploading(false);
       e.target.value = '';
     }
-  };
-
-  // 월별 재고 현황 엑셀 업로드
-  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsExcelUploading(true);
-    try {
-      await uploadVariantStatusExcel(file, selectedYear, selectedMonth);
-      alert(`${selectedYear}년 ${selectedMonth}월 재고 현황이 성공적으로 업로드되었습니다.`);
-      // 월별 재고 현황 캐시 무효화
-      queryClient.invalidateQueries({ queryKey: ['variantStatus'] });
-      await refetchStatus();
-    } catch (err) {
-      alert('엑셀 업로드 중 오류 발생: ' + getErrorMessage(err));
-      console.log(err);
-    } finally {
-      setIsExcelUploading(false);
-      e.target.value = '';
-    }
-  };
-
-  const handleExcelButtonClick = () => {
-    excelFileInputRef.current?.click();
   };
 
   const handleReset = () => {
@@ -624,7 +537,6 @@ const InventoryPage = () => {
     <div className='relative p-6'>
       {isLoading && <LoadingSpinner overlay text='재고 데이터를 불러오는 중...' />}
       {isPOSUploading && <LoadingSpinner overlay text='POS 데이터를 업로드하는 중...' />}
-      {isExcelUploading && <LoadingSpinner overlay text='엑셀 데이터를 업로드하는 중...' />}
       <div className='mb-4 flex items-center justify-between'>
         <div className='flex items-center space-x-4'>
           <h1 className='text-2xl font-bold'>재고 관리</h1>
@@ -671,65 +583,11 @@ const InventoryPage = () => {
                 icon={<FaHistory size={16} />}
                 onClick={() => setStockHistoryModalOpen(true)}
               />
-              <SecondaryButton
-                text='POS 롤백'
-                icon={<FaUndo size={16} />}
-                onClick={() => setRollbackModalOpen(true)}
-              />
-              <div className='flex flex-col items-end gap-1'>
-                <div className='flex items-center gap-2'>
-                  <PrimaryButton
-                    text='POS 데이터 업로드'
-                    icon={<FaFileArrowUp size={16} />}
-                    onClick={handlePOSButtonClick}
-                    disabled={isPOSUploading}
-                  />
-                  <div className='group relative flex items-center'>
-                    <FiInfo
-                      className='h-4 w-4 cursor-help text-gray-500 hover:text-gray-700'
-                      aria-label='파일명 규칙 안내'
-                    />
-                    <div className='invisible absolute top-6 right-0 z-50 w-72 rounded-lg bg-gray-900 p-3 text-xs text-white shadow-lg group-hover:visible'>
-                      <div className='mb-2 font-semibold'>파일명 규칙</div>
-                      <div className='space-y-1'>
-                        <p>
-                          • 파일명에{' '}
-                          <span className='rounded bg-gray-800 px-1 font-mono'>_online</span> 또는{' '}
-                          <span className='rounded bg-gray-800 px-1 font-mono'>_offline</span>을
-                          반드시 포함해주세요
-                        </p>
-                        <p className='text-gray-300'>예시:</p>
-                        <p className='rounded bg-gray-800 px-2 py-1 font-mono text-xs'>
-                          재고_online_20250115.xlsx
-                        </p>
-                        <p className='rounded bg-gray-800 px-2 py-1 font-mono text-xs'>
-                          POS데이터_offline_0115.xlsx
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <span className='text-xs text-gray-500'>
-                  파일명: *_online.xlsx 또는 *_offline.xlsx
-                </span>
-              </div>
-            </>
-          )}
-          {viewMode === 'status' && (
-            <>
               <PrimaryButton
-                text='엑셀 업로드'
+                text='POS 데이터 업로드'
                 icon={<FaFileArrowUp size={16} />}
-                onClick={handleExcelButtonClick}
-                disabled={isExcelUploading}
-              />
-              <SecondaryButton
-                text='엑셀 다운로드'
-                icon={<FaFileArrowUp size={16} />}
-                onClick={() => {
-                  // TODO: 엑셀 다운로드 기능 구현
-                  alert('엑셀 다운로드 기능은 추후 구현 예정입니다.');
-                }}
+                onClick={handlePOSButtonClick}
+                disabled={isPOSUploading}
               />
             </>
           )}
@@ -740,14 +598,6 @@ const InventoryPage = () => {
             accept='.xlsx,.xls'
             className='hidden'
             onChange={handlePOSUpload}
-          />
-          <input
-            ref={excelFileInputRef}
-            id='excelUploadInput'
-            type='file'
-            accept='.xlsx,.xls'
-            className='hidden'
-            onChange={handleExcelUpload}
           />
         </div>
       </div>
@@ -870,7 +720,6 @@ const InventoryPage = () => {
           inventories={tabData}
           onDelete={handleVariantDelete}
           onExportToExcel={handleExportToExcel}
-          lastUpdateDate={currentUpdateDate}
           // 무한 스크롤 관련 props
           fetchNextPage={fetchNextPage}
           hasNextPage={hasNextPage}
@@ -920,13 +769,6 @@ const InventoryPage = () => {
         <StockHistoryModal
           isOpen={isStockHistoryModalOpen}
           onClose={() => setStockHistoryModalOpen(false)}
-        />
-      )}
-      {isRollbackModalOpen && (
-        <InventoryRollbackModal
-          isOpen={isRollbackModalOpen}
-          onClose={() => setRollbackModalOpen(false)}
-          onSuccess={refetch}
         />
       )}
 

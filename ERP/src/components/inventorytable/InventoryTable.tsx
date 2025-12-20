@@ -21,7 +21,6 @@ interface InventoryTableProps {
   inventories: ApiProductVariant[];
   onDelete: (productId: string) => Promise<void>;
   onExportToExcel: () => void;
-  lastUpdateDate?: string | { onlineDate?: string; offlineDate?: string }; // POS 마지막 업데이트 날짜 (채널별 구분)
   // 무한 스크롤 관련 props
   fetchNextPage: () => void;
   hasNextPage: boolean;
@@ -73,7 +72,6 @@ const InventoryTable = ({
   inventories,
   onDelete,
   onExportToExcel,
-  lastUpdateDate,
   fetchNextPage,
   hasNextPage,
   isFetchingNextPage,
@@ -252,28 +250,6 @@ const InventoryTable = ({
   // 백엔드에서 이미 페이지네이션된 데이터를 받으므로 슬라이싱하지 않음
   const paginatedData = data;
 
-  // 업데이트 날짜 렌더링 함수
-  const renderUpdateDate = () => {
-    if (!lastUpdateDate) return null;
-
-    if (typeof lastUpdateDate === 'string') {
-      // 단일 탭 (온라인 또는 오프라인)
-      return `(${lastUpdateDate} 업데이트)`;
-    }
-
-    if (typeof lastUpdateDate === 'object') {
-      // 전체 탭 (온라인/오프라인 구분 표시)
-      const { onlineDate, offlineDate } = lastUpdateDate;
-      const parts = [];
-
-      if (onlineDate) parts.push(`온라인: ${onlineDate}`);
-      if (offlineDate) parts.push(`오프라인: ${offlineDate}`);
-
-      return parts.length > 0 ? `(${parts.join(', ')} 업데이트)` : null;
-    }
-
-    return null;
-  };
 
   return (
     <div className='rounded-lg bg-white p-6 shadow-md'>
@@ -281,9 +257,6 @@ const InventoryTable = ({
       <div className='mb-4 flex items-center justify-between'>
         <h2 className='flex items-center text-lg font-semibold'>
           상품별 재고 현황
-          {renderUpdateDate() && (
-            <span className='ml-2 text-sm font-normal text-gray-500'>{renderUpdateDate()}</span>
-          )}
         </h2>
         <div className='flex items-center space-x-3 text-gray-500'>
           <span className='text-sm'>

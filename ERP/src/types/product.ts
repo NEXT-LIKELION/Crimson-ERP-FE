@@ -21,22 +21,6 @@ export interface ProductVariant {
   channels: string[]; // 판매 채널 목록
 }
 
-// 스냅샷 관련 타입 정의
-export interface InventorySnapshot {
-  id: number;
-  created_at: string;
-  reason: string;
-  actor?: string;
-  meta?: {
-    upload_channel?: 'online' | 'offline';
-    upload_type?: string;
-    upload_reason?: string;
-    filename?: string;
-    filesize?: number;
-    [key: string]: string | number | boolean | null | undefined;
-  };
-}
-
 // ProductVariant 생성용
 export interface ProductVariantCreate {
   product_id: string; // readOnly

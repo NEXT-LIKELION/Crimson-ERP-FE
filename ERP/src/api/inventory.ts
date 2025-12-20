@@ -226,42 +226,6 @@ export const fetchStockAdjustments = (params?: { page?: number; variant_code?: s
     });
 };
 
-// 스냅샷 목록 조회
-export const fetchInventorySnapshots = (params?: { page?: number }) => {
-  return api
-    .get('/inventory/snapshot', { params })
-    .then((response) => {
-      return response;
-    })
-    .catch((error) => {
-      throw error;
-    });
-};
-
-// 스냅샷 상세 조회
-export const fetchInventorySnapshot = (id: number) => {
-  return api
-    .get(`/inventory/snapshot/${id}/`)
-    .then((response) => {
-      return response;
-    })
-    .catch((error) => {
-      throw error;
-    });
-};
-
-// 재고 롤백
-export const rollbackToSnapshot = (snapshotId: number, reason?: string) => {
-  return api
-    .post(`/inventory/rollback/${snapshotId}/`, { reason })
-    .then((response) => {
-      return response;
-    })
-    .catch((error) => {
-      throw error;
-    });
-};
-
 // 상품 코드 병합
 export const mergeVariants = async (payload: {
   target_variant_code: string;
@@ -305,22 +269,6 @@ export const fetchVariantStatus = (params: {
   return api.get('/inventory/variant-status/', { params });
 };
 
-// 엑셀 파일 업로드 (월별 재고 현황)
-export const uploadVariantStatusExcel = (file: File, year?: number, month?: number) => {
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const params: { year?: number; month?: number } = {};
-  if (year) params.year = year;
-  if (month) params.month = month;
-
-  return api.post('/inventory/variants/upload-excel/', formData, {
-    params,
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-};
 
 // 월별 재고 현황 개별 항목 수정
 export const updateVariantStatus = (
