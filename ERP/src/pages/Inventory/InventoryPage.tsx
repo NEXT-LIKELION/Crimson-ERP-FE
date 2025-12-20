@@ -27,7 +27,6 @@ import MergeVariantsModal from '../../components/modal/MergeVariantsModal';
 import StockAdjustmentModal from '../../components/modal/StockAdjustmentModal';
 import StockHistoryModal from '../../components/modal/StockHistoryModal';
 import InventoryRollbackModal from '../../components/modal/InventoryRollbackModal';
-import InventoryTabs from '../../components/tabs/InventoryTabs';
 import { Product, InventorySnapshot } from '../../types/product';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -51,7 +50,6 @@ const InventoryPage = () => {
   const [isStockHistoryModalOpen, setStockHistoryModalOpen] = useState(false);
   const [isRollbackModalOpen, setRollbackModalOpen] = useState(false);
   const [isPOSUploading, setIsPOSUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'offline' | 'online'>('all');
 
   // 월별 재고 현황 관련 state
   const [viewMode, setViewMode] = useState<'variant' | 'status'>('variant'); // 'variant': 기존 뷰, 'status': 월별 현황
@@ -101,38 +99,15 @@ const InventoryPage = () => {
     return result;
   }, [channelUpdateDates]);
 
-  // 현재 탭에 따른 업데이트 날짜 결정
+  // 현재 탭에 따른 업데이트 날짜 결정 (전체 탭만 사용)
   const currentUpdateDate = useMemo(() => {
-    if (activeTab === 'all') {
-      // 전체 탭인 경우 온라인/오프라인 날짜 객체 반환
-      const result: { onlineDate?: string; offlineDate?: string } = {};
-      if (lastUpdateDates.onlineDate) result.onlineDate = lastUpdateDates.onlineDate;
-      if (lastUpdateDates.offlineDate) result.offlineDate = lastUpdateDates.offlineDate;
-      return Object.keys(result).length > 0 ? result : undefined;
-    } else if (activeTab === 'online') {
-      return lastUpdateDates.onlineDate || undefined;
-    } else if (activeTab === 'offline') {
-      return lastUpdateDates.offlineDate || undefined;
-    }
-    return undefined;
-  }, [activeTab, lastUpdateDates]);
+    // 전체 탭인 경우 온라인/오프라인 날짜 객체 반환
+    const result: { onlineDate?: string; offlineDate?: string } = {};
+    if (lastUpdateDates.onlineDate) result.onlineDate = lastUpdateDates.onlineDate;
+    if (lastUpdateDates.offlineDate) result.offlineDate = lastUpdateDates.offlineDate;
+    return Object.keys(result).length > 0 ? result : undefined;
+  }, [lastUpdateDates]);
 
-  const handleTabChange = (tab: 'all' | 'offline' | 'online') => {
-    setActiveTab(tab);
-
-    // 탭 변경 시 현재 필터에 채널 정보 추가/제거
-    const newFilters = { ...appliedFilters };
-    if (tab === 'all') {
-      // 전체 탭이면 채널 필터 제거
-      delete newFilters.channel;
-    } else {
-      // 채널 필터링 활성화
-      newFilters.channel = tab;
-    }
-
-    setAppliedFilters(newFilters);
-    updateURL(newFilters);
-  };
   const [selectedVariantForStock, setSelectedVariantForStock] = useState<{
     variant_code: string;
     product_id: string;
@@ -479,12 +454,8 @@ const InventoryPage = () => {
     setMinSales('0');
     setMaxSales('5000000');
 
-    // 현재 탭이 전체가 아닌 경우 채널 필터는 유지
+    // 전체 탭만 사용하므로 채널 필터 없이 초기화
     const baseFilters: Record<string, string | number> = {};
-    if (activeTab !== 'all') {
-      // TODO: 백엔드 구현 후 실제 채널 필터링 추가
-      // baseFilters.channel = activeTab;
-    }
 
     setAppliedFilters(baseFilters);
     updateURL(baseFilters);
@@ -815,10 +786,6 @@ const InventoryPage = () => {
         </div>
       )}
 
-      {/* 탭 메뉴 - 상품 관리 모드일 때만 표시 */}
-      {viewMode === 'variant' && (
-        <InventoryTabs activeTab={activeTab} onTabChange={handleTabChange} />
-      )}
 
       {/* 검색 필터 - 상품 관리 모드일 때만 표시 */}
       {viewMode === 'variant' && (
@@ -860,10 +827,7 @@ const InventoryPage = () => {
               // 검색 실행
               const newFilters: Record<string, string | number> = {};
 
-              // 채널 필터 (탭에 따라)
-              if (activeTab !== 'all') {
-                newFilters.channel = activeTab;
-              }
+              // 채널 필터 제거 (전체 탭만 사용)
 
               // 상품명 필터
               if (productName.trim()) {
