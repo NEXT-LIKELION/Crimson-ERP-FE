@@ -272,6 +272,8 @@ export const fetchVariantStatus = (params: {
 
 // 월별 재고 현황 개별 항목 수정
 export const updateVariantStatus = (
+  year: number,
+  month: number,
   variantCode: string,
   data: {
     warehouse_stock_start?: number;
@@ -281,5 +283,41 @@ export const updateVariantStatus = (
     online_sales?: number;
   }
 ) => {
-  return api.patch(`/inventory/variant-status/${variantCode}/`, data);
+  return api.patch(`/inventory/variant-status/${year}/${month}/${variantCode}/`, data);
+};
+
+// 월별 재고 현황 엑셀 업로드
+export const uploadVariantStatusExcel = (
+  file: File,
+  year?: number,
+  month?: number
+) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const params = new URLSearchParams();
+  if (year) params.append('year', year.toString());
+  if (month) params.append('month', month.toString());
+
+  const url = `/inventory/variants/upload-excel/${params.toString() ? `?${params.toString()}` : ''}`;
+
+  return api.post(url, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
+// 월별 재고 현황 엑셀 다운로드 (JSON 데이터 반환)
+export const downloadVariantStatusExcel = (params: {
+  year: number;
+  month: number;
+  product_code?: string;
+  variant_code?: string;
+  category?: string;
+}) => {
+  return api.get('/inventory/variants/export/', {
+    params
+    // responseType 제거 - JSON 데이터이므로 기본 처리
+  });
 };

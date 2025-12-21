@@ -3,7 +3,7 @@ import GreenButton from '../../components/button/GreenButton';
 import PrimaryButton from '../../components/button/PrimaryButton';
 import SecondaryButton from '../../components/button/SecondaryButton';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { FaPlus, FaFileArrowUp, FaCodePullRequest } from 'react-icons/fa6';
+import { FaPlus, FaFileArrowUp, FaCodePullRequest, FaFileArrowDown } from 'react-icons/fa6';
 import { FaHistory } from 'react-icons/fa';
 import InputField from '../../components/inputfield/InputField';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
@@ -17,6 +17,9 @@ import {
   fetchAllInventoriesForMerge,
   fetchFilteredInventoriesForExport,
   fetchCategories,
+  uploadVariantStatusExcel,
+  downloadVariantStatusExcel,
+  fetchVariantDetail,
 } from '../../api/inventory';
 import { useSearchParams } from 'react-router-dom';
 import EditProductModal from '../../components/modal/EditProductModal';
@@ -42,11 +45,14 @@ const InventoryPage = () => {
   const [isStockAdjustModalOpen, setStockAdjustModalOpen] = useState(false);
   const [isStockHistoryModalOpen, setStockHistoryModalOpen] = useState(false);
   const [isPOSUploading, setIsPOSUploading] = useState(false);
+  const [isStatusExcelUploading, setIsStatusExcelUploading] = useState(false);
+  const [isStatusExcelDownloading, setIsStatusExcelDownloading] = useState(false);
 
   // 월별 재고 현황 관련 state
   const [viewMode, setViewMode] = useState<'variant' | 'status'>('variant'); // 'variant': 기존 뷰, 'status': 월별 현황
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [statusSelectedVariantCode, setStatusSelectedVariantCode] = useState<string | null>(null);
 
   const [selectedVariantForStock, setSelectedVariantForStock] = useState<{
     variant_code: string;
@@ -137,6 +143,14 @@ const InventoryPage = () => {
     page: 1,
   });
 
+  // 월별 재고 현황에서 선택된 variant 상세 정보 조회
+  const { data: statusSelectedVariantDetail } = useQuery({
+    queryKey: ['variantDetail', statusSelectedVariantCode],
+    queryFn: () => fetchVariantDetail(statusSelectedVariantCode!),
+    enabled: !!statusSelectedVariantCode,
+    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
+  });
+
   const adjustStockMutation = useAdjustStock();
 
   // 병합 모달용 전체 데이터 (모든 페이지 데이터 합치기)
@@ -209,6 +223,24 @@ const InventoryPage = () => {
         totalSales: string;
       })
     | null => {
+    // 월별 재고 현황에서 선택된 variant가 있는 경우
+    if (statusSelectedVariantDetail?.data) {
+      const result = statusSelectedVariantDetail.data;
+      return {
+        ...result,
+        cost_price: result.cost_price || 0,
+        min_stock: result.min_stock || 0,
+        variant_id: result.variant_code || '',
+        orderCount: result.order_count ?? 0,
+        returnCount: result.return_count ?? 0,
+        totalSales: result.sales ? `${String(result.sales).replace(/\D/g, '')}` : '0',
+        description: result.description || '',
+        memo: result.memo || '',
+        suppliers: result.suppliers || '',
+      };
+    }
+
+    // 기존 상품 관리에서 선택된 variant가 있는 경우
     if (!data || !editId) return null;
     // 백엔드에서 이미 평면화된 데이터를 직접 사용
     const result = data.find((item) => item.variant_code === String(editId));
@@ -228,11 +260,18 @@ const InventoryPage = () => {
     };
 
     return processedResult;
-  }, [data, editId]);
+  }, [data, editId, statusSelectedVariantDetail]);
 
   const handleCloseModal = () => {
-    searchParams.delete('edit');
-    setSearchParams(searchParams);
+    // 기존 상품 관리에서 열린 모달인 경우
+    if (editId) {
+      searchParams.delete('edit');
+      setSearchParams(searchParams);
+    }
+    // 월별 재고 현황에서 열린 모달인 경우
+    if (statusSelectedVariantCode) {
+      setStatusSelectedVariantCode(null);
+    }
   };
 
   const handleAddSave = async () => {
@@ -292,6 +331,11 @@ const InventoryPage = () => {
       handleCloseModal();
       await queryClient.invalidateQueries({ queryKey: ['inventories'] });
       await queryClient.invalidateQueries({ queryKey: ['categories'] }); // 카테고리 목록도 새로고침
+      await queryClient.invalidateQueries({ queryKey: ['variantDetail', statusSelectedVariantCode] }); // 상세 정보도 새로고침
+      if (statusSelectedVariantCode) {
+        // 월별 재고 현황도 새로고침
+        await queryClient.invalidateQueries({ queryKey: ['variantStatus', selectedYear, selectedMonth] });
+      }
       await refetch();
     } catch (err) {
       alert('상품 수정 중 오류가 발생했습니다: ' + getErrorMessage(err));
@@ -332,6 +376,7 @@ const InventoryPage = () => {
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const statusExcelInputRef = useRef<HTMLInputElement>(null);
 
   const handlePOSButtonClick = () => {
     fileInputRef.current?.click();
@@ -353,6 +398,128 @@ const InventoryPage = () => {
     } finally {
       setIsPOSUploading(false);
       e.target.value = '';
+    }
+  };
+
+  // 월별 재고 현황 엑셀 업로드 핸들러
+  const handleStatusExcelButtonClick = () => {
+    statusExcelInputRef.current?.click();
+  };
+
+  const handleStatusExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+      alert('Excel 파일(.xlsx 또는 .xls)만 업로드 가능합니다.');
+      return;
+    }
+
+    setIsStatusExcelUploading(true);
+    try {
+      await uploadVariantStatusExcel(file, selectedYear, selectedMonth);
+      alert(`${selectedYear}년 ${selectedMonth}월 재고 데이터가 성공적으로 업로드되었습니다.`);
+
+      // 월별 재고 현황 데이터 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['variantStatus', selectedYear, selectedMonth] });
+    } catch (err) {
+      alert('월별 재고 현황 엑셀 업로드 중 오류 발생: ' + getErrorMessage(err));
+    } finally {
+      setIsStatusExcelUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  // 월별 재고 현황 엑셀 다운로드 핸들러
+  const handleStatusExcelDownload = async () => {
+    setIsStatusExcelDownloading(true);
+    try {
+      const response = await downloadVariantStatusExcel({
+        year: selectedYear,
+        month: selectedMonth,
+      });
+
+      // JSON 데이터를 엑셀로 변환
+      const data = response.data;
+
+      if (!data || data.length === 0) {
+        alert('다운로드할 데이터가 없습니다.');
+        return;
+      }
+
+      // 엑셀에 표시할 데이터 변환
+      const excelData = data.map((item: any, index: number) => ({
+        번호: index + 1,
+        연도: item.year,
+        월: item.month,
+        대분류: item.big_category,
+        중분류: item.middle_category,
+        카테고리: item.category,
+        설명: item.description,
+        온라인명: item.online_name,
+        오프라인명: item.offline_name,
+        옵션: item.option,
+        상세옵션: item.detail_option,
+        상품코드: item.product_code,
+        품목코드: item.variant_code,
+        월초창고재고: item.warehouse_stock_start || 0,
+        월초매장재고: item.store_stock_start || 0,
+        기초재고: item.initial_stock || 0,
+        당월입고: item.inbound_quantity || 0,
+        매장판매: item.store_sales || 0,
+        쇼핑몰판매: item.online_sales || 0,
+        판매합계: item.total_sales || 0,
+        재고조정: item.adjustment_total || 0,
+        기말재고: item.ending_stock || 0,
+      }));
+
+      // 워크시트 생성
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+      // 컬럼 너비 설정
+      const columnWidths = [
+        { wch: 5 }, // 번호
+        { wch: 6 }, // 연도
+        { wch: 4 }, // 월
+        { wch: 8 }, // 대분류
+        { wch: 8 }, // 중분류
+        { wch: 10 }, // 카테고리
+        { wch: 20 }, // 설명
+        { wch: 25 }, // 온라인명
+        { wch: 25 }, // 오프라인명
+        { wch: 15 }, // 옵션
+        { wch: 10 }, // 상세옵션
+        { wch: 12 }, // 상품코드
+        { wch: 15 }, // 품목코드
+        { wch: 12 }, // 월초창고재고
+        { wch: 12 }, // 월초매장재고
+        { wch: 10 }, // 기초재고
+        { wch: 10 }, // 당월입고
+        { wch: 10 }, // 매장판매
+        { wch: 12 }, // 쇼핑몰판매
+        { wch: 10 }, // 판매합계
+        { wch: 10 }, // 재고조정
+        { wch: 10 }, // 기말재고
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // 워크북 생성
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, `${selectedMonth}월 재고현황`);
+
+      // 파일명 생성
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const filename = `재고현황_${selectedYear}년${selectedMonth}월_${dateStr}.xlsx`;
+
+      // 파일 다운로드
+      XLSX.writeFile(workbook, filename);
+
+      alert('월별 재고 현황 엑셀 파일이 다운로드되었습니다.');
+    } catch (err) {
+      alert('월별 재고 현황 엑셀 다운로드 중 오류 발생: ' + getErrorMessage(err));
+    } finally {
+      setIsStatusExcelDownloading(false);
     }
   };
 
@@ -527,6 +694,13 @@ const InventoryPage = () => {
     }
   };
 
+  // 월별 재고 현황 테이블에서 상품 클릭 핸들러
+  const handleStatusRowClick = (variantCode: string) => {
+    if (!variantCode) return;
+    setStatusSelectedVariantCode(variantCode);
+  };
+
+
   // 모든 탭에서 동일한 API 기반 데이터 사용
   const tabData = data ?? [];
   console.log('tabData', tabData);
@@ -537,6 +711,8 @@ const InventoryPage = () => {
     <div className='relative p-6'>
       {isLoading && <LoadingSpinner overlay text='재고 데이터를 불러오는 중...' />}
       {isPOSUploading && <LoadingSpinner overlay text='POS 데이터를 업로드하는 중...' />}
+      {isStatusExcelUploading && <LoadingSpinner overlay text='월별 재고 현황을 업로드하는 중...' />}
+      {isStatusExcelDownloading && <LoadingSpinner overlay text='월별 재고 현황을 다운로드하는 중...' />}
       <div className='mb-4 flex items-center justify-between'>
         <div className='flex items-center space-x-4'>
           <h1 className='text-2xl font-bold'>재고 관리</h1>
@@ -591,6 +767,26 @@ const InventoryPage = () => {
               />
             </>
           )}
+
+          {/* 월별 재고 현황 모드일 때 엑셀 업로드/다운로드 버튼 */}
+          {viewMode === 'status' && permissions.canCreate('INVENTORY') && (
+            <>
+              <PrimaryButton
+                text='엑셀 업로드'
+                icon={<FaFileArrowUp size={16} />}
+                onClick={handleStatusExcelButtonClick}
+                disabled={isStatusExcelUploading || isStatusExcelDownloading}
+              />
+              <SecondaryButton
+                text='엑셀 다운로드'
+                icon={<FaFileArrowDown size={16} />}
+                onClick={handleStatusExcelDownload}
+                disabled={isStatusExcelUploading || isStatusExcelDownloading}
+              />
+            </>
+          )}
+
+          {/* 파일 입력 필드들 */}
           <input
             ref={fileInputRef}
             id='posUploadInput'
@@ -598,6 +794,14 @@ const InventoryPage = () => {
             accept='.xlsx,.xls'
             className='hidden'
             onChange={handlePOSUpload}
+          />
+          <input
+            ref={statusExcelInputRef}
+            id='statusExcelUploadInput'
+            type='file'
+            accept='.xlsx,.xls'
+            className='hidden'
+            onChange={handleStatusExcelUpload}
           />
         </div>
       </div>
@@ -727,11 +931,17 @@ const InventoryPage = () => {
           infiniteScroll={infiniteScroll}
         />
       ) : (
-        <VariantStatusTable data={variantStatusData?.results || []} isLoading={isStatusLoading} />
+        <VariantStatusTable
+          data={variantStatusData?.results || []}
+          isLoading={isStatusLoading}
+          year={selectedYear}
+          month={selectedMonth}
+          onRowClick={handleStatusRowClick}
+        />
       )}
       {selectedProduct && (
         <EditProductModal
-          isOpen={!!editId}
+          isOpen={!!editId || !!statusSelectedVariantCode}
           onClose={handleCloseModal}
           product={selectedProduct as Product}
           onSave={handleUpdateSave}
