@@ -708,7 +708,7 @@ const InventoryPage = () => {
   if (error) return <p>에러가 발생했습니다!</p>;
 
   return (
-    <div className='relative p-6'>
+    <div className='relative w-full'>
       {isLoading && <LoadingSpinner overlay text='재고 데이터를 불러오는 중...' />}
       {isPOSUploading && <LoadingSpinner overlay text='POS 데이터를 업로드하는 중...' />}
       {isStatusExcelUploading && <LoadingSpinner overlay text='월별 재고 현황을 업로드하는 중...' />}

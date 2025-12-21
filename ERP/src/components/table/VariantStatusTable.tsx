@@ -179,7 +179,7 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({ data, isLoading
               <th className='px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase'>
                 카테고리
               </th>
-              <th className='px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase'>
+              <th className='px-2 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase w-32'>
                 설명
               </th>
               <th className='px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase'>
@@ -254,9 +254,9 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({ data, isLoading
                   {item.category}
                 </td>
                 <td
-                  className='px-4 py-3 text-sm whitespace-nowrap text-gray-900 cursor-pointer hover:bg-blue-50'
+                  className='px-2 py-3 text-sm text-gray-900 cursor-pointer hover:bg-blue-50 max-w-32 truncate'
                   onClick={() => onRowClick?.(item.variant_code || '')}
-                  title='클릭하여 상품 상세보기'
+                  title={`클릭하여 상품 상세보기 - ${item.description}`}
                 >
                   {item.description}
                 </td>

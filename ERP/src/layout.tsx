@@ -34,7 +34,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           )}
 
           {/* 컨텐츠 */}
-          <section className='min-w-[1200px] flex-1 overflow-y-auto p-6'>{children}</section>
+          <section className='flex-1 overflow-y-auto p-6'>{children}</section>
         </main>
       </div>
     </div>
