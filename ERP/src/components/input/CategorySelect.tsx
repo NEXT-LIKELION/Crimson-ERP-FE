@@ -11,8 +11,6 @@ interface CategorySelectProps {
   value: string;
   onChange: (value: string) => void;
   options: string[];
-  placeholder?: string;
-  searchable?: boolean;
   showCount?: boolean;
   disabled?: boolean;
   className?: string;
@@ -22,8 +20,6 @@ const CategorySelect: React.FC<CategorySelectProps> = ({
   value,
   onChange,
   options = [],
-  placeholder = '카테고리 선택',
-  searchable = false,
   showCount = false,
   disabled = false,
   className = '',

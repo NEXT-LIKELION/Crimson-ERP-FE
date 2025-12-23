@@ -18,6 +18,12 @@ interface EditingCell {
   field: EditableField;
 }
 
+interface AdjustmentStatusItem {
+  created_by?: string;
+  quantity?: number;
+  [key: string]: unknown;
+}
+
 
 const VariantStatusTable: React.FC<VariantStatusTableProps> = ({ data, isLoading, year, month, onRowClick }) => {
   const queryClient = useQueryClient();
@@ -356,12 +362,12 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({ data, isLoading
                   {item.total_sales?.toLocaleString() || 0}
                 </td>
                 <td className='px-1 sm:px-2 py-2 text-right text-xs text-gray-900' style={{ width: '5%' }}>
-                  {(item as any).adjustment_quantity ? Number((item as any).adjustment_quantity).toLocaleString() : 0}
+                  {item.adjustment_quantity ? Number(item.adjustment_quantity).toLocaleString() : 0}
                 </td>
                 <td className='px-1 sm:px-2 py-2 text-xs text-gray-900' style={{ width: '8%' }}>
                   <div className='whitespace-pre-line'>
                     {(() => {
-                      const adjustmentStatus = (item as any).adjustment_status;
+                      const adjustmentStatus = item.adjustment_status;
                       if (typeof adjustmentStatus === 'string') {
                         // 쉼표로 구분된 문자열인 경우 줄바꿈 처리
                         return adjustmentStatus.split(',').join('\n');
@@ -369,7 +375,7 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({ data, isLoading
                       if (adjustmentStatus) {
                         try {
                           // JSON 문자열인 경우 파싱 시도
-                          let parsed;
+                          let parsed: unknown;
                           if (typeof adjustmentStatus === 'string') {
                             parsed = JSON.parse(adjustmentStatus);
                           } else {
@@ -377,10 +383,11 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({ data, isLoading
                           }
 
                           const statusArray = Array.isArray(parsed) ? parsed : [parsed];
-                          return statusArray.map((status: any) => {
+                          return statusArray.map((status: unknown) => {
                             if (typeof status === 'object' && status) {
-                              const createdBy = status.created_by || '';
-                              const quantity = status.quantity || 0;
+                              const statusItem = status as AdjustmentStatusItem;
+                              const createdBy = statusItem.created_by || '';
+                              const quantity = statusItem.quantity || 0;
                               return `${createdBy}: ${quantity > 0 ? '+' : ''}${quantity}`;
                             }
                             return String(status);

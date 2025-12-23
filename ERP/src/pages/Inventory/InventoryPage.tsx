@@ -27,7 +27,7 @@ import AddProductModal from '../../components/modal/AddProductModal';
 import MergeVariantsModal from '../../components/modal/MergeVariantsModal';
 import StockAdjustmentModal from '../../components/modal/StockAdjustmentModal';
 import StockHistoryModal from '../../components/modal/StockHistoryModal';
-import { Product } from '../../types/product';
+import { Product, ProductVariantStatus } from '../../types/product';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { uploadInventoryExcel } from '../../api/upload';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -449,7 +449,7 @@ const InventoryPage = () => {
       }
 
       // 엑셀에 표시할 데이터 변환
-      const excelData = data.map((item: any, index: number) => ({
+      const excelData = data.map((item: ProductVariantStatus, index: number) => ({
         번호: index + 1,
         연도: item.year,
         월: item.month,
