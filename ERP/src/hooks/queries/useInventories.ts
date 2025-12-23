@@ -1,12 +1,14 @@
 import { useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { fetchInventories } from '../../api/inventory';
-import type { components } from '../../types/api';
+import { ProductVariant } from '../../types/product';
 
-// OpenAPI 스키마 기반 Variant 타입 (실제 응답 구조)
-export type ApiProductVariant = components['schemas']['ProductVariant'] & {
+// 로컬 ProductVariant 타입 기반 (실제 응답 구조)
+export type ApiProductVariant = ProductVariant & {
   // 백엔드 응답에 name 필드가 포함되는 경우를 위한 확장
   name?: string;
+  offline_name?: string;
+  online_name?: string;
   // 백엔드에서 추가로 내려주는 필드들 (스키마에는 없지만 실제 응답에 포함될 수 있음)
   product_id?: string;
   category?: string;

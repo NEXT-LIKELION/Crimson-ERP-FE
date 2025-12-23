@@ -7,14 +7,26 @@ import { useNavigate } from 'react-router-dom';
 import type { ApiProductVariant } from '../../hooks/queries/useInventories';
 
 // Custom type for table data with string variant_id
-interface TableProduct extends ApiProductVariant {
+interface TableProduct {
   variant_id: string;
+  product_id: string;
+  variant_code: string;
+  offline_name: string;
+  option: string;
+  price: number;
+  cost_price: number;
+  stock: number;
+  min_stock: number;
   orderCount: number;
   returnCount: number;
   totalSales: string;
   status: string;
   category: string;
-  sales?: number | string; // sales 필드 추가 (정렬용)
+  sales: string; // sales 필드는 string으로 고정
+  name: string;
+  description?: string;
+  memo?: string;
+  channels?: string[];
 }
 
 interface InventoryTableProps {
@@ -104,8 +116,12 @@ const InventoryTable = ({
         status = '재고부족';
       }
 
-      const row = {
-        ...item,
+      const row: TableProduct = {
+        product_id: item.product_id || '',
+        variant_code: item.variant_code || '',
+        offline_name: item.name || '',
+        option: item.option || '',
+        price: item.price || 0,
         cost_price: item.cost_price || 0,
         min_stock: minStock,
         variant_id: item.variant_code || '',
@@ -115,6 +131,11 @@ const InventoryTable = ({
         status: status,
         category: item.category || '',
         stock,
+        sales: item.sales?.toString() || '0',
+        name: item.name || '',
+        description: item.description,
+        memo: item.memo,
+        channels: item.channels,
       };
       return row;
     });

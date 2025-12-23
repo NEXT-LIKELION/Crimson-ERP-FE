@@ -125,8 +125,6 @@ const InputField: React.FC<InputFieldProps> = ({
             value={category}
             onChange={onCategoryChange}
             options={categoryOptions || []}
-            placeholder='카테고리 선택'
-            searchable={false}
             showCount={false}
           />
         </div>
