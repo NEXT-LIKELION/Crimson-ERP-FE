@@ -17,7 +17,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className='font-inter flex h-screen overflow-hidden bg-gray-50'>
       <div className='flex flex-1'>
         {!hideAuth && <Sidebar />}
-        <main className='flex flex-1 flex-col overflow-hidden'>
+        <main className='flex flex-1 flex-col min-w-0'>
           {/* 헤더 */}
           {!hideAuth && (
             <header className='flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 py-4'>
@@ -34,7 +34,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           )}
 
           {/* 컨텐츠 */}
-          <section className='flex-1 overflow-y-auto p-6'>{children}</section>
+          <section className='flex-1 overflow-auto p-3 sm:p-4 md:p-6'>{children}</section>
         </main>
       </div>
     </div>

@@ -61,7 +61,8 @@ inbound_quantity	Inbound quantity[...]
 store_sales	Store sales[...]
 online_sales	Online sales[...]
 total_sales	Total sales[...]
-adjustment_total	Adjustment total[...]
+adjustment_quantity	Adjustment quantity[...]
+adjustment_status	Adjustment status[...]
 ending_stock	Ending stock[...]
  
 }]
@@ -200,8 +201,11 @@ minimum: -2147483648
 total_sales	string
 title: Total sales
 readOnly: true
-adjustment_total	string
-title: Adjustment total
+adjustment_quantity	string
+title: Adjustment quantity
+readOnly: true
+adjustment_status	string
+title: Adjustment status
 readOnly: true
 ending_stock	string
 title: Ending stock

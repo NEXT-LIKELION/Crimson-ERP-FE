@@ -470,7 +470,7 @@ const InventoryPage = () => {
         매장판매: item.store_sales || 0,
         쇼핑몰판매: item.online_sales || 0,
         판매합계: item.total_sales || 0,
-        재고조정: item.adjustment_total || 0,
+        재고조정: item.adjustment_quantity || 0,
         기말재고: item.ending_stock || 0,
       }));
 
@@ -678,9 +678,11 @@ const InventoryPage = () => {
   const handleStockAdjust = async (
     variantCode: string,
     data: {
-      actual_stock: number;
+      delta: number;
       reason: string;
-      updated_by: string;
+      created_by: string;
+      year?: number;
+      month?: number;
     }
   ) => {
     await adjustStockMutation.mutateAsync({ variantCode, data });
@@ -708,16 +710,16 @@ const InventoryPage = () => {
   if (error) return <p>에러가 발생했습니다!</p>;
 
   return (
-    <div className='relative w-full'>
+    <div className='w-full max-w-full overflow-hidden'>
       {isLoading && <LoadingSpinner overlay text='재고 데이터를 불러오는 중...' />}
       {isPOSUploading && <LoadingSpinner overlay text='POS 데이터를 업로드하는 중...' />}
       {isStatusExcelUploading && <LoadingSpinner overlay text='월별 재고 현황을 업로드하는 중...' />}
       {isStatusExcelDownloading && <LoadingSpinner overlay text='월별 재고 현황을 다운로드하는 중...' />}
-      <div className='mb-4 flex items-center justify-between'>
-        <div className='flex items-center space-x-4'>
-          <h1 className='text-2xl font-bold'>재고 관리</h1>
+      <div className='mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0'>
+        <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4 min-w-0 flex-1'>
+          <h1 className='text-xl sm:text-2xl font-bold truncate'>재고 관리</h1>
           {/* 뷰 모드 전환 버튼 */}
-          <div className='flex rounded-lg border border-gray-300 bg-white'>
+          <div className='flex rounded-lg border border-gray-300 bg-white flex-shrink-0 w-fit'>
             <button
               onClick={() => setViewMode('variant')}
               className={`px-4 py-2 text-sm font-medium transition-colors ${
@@ -738,7 +740,7 @@ const InventoryPage = () => {
             </button>
           </div>
         </div>
-        <div className='flex space-x-2'>
+        <div className='flex flex-wrap gap-2 flex-shrink-0'>
           {viewMode === 'variant' && permissions.canCreate('INVENTORY') && (
             <>
               <GreenButton
@@ -808,8 +810,8 @@ const InventoryPage = () => {
 
       {/* 월별 재고 현황 모드일 때 년/월 선택 필터 */}
       {viewMode === 'status' && (
-        <div className='mb-6 rounded-lg border border-gray-200 bg-white p-4'>
-          <div className='flex items-center space-x-4'>
+        <div className='mb-4 w-full rounded-lg border border-gray-200 bg-white p-3 sm:p-4 min-w-0'>
+          <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-3 min-w-0'>
             <label className='text-sm font-medium text-gray-700'>조회 기간:</label>
             <select
               value={selectedYear}

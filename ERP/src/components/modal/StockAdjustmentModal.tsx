@@ -6,6 +6,8 @@ import PrimaryButton from '../button/PrimaryButton';
 import SecondaryButton from '../button/SecondaryButton';
 import { useAuthStore } from '../../store/authStore';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { useQuery } from '@tanstack/react-query';
+import { fetchVariantDetail } from '../../api/inventory';
 
 interface StockAdjustmentModalProps {
   isOpen: boolean;
@@ -22,9 +24,11 @@ interface StockAdjustmentModalProps {
   onAdjust: (
     variantCode: string,
     data: {
-      actual_stock: number;
+      delta: number;
       reason: string;
-      updated_by: string;
+      created_by: string;
+      year?: number;
+      month?: number;
     }
   ) => Promise<void>;
 }
@@ -42,14 +46,24 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
+  // 최신 variant 정보 조회 (실시간 재고 정보 포함)
+  const { data: latestVariantData } = useQuery({
+    queryKey: ['variantDetail', variant?.variant_code],
+    queryFn: () => fetchVariantDetail(variant?.variant_code || ''),
+    enabled: isOpen && !!variant?.variant_code,
+    staleTime: 0, // 항상 최신 데이터 가져오기
+  });
+
   // 모달이 열릴 때마다 초기화
   useEffect(() => {
     if (isOpen && variant) {
-      setActualStock(variant.current_stock.toString());
+      // 최신 variant 데이터가 있으면 사용, 없으면 기존 variant 데이터 사용
+      const currentStock = latestVariantData?.data?.stock ?? variant.current_stock;
+      setActualStock(currentStock.toString());
       setReason('');
       setErrors([]);
     }
-  }, [isOpen, variant]);
+  }, [isOpen, variant, latestVariantData]);
 
   // 숫자 입력에서 음수/지수 입력 차단
   const handleNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -78,16 +92,16 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       return;
     }
 
-    const delta = actualStockNum - variant.current_stock;
+    // 최신 재고 데이터 사용
+    const currentStockFromLatest = latestVariantData?.data?.stock ?? variant.current_stock;
+    const delta = actualStockNum - currentStockFromLatest;
 
     if (delta === 0) {
       alert('현재 재고와 동일한 수량입니다. 조정이 필요하지 않습니다.');
       return;
     }
 
-    const confirmMessage = `재고를 조정하시겠습니까?\n\n현재 재고: ${
-      variant.current_stock
-    }EA\n실제 재고: ${actualStockNum}EA\n변경량: ${delta > 0 ? '+' : ''}${delta}EA\n\n사유: ${reason}`;
+    const confirmMessage = `재고를 조정하시겠습니까?\n\n현재 재고: ${currentStockFromLatest}EA\n실제 재고: ${actualStockNum}EA\n변경량: ${delta > 0 ? '+' : ''}${delta}EA\n\n사유: ${reason}`;
 
     if (!window.confirm(confirmMessage)) {
       return;
@@ -95,10 +109,16 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
 
     setIsLoading(true);
     try {
+      // 현재 연도/월 가져오기 (필요시 props로 전달받을 수 있음)
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth() + 1;
+
       await onAdjust(variant.variant_code, {
-        actual_stock: actualStockNum,
+        delta: delta,
         reason: reason.trim(),
-        updated_by: user?.username || 'unknown',
+        created_by: user?.username || 'unknown',
+        year: currentYear,
+        month: currentMonth,
       });
 
       alert('재고 조정이 완료되었습니다.');
@@ -120,7 +140,9 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
 
   if (!isOpen || !variant) return null;
 
-  const delta = parseInt(actualStock) - variant.current_stock;
+  // 최신 재고 데이터 사용
+  const currentStockFromLatest = latestVariantData?.data?.stock ?? variant.current_stock;
+  const delta = parseInt(actualStock) - currentStockFromLatest;
 
   return (
     <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black'>
@@ -174,7 +196,7 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
             <div className='grid grid-cols-2 gap-4 text-sm'>
               <div>
                 <span className='font-medium text-blue-700'>현재 재고</span>
-                <p className='text-xl font-bold text-blue-900'>{variant.current_stock}EA</p>
+                <p className='text-xl font-bold text-blue-900'>{currentStockFromLatest}EA</p>
               </div>
               <div>
                 <span className='font-medium text-blue-700'>최소 재고</span>

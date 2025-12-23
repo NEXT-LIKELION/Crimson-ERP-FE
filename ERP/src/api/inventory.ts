@@ -199,13 +199,22 @@ export const fetchFilteredInventoriesForExport = async (
 export const adjustStock = (
   variantCode: string,
   data: {
-    actual_stock: number;
+    delta: number;
     reason: string;
-    updated_by: string;
+    created_by: string;
+    year?: number;
+    month?: number;
   }
 ) => {
   return api
-    .put(`/inventory/variants/stock/${variantCode}/`, data)
+    .post('/inventory/adjustments/', {
+      variant_code: variantCode,
+      delta: data.delta,
+      reason: data.reason,
+      created_by: data.created_by,
+      year: data.year,
+      month: data.month,
+    })
     .then((response) => {
       return response;
     })

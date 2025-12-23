@@ -817,8 +817,10 @@ export interface components {
       online_sales?: number;
       /** Total sales */
       readonly total_sales?: string;
-      /** Adjustment total */
-      readonly adjustment_total?: string;
+      /** Adjustment quantity */
+      readonly adjustment_quantity?: string;
+      /** Adjustment status */
+      readonly adjustment_status?: string;
       /** Ending stock */
       readonly ending_stock?: string;
     };

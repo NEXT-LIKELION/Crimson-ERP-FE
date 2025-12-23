@@ -7,6 +7,8 @@ import { BsCoin } from 'react-icons/bs';
 import { useSuppliers } from '../../hooks/queries/useSuppliers';
 import { Product, Supplier } from '../../types/product';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { useQuery } from '@tanstack/react-query';
+import { fetchVariantDetail } from '../../api/inventory';
 
 interface EditProductModalProps {
   isOpen: boolean;
@@ -54,6 +56,14 @@ const EditProductModal = ({
 }: EditProductModalProps) => {
   const { data: suppliersData, isLoading: isLoadingSuppliers } = useSuppliers();
   const supplierOptions = suppliersData?.data?.map((s: Supplier) => s.name) || [];
+
+  // 최신 variant 정보 조회 (실시간 재고 정보 포함)
+  const { data: latestVariantData } = useQuery({
+    queryKey: ['variantDetail', product?.variant_code],
+    queryFn: () => fetchVariantDetail(product?.variant_code || ''),
+    enabled: isOpen && !!product?.variant_code,
+    staleTime: 0, // 항상 최신 데이터 가져오기
+  });
   const [form, setForm] = useState<EditForm>({
     ...product,
     stock: product.stock ?? 0,
@@ -156,10 +166,13 @@ const EditProductModal = ({
 
   useEffect(() => {
     if (isOpen && product) {
+      // 최신 variant 데이터가 있으면 사용, 없으면 기존 product 데이터 사용
+      const currentStock = latestVariantData?.data?.stock ?? product.stock ?? 0;
+
       setForm({
         ...product,
         product_id: product.product_id ?? '',
-        stock: product.stock ?? 0,
+        stock: currentStock, // 최신 재고 정보 사용
         description: product.description || '',
         memo: product.memo || '',
         min_stock: product.min_stock || 0, // 최소재고가 없는 경우 0으로 설정
@@ -177,7 +190,7 @@ const EditProductModal = ({
       });
       setErrors([]);
     }
-  }, [isOpen, product]);
+  }, [isOpen, product, latestVariantData]);
 
   useEscapeKey(onClose, isOpen);
 
@@ -254,19 +267,21 @@ const EditProductModal = ({
                 <div className='space-y-1'>
                   <label className='block text-sm font-medium text-gray-700'>현재 재고</label>
                   <div
-                    onClick={() =>
+                    onClick={() => {
+                      // 최신 재고 데이터 사용
+                      const currentStock = latestVariantData?.data?.stock ?? form.stock ?? 0;
                       onStockAdjustClick({
                         variant_code: form.variant_code || form.variant_id?.toString() || '',
                         product_id: form.product_id,
                         name: form.name,
                         option: form.option || '기본',
-                        current_stock: form.stock || 0,
+                        current_stock: currentStock,
                         min_stock: form.min_stock || 0,
-                      })
-                    }
+                      });
+                    }}
                     className='w-full cursor-pointer rounded-md border border-gray-300 bg-blue-50 px-3 py-2 text-sm transition-colors hover:bg-blue-100 focus:border-transparent focus:ring-2 focus:ring-blue-500'
                     title='클릭하여 재고 조정'>
-                    {Math.max(0, Number(form.stock) || 0).toString()}
+                    {Math.max(0, Number(latestVariantData?.data?.stock ?? form.stock) || 0).toLocaleString()}
                   </div>
                   <p className='mt-1 text-xs text-blue-600'>
                     💡 재고 칸을 클릭하여 재고를 조정할 수 있습니다.
