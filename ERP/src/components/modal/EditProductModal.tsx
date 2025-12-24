@@ -270,10 +270,12 @@ const EditProductModal = ({
                     onClick={() => {
                       // 최신 재고 데이터 사용
                       const currentStock = latestVariantData?.data?.stock ?? form.stock ?? 0;
+                      // offline_name을 우선적으로 사용, 없으면 name 사용
+                      const productName = product.offline_name || form.name || '';
                       onStockAdjustClick({
                         variant_code: form.variant_code || form.variant_id?.toString() || '',
                         product_id: form.product_id,
-                        name: form.name,
+                        name: productName,
                         option: form.option || '기본',
                         current_stock: currentStock,
                         min_stock: form.min_stock || 0,
@@ -281,7 +283,10 @@ const EditProductModal = ({
                     }}
                     className='w-full cursor-pointer rounded-md border border-gray-300 bg-blue-50 px-3 py-2 text-sm transition-colors hover:bg-blue-100 focus:border-transparent focus:ring-2 focus:ring-blue-500'
                     title='클릭하여 재고 조정'>
-                    {Math.max(0, Number(latestVariantData?.data?.stock ?? form.stock) || 0).toLocaleString()}
+                    {Math.max(
+                      0,
+                      Number(latestVariantData?.data?.stock ?? form.stock) || 0
+                    ).toLocaleString()}
                   </div>
                   <p className='mt-1 text-xs text-blue-600'>
                     💡 재고 칸을 클릭하여 재고를 조정할 수 있습니다.
