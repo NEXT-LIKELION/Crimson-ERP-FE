@@ -5,28 +5,21 @@ import { RxCaretSort } from 'react-icons/rx';
 import { HiArrowUp } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 import type { ApiProductVariant } from '../../hooks/queries/useInventories';
+import type { components } from '../../types/api';
+
+// ProductVariant 타입 별칭
+type ProductVariant = components['schemas']['ProductVariant'];
 
 // Custom type for table data with string variant_id
-interface TableProduct {
+interface TableProduct extends ProductVariant {
   variant_id: string;
-  product_id: string;
-  variant_code: string;
-  offline_name: string;
-  option: string;
-  price: number;
   cost_price: number;
-  stock: number;
-  min_stock: number;
   orderCount: number;
   returnCount: number;
   totalSales: string;
   status: string;
-  category: string;
   sales: string; // sales 필드는 string으로 고정
   name: string;
-  description?: string;
-  memo?: string;
-  channels?: string[];
 }
 
 interface InventoryTableProps {
@@ -119,7 +112,7 @@ const InventoryTable = ({
       const row: TableProduct = {
         product_id: item.product_id || '',
         variant_code: item.variant_code || '',
-        offline_name: item.name || '',
+        offline_name: item.offline_name || '',
         option: item.option || '',
         price: item.price || 0,
         cost_price: item.cost_price || 0,
@@ -146,10 +139,37 @@ const InventoryTable = ({
   // 스크롤 기반 무한 스크롤 - 강화된 중복 호출 방지
   const isLoadingRef = useRef(false);
   const lastRequestTimeRef = useRef(0);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
 
+  // 스크롤 컨테이너 찾기 및 스크롤 감지
+  useEffect(() => {
+    // 실제 스크롤 컨테이너 찾기 (layout.tsx의 section.overflow-auto)
+    const mainContainer = document.querySelector('section.overflow-auto') as HTMLElement;
+    if (!mainContainer) return;
+
+    scrollContainerRef.current = mainContainer;
+
+    const handleScroll = () => {
+      // 스크롤이 시작되면 hasScrolled를 true로 설정
+      if (mainContainer.scrollTop > 0 && !hasScrolled) {
+        setHasScrolled(true);
+      }
+    };
+
+    handleScroll();
+    mainContainer.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      mainContainer.removeEventListener('scroll', handleScroll);
+    };
+  }, [hasScrolled]);
+
+  // IntersectionObserver 설정 - 스크롤 컨테이너를 root로 사용
   useEffect(() => {
     const observerTarget = document.getElementById('infinite-scroll-trigger');
-    if (!observerTarget) return;
+    const scrollContainer = scrollContainerRef.current;
+
+    if (!observerTarget || !scrollContainer) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -178,10 +198,12 @@ const InventoryTable = ({
         }
       },
       {
+        // 스크롤 컨테이너를 root로 설정
+        root: scrollContainer,
         // 더 정확한 트리거를 위해 threshold 설정
-        threshold: 0.5,
-        // rootMargin을 더 줄여서 정확한 위치에서만 트리거
-        rootMargin: '50px',
+        threshold: 0.1,
+        // rootMargin을 설정하여 조금 더 일찍 트리거
+        rootMargin: '100px',
       }
     );
 
@@ -193,29 +215,9 @@ const InventoryTable = ({
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, hasScrolled]);
 
-  // 스크롤 위로 가기 버튼 표시 여부 관리 + 스크롤 감지
-  useEffect(() => {
-    const mainContainer = document.querySelector('section.overflow-y-auto');
-    if (!mainContainer) return;
-
-    const handleScroll = () => {
-      // 스크롤이 시작되면 hasScrolled를 true로 설정
-      if (mainContainer.scrollTop > 0 && !hasScrolled) {
-        setHasScrolled(true);
-      }
-    };
-
-    handleScroll();
-    mainContainer.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      mainContainer.removeEventListener('scroll', handleScroll);
-    };
-  }, [hasScrolled]);
-
   // 스크롤 위로 가기 함수
   const scrollToTop = () => {
-    const mainContainer = document.querySelector('section.overflow-y-auto');
+    const mainContainer = scrollContainerRef.current || document.querySelector('section.overflow-auto');
     if (mainContainer) {
       mainContainer.scrollTo({
         top: 0,
@@ -271,14 +273,11 @@ const InventoryTable = ({
   // 백엔드에서 이미 페이지네이션된 데이터를 받으므로 슬라이싱하지 않음
   const paginatedData = data;
 
-
   return (
     <div className='rounded-lg bg-white p-6 shadow-md'>
       {/* 헤더 */}
       <div className='mb-4 flex items-center justify-between'>
-        <h2 className='flex items-center text-lg font-semibold'>
-          상품별 재고 현황
-        </h2>
+        <h2 className='flex items-center text-lg font-semibold'>상품별 재고 현황</h2>
         <div className='flex items-center space-x-3 text-gray-500'>
           <span className='text-sm'>
             총 {infiniteScroll.totalCount}개 상품 ({infiniteScroll.totalLoaded}개 로딩됨)
