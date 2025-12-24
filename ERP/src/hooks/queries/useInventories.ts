@@ -98,7 +98,7 @@ export const useInventories = (filters?: {
       const finalParams = {
         ...apiFilters,
         page: pageParam,
-        page_size: 20, // 항상 page_size 포함
+        // page_size는 API 기본값 10 사용
       };
       const response = await fetchInventories(finalParams);
       return response.data;
@@ -168,7 +168,7 @@ export const useInventories = (filters?: {
       const finalParams = {
         ...apiFilters,
         page: nextPageParam,
-        page_size: 20,
+        // page_size는 API 기본값 10 사용
       };
       const response = await fetchInventories(finalParams);
 
