@@ -6,6 +6,7 @@ import PrimaryButton from '../button/PrimaryButton';
 import SecondaryButton from '../button/SecondaryButton';
 import { useAuthStore } from '../../store/authStore';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { useAdjustStock } from '../../hooks/queries/useStockAdjustment';
 import { useQuery } from '@tanstack/react-query';
 import { fetchVariantDetail } from '../../api/inventory';
 
@@ -20,17 +21,7 @@ interface StockAdjustmentModalProps {
     current_stock: number;
     min_stock: number;
   } | null;
-  onSuccess: () => void;
-  onAdjust: (
-    variantCode: string,
-    data: {
-      delta: number;
-      reason: string;
-      created_by: string;
-      year?: number;
-      month?: number;
-    }
-  ) => Promise<void>;
+  onSuccess?: () => void;
 }
 
 const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
@@ -38,12 +29,11 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
   onClose,
   variant,
   onSuccess,
-  onAdjust,
 }) => {
   const user = useAuthStore((state) => state.user);
+  const adjustStockMutation = useAdjustStock();
   const [actualStock, setActualStock] = useState<string>('');
   const [reason, setReason] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
   // 최신 variant 정보 조회 (실시간 재고 정보 포함)
@@ -107,33 +97,37 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       return;
     }
 
-    setIsLoading(true);
-    try {
-      // 현재 연도/월 가져오기 (필요시 props로 전달받을 수 있음)
-      const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth() + 1;
+    // 현재 연도/월 가져오기 (필요시 props로 전달받을 수 있음)
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
 
-      await onAdjust(variant.variant_code, {
-        delta: delta,
-        reason: reason.trim(),
-        created_by: user?.username || 'unknown',
-        year: currentYear,
-        month: currentMonth,
-      });
-
-      alert('재고 조정이 완료되었습니다.');
-      onSuccess();
-      onClose();
-    } catch (error: unknown) {
-      console.error('재고 조정 실패:', error);
-      const apiError = error as ApiError;
-      const errorMsg =
-        ('response' in (error as object) && apiError?.response?.data?.error) ||
-        '재고 조정 중 오류가 발생했습니다.';
-      setErrors([errorMsg]);
-    } finally {
-      setIsLoading(false);
-    }
+    adjustStockMutation.mutate(
+      {
+        variantCode: variant.variant_code,
+        data: {
+          delta: delta,
+          reason: reason.trim(),
+          created_by: user?.username || 'unknown',
+          year: currentYear,
+          month: currentMonth,
+        },
+      },
+      {
+        onSuccess: () => {
+          alert('재고 조정이 완료되었습니다.');
+          onSuccess?.();
+          onClose();
+        },
+        onError: (error: unknown) => {
+          console.error('재고 조정 실패:', error);
+          const apiError = error as ApiError;
+          const errorMsg =
+            ('response' in (error as object) && apiError?.response?.data?.error) ||
+            '재고 조정 중 오류가 발생했습니다.';
+          setErrors([errorMsg]);
+        },
+      }
+    );
   };
 
   useEscapeKey(onClose, isOpen);
@@ -152,7 +146,7 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
             <FaBoxes className='text-blue-500' />
             <h2 className='text-lg font-semibold'>재고 조정</h2>
           </div>
-          <button onClick={onClose} disabled={isLoading}>
+          <button onClick={onClose} disabled={adjustStockMutation.isPending}>
             <FiX className='h-6 w-6 text-gray-500 hover:text-gray-700' />
           </button>
         </div>
@@ -262,11 +256,11 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
         </div>
 
         <div className='flex justify-end gap-3 border-t border-gray-300 px-6 py-4'>
-          <SecondaryButton text='취소' onClick={onClose} disabled={isLoading} />
+          <SecondaryButton text='취소' onClick={onClose} disabled={adjustStockMutation.isPending} />
           <PrimaryButton
-            text={isLoading ? '조정 중...' : '재고 조정'}
+            text={adjustStockMutation.isPending ? '조정 중...' : '재고 조정'}
             onClick={handleSubmit}
-            disabled={isLoading}
+            disabled={adjustStockMutation.isPending}
           />
         </div>
       </div>
