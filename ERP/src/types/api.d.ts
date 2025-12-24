@@ -4,2463 +4,2492 @@
  */
 
 export interface paths {
-  '/authentication/approve/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/authentication/approve/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 직원 계정 상태 전환 (STAFF/INTERN/MANAGER)
+         * @description MANAGER가 STAFF, INTERN 또는 MANAGER 계정을 승인(APPROVED)하거나 거절(DENIED)할 수 있습니다.
+         */
+        post: operations["authentication_approve_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * 직원 계정 상태 전환 (STAFF/INTERN/MANAGER)
-     * @description MANAGER가 STAFF, INTERN 또는 MANAGER 계정을 승인(APPROVED)하거나 거절(DENIED)할 수 있습니다.
-     */
-    post: operations['authentication_approve_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/authentication/change-password/{employee_id}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        employee_id: string;
-      };
-      cookie?: never;
+    "/authentication/change-password/{employee_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * 비밀번호 변경 (본인 또는 매니저)
+         * @description 로그인한 본인의 비밀번호를 직접 변경하거나, 'MANAGER' 권한을 가진 사용자가 다른 직원의 비밀번호를 변경합니다.
+         *     - **일반 사용자:** URL의 employee_id에 자신의 ID를 넣어서 요청해야 합니다.
+         *     - **매니저:** URL의 employee_id에 대상 직원의 ID를 넣어 요청할 수 있습니다.
+         */
+        put: operations["authentication_change-password_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    /**
-     * 비밀번호 변경 (본인 또는 매니저)
-     * @description 로그인한 본인의 비밀번호를 직접 변경하거나, 'MANAGER' 권한을 가진 사용자가 다른 직원의 비밀번호를 변경합니다.
-     *     - **일반 사용자:** URL의 employee_id에 자신의 ID를 넣어서 요청해야 합니다.
-     *     - **매니저:** URL의 employee_id에 대상 직원의 ID를 넣어 요청할 수 있습니다.
-     */
-    put: operations['authentication_change-password_update'];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/authentication/login/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/authentication/login/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 로그인
+         * @description 사용자 로그인 후 JWT 토큰과 사용자 정보를 반환합니다. STAFF의 경우 approved 상태여야 로그인 가능합니다.
+         */
+        post: operations["authentication_login_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * 로그인
-     * @description 사용자 로그인 후 JWT 토큰과 사용자 정보를 반환합니다. STAFF의 경우 approved 상태여야 로그인 가능합니다.
-     */
-    post: operations['authentication_login_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/authentication/logout/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/authentication/logout/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 로그아웃
+         * @description 리프레시 토큰을 블랙리스트에 등록하여 로그아웃을 수행합니다.
+         */
+        post: operations["authentication_logout_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * 로그아웃
-     * @description 리프레시 토큰을 블랙리스트에 등록하여 로그아웃을 수행합니다.
-     */
-    post: operations['authentication_logout_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/authentication/signup/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/authentication/signup/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 회원가입
+         * @description 새로운 사용자를 등록하고, JWT 토큰을 반환합니다.
+         */
+        post: operations["authentication_signup_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * 회원가입
-     * @description 새로운 사용자를 등록하고, JWT 토큰을 반환합니다.
-     */
-    post: operations['authentication_signup_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/dashboard/notifications/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/dashboard/notifications/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 대시보드 알림 조회
+         * @description 로그인된 사용자의 HR 및 발주 관련 승인대기 알림을 조회합니다.
+         *     **Manager (관리자) 에게만 뜨는 알림이며, 이외의 경우 401/403 ERROR 발생**
+         */
+        get: operations["dashboard_notifications_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * 대시보드 알림 조회
-     * @description 로그인된 사용자의 HR 및 발주 관련 승인대기 알림을 조회합니다.
-     *     **Manager (관리자) 에게만 뜨는 알림이며, 이외의 경우 401/403 ERROR 발생**
-     */
-    get: operations['dashboard_notifications_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/hr/employees/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/hr/employees/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 직원 목록 조회
+         * @description 직원 목록 조회
+         */
+        get: operations["hr_employees_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * 직원 목록 조회
-     * @description 직원 목록 조회
-     */
-    get: operations['hr_employees_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/hr/employees/{employee_id}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        employee_id: string;
-      };
-      cookie?: never;
+    "/hr/employees/{employee_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * 특정 직원 조회
+         * @description 특정 직원 조회
+         */
+        get: operations["hr_employees_read"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * 직원 정보 수정 (HR 전용)
+         * @description 직원의 이름, 이메일, 연락처, 퇴사 여부, 연차일수, 권한 탭, 입사일, 직무, 삭제 여부를 수정합니다.
+         */
+        patch: operations["hr_employees_partial_update"];
+        trace?: never;
     };
-    /**
-     * 특정 직원 조회
-     * @description 특정 직원 조회
-     */
-    get: operations['hr_employees_read'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /**
-     * 직원 정보 수정 (HR 전용)
-     * @description 직원의 이름, 이메일, 연락처, 퇴사 여부, 연차일수, 권한 탭, 입사일, 직무, 삭제 여부를 수정합니다.
-     */
-    patch: operations['hr_employees_partial_update'];
-    trace?: never;
-  };
-  '/hr/vacations/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/hr/vacations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 휴가 신청 목록 조회
+         * @description 휴가 신청 및 근무 배정 목록을 조회합니다. 쿼리 파라미터로 필터링 가능합니다.
+         */
+        get: operations["hr_vacations_list"];
+        put?: never;
+        /**
+         * 휴가 신청 등록
+         * @description 휴가 신청을 등록합니다.
+         */
+        post: operations["hr_vacations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * 휴가 신청 목록 조회
-     * @description 휴가 신청 및 근무 배정 목록을 조회합니다. 쿼리 파라미터로 필터링 가능합니다.
-     */
-    get: operations['hr_vacations_list'];
-    put?: never;
-    /**
-     * 휴가 신청 등록
-     * @description 휴가 신청을 등록합니다.
-     */
-    post: operations['hr_vacations_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/hr/vacations/review/{id}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
+    "/hr/vacations/review/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * 휴가 신청 취소/승인/거절
+         * @description 휴가 신청 상태를 승인(APPROVED), 거절(REJECTED), 대기중(PENDING), 취소(CANCELLED) 중 하나로 변경합니다. WORK 타입은 생성 시 자동 승인되므로 일반적으로 이 API를 사용할 필요가 없습니다.
+         */
+        patch: operations["hr_vacations_review_partial_update"];
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /**
-     * 휴가 신청 취소/승인/거절
-     * @description 휴가 신청 상태를 승인(APPROVED), 거절(REJECTED), 대기중(PENDING), 취소(CANCELLED) 중 하나로 변경합니다. WORK 타입은 생성 시 자동 승인되므로 일반적으로 이 API를 사용할 필요가 없습니다.
-     */
-    patch: operations['hr_vacations_review_partial_update'];
-    trace?: never;
-  };
-  '/inventory/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/inventory/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 상품 옵션 리스트 조회
+         * @description 상품 드롭다운용으로 product_id와 name만 간단히 반환합니다.
+         */
+        get: operations["inventory_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * 상품 옵션 리스트 조회
-     * @description 상품 드롭다운용으로 product_id와 name만 간단히 반환합니다.
-     */
-    get: operations['inventory_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/inventory/adjustments/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/inventory/adjustments/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 재고 조정 이력 조회
+         * @description 재고 조정 이력을 조회합니다.
+         *
+         *     - variant_code, year, month 기준 필터 가능
+         *     - 최신순 정렬
+         */
+        get: operations["inventory_adjustments_list"];
+        put?: never;
+        /**
+         * 재고 조정 등록
+         * @description 재고 조정을 등록합니다.
+         *
+         *     처리 흐름:
+         *     1. InventoryAdjustment 생성 (이력 저장)
+         *     2. 해당 year/month의 ProductVariantStatus 조회 또는 생성
+         *     3. stock_adjustment에 delta 누적 반영
+         */
+        post: operations["inventory_adjustments_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * 재고 조정 이력 조회
-     * @description 재고 조정 이력을 조회합니다.
-     *
-     *     - variant_code, year, month 기준 필터 가능
-     *     - 최신순 정렬
-     */
-    get: operations['inventory_adjustments_list'];
-    put?: never;
-    /**
-     * 재고 조정 등록
-     * @description 재고 조정을 등록합니다.
-     *
-     *     처리 흐름:
-     *     1. InventoryAdjustment 생성 (이력 저장)
-     *     2. 해당 year/month의 ProductVariantStatus 조회 또는 생성
-     *     3. stock_adjustment에 delta 누적 반영
-     */
-    post: operations['inventory_adjustments_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/inventory/category/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/inventory/category/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 카테고리 목록 조회
+         * @description InventoryItem에 등록된 카테고리 관련 필드들의 고유 목록을 반환합니다.
+         *
+         *     - big_category
+         *     - middle_category
+         *     - category
+         */
+        get: operations["inventory_category_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * 카테고리 목록 조회
-     * @description InventoryItem에 등록된 카테고리 관련 필드들의 고유 목록을 반환합니다.
-     *
-     *     - big_category
-     *     - middle_category
-     *     - category
-     */
-    get: operations['inventory_category_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/inventory/variant-status/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/inventory/variant-status/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 재고 현황 확인 */
+        get: operations["inventory_variant-status_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** 재고 현황 확인 */
-    get: operations['inventory_variant-status_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/inventory/variant-status/{year}/{month}/{variant_code}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        year: string;
-        month: string;
-        variant_code: string;
-      };
-      cookie?: never;
+    "/inventory/variant-status/{year}/{month}/{variant_code}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                year: string;
+                month: string;
+                variant_code: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * 월별 재고 현황 수정 (셀 단위)
+         * @description 엑셀 화면에서 관리자 수동 수정용 PATCH API
+         *
+         *     - year / month / variant_code로 대상 식별
+         *     - 월초재고, 입고, 판매량만 수정 가능
+         */
+        patch: operations["inventory_variant-status_partial_update"];
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /**
-     * 월별 재고 현황 수정 (셀 단위)
-     * @description 엑셀 화면에서 관리자 수동 수정용 PATCH API
-     *
-     *     - year / month / variant_code로 대상 식별
-     *     - 월초재고, 입고, 판매량만 수정 가능
-     */
-    patch: operations['inventory_variant-status_partial_update'];
-    trace?: never;
-  };
-  '/inventory/variants/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/inventory/variants/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 상품 상세 목록 조회
+         * @description POST : 상품 상세 추가
+         *     GET : 쿼리 파라미터 기반 Product Variant 조회
+         */
+        get: operations["inventory_variants_list"];
+        put?: never;
+        /**
+         * 상품 상세 정보 생성
+         * @description 상품 상세(SKU) 생성 API
+         *
+         *     - product_id 기준으로 상품(InventoryItem)을 조회/생성
+         *     - Product 필드와 Variant 필드를 동시에 입력 가능
+         *     - 옵션/상세옵션 기반으로 variant_code(SKU)는 자동 생성됨
+         */
+        post: operations["inventory_variants_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * 상품 상세 목록 조회
-     * @description POST : 상품 상세 추가
-     *     GET : 쿼리 파라미터 기반 Product Variant 조회
-     */
-    get: operations['inventory_variants_list'];
-    put?: never;
-    /**
-     * 상품 상세 정보 생성
-     * @description 상품 상세(SKU) 생성 API
-     *
-     *     - product_id 기준으로 상품(InventoryItem)을 조회/생성
-     *     - Product 필드와 Variant 필드를 동시에 입력 가능
-     *     - 옵션/상세옵션 기반으로 variant_code(SKU)는 자동 생성됨
-     */
-    post: operations['inventory_variants_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/inventory/variants/export/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/inventory/variants/export/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 상품 재고 현황 Export (엑셀용)
+         * @description 월별 ProductVariantStatus 기준으로
+         *     상품 / 옵션 / 재고 / 판매 / 재고조정 정보를 한 행으로 반환합니다.
+         *
+         *     엑셀 다운로드 및 관리 화면 테이블 출력 용도입니다.
+         */
+        get: operations["inventory_variants_export_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * 상품 재고 현황 Export (엑셀용)
-     * @description 월별 ProductVariantStatus 기준으로
-     *     상품 / 옵션 / 재고 / 판매 / 재고조정 정보를 한 행으로 반환합니다.
-     *
-     *     엑셀 다운로드 및 관리 화면 테이블 출력 용도입니다.
-     */
-    get: operations['inventory_variants_export_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/inventory/variants/upload-excel/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/inventory/variants/upload-excel/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 상품 재고 엑셀 업로드 */
+        post: operations["inventory_variants_upload-excel_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** 상품 재고 엑셀 업로드 */
-    post: operations['inventory_variants_upload-excel_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/inventory/variants/{variant_code}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        variant_code: string;
-      };
-      cookie?: never;
+    "/inventory/variants/{variant_code}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                variant_code: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * 세부 품목 정보 조회 (방패필통 크림슨)
+         * @description GET / PATCH / DELETE: 특정 상품의 상세 정보 접근
+         */
+        get: operations["inventory_variants_read"];
+        put?: never;
+        post?: never;
+        /**
+         * 세부 품목 정보 삭제 (방패필통 크림슨)
+         * @description GET / PATCH / DELETE: 특정 상품의 상세 정보 접근
+         */
+        delete: operations["inventory_variants_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * 세부 품목 정보 수정 (방패필통 크림슨)
+         * @description GET / PATCH / DELETE: 특정 상품의 상세 정보 접근
+         */
+        patch: operations["inventory_variants_partial_update"];
+        trace?: never;
     };
-    /**
-     * 세부 품목 정보 조회 (방패필통 크림슨)
-     * @description GET / PATCH / DELETE: 특정 상품의 상세 정보 접근
-     */
-    get: operations['inventory_variants_read'];
-    put?: never;
-    post?: never;
-    /**
-     * 세부 품목 정보 삭제 (방패필통 크림슨)
-     * @description GET / PATCH / DELETE: 특정 상품의 상세 정보 접근
-     */
-    delete: operations['inventory_variants_delete'];
-    options?: never;
-    head?: never;
-    /**
-     * 세부 품목 정보 수정 (방패필통 크림슨)
-     * @description GET / PATCH / DELETE: 특정 상품의 상세 정보 접근
-     */
-    patch: operations['inventory_variants_partial_update'];
-    trace?: never;
-  };
-  '/inventory/{product_id}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: string;
-      };
-      cookie?: never;
+    "/inventory/{product_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * 특정 상품 상세 정보 조회 (방패필통)
+         * @description product_id에 해당하는 상품의 기본 정보와 연결된 상세 상품 목록까지 함께 조회합니다.
+         */
+        get: operations["inventory_read"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * 특정 상품 상세 정보 조회 (방패필통)
-     * @description product_id에 해당하는 상품의 기본 정보와 연결된 상세 상품 목록까지 함께 조회합니다.
-     */
-    get: operations['inventory_read'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/orders/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/orders/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 전체 주문 보기
+         * @description 필터링, 정렬, 페이지네이션이 가능한 주문 리스트
+         */
+        get: operations["orders_list"];
+        put?: never;
+        /**
+         * 주문 생성하기
+         * @description 주문을 생성합니다.
+         */
+        post: operations["orders_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * 전체 주문 보기
-     * @description 필터링, 정렬, 페이지네이션이 가능한 주문 리스트
-     */
-    get: operations['orders_list'];
-    put?: never;
-    /**
-     * 주문 생성하기
-     * @description 주문을 생성합니다.
-     */
-    post: operations['orders_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/orders/export/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/orders/export/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 전체 주문 Export (엑셀용)
+         * @description 필터링/정렬은 유지하며 pagination 없이 모든 주문 데이터를 반환합니다.
+         */
+        get: operations["orders_export_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * 전체 주문 Export (엑셀용)
-     * @description 필터링/정렬은 유지하며 pagination 없이 모든 주문 데이터를 반환합니다.
-     */
-    get: operations['orders_export_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/orders/{order_id}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        order_id: string;
-      };
-      cookie?: never;
+    "/orders/{order_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * 주문 상세 보기
+         * @description Retrieve detailed information about a specific order.
+         */
+        get: operations["orders_read"];
+        put?: never;
+        post?: never;
+        /**
+         * 주문 삭제하기
+         * @description Delete a specific order by its ID.
+         */
+        delete: operations["orders_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * 주문 상태 변경하기
+         * @description Update the status of a specific order.
+         */
+        patch: operations["orders_partial_update"];
+        trace?: never;
     };
-    /**
-     * 주문 상세 보기
-     * @description Retrieve detailed information about a specific order.
-     */
-    get: operations['orders_read'];
-    put?: never;
-    post?: never;
-    /**
-     * 주문 삭제하기
-     * @description Delete a specific order by its ID.
-     */
-    delete: operations['orders_delete'];
-    options?: never;
-    head?: never;
-    /**
-     * 주문 상태 변경하기
-     * @description Update the status of a specific order.
-     */
-    patch: operations['orders_partial_update'];
-    trace?: never;
-  };
-  '/supplier/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/supplier/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 공급업체 목록 조회 */
+        get: operations["supplier_list"];
+        put?: never;
+        /** 공급업체 등록 */
+        post: operations["supplier_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** 공급업체 목록 조회 */
-    get: operations['supplier_list'];
-    put?: never;
-    /** 공급업체 등록 */
-    post: operations['supplier_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/supplier/{id}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
+    "/supplier/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** 공급업체 상세 조회 */
+        get: operations["supplier_read"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 공급업체 정보 수정 */
+        patch: operations["supplier_partial_update"];
+        trace?: never;
     };
-    /** 공급업체 상세 조회 */
-    get: operations['supplier_read'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** 공급업체 정보 수정 */
-    patch: operations['supplier_partial_update'];
-    trace?: never;
-  };
-  '/supplier/{id}/orders/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
+    "/supplier/{id}/orders/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * 공급업체별 발주 내역 상세 조회
+         * @description 공급업체별로 발주(주문) 및 그 안의 품목, 가격, 수량 등의 세부 정보를 조회합니다.
+         */
+        get: operations["supplier_orders_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * 공급업체별 발주 내역 상세 조회
-     * @description 공급업체별로 발주(주문) 및 그 안의 품목, 가격, 수량 등의 세부 정보를 조회합니다.
-     */
-    get: operations['supplier_orders_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    EmployeeList: {
-      /** ID */
-      readonly id?: number;
-      /**
-       * Username
-       * @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.
-       */
-      username: string;
-      /**
-       * Email address
-       * Format: email
-       */
-      email?: string;
-      /**
-       * Role
-       * @enum {string}
-       */
-      role?: 'MANAGER' | 'STAFF' | 'INTERN';
-      /** Contact */
-      contact?: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status?: 'APPROVED' | 'DENIED';
-      /** First name */
-      first_name?: string;
-      /**
-       * Active
-       * @description Designates whether this user should be treated as active. Unselect this instead of deleting accounts.
-       */
-      is_active?: boolean;
-      /**
-       * Hire date
-       * Format: date
-       */
-      readonly hire_date?: string | null;
-      /** Remaining leave days */
-      readonly remaining_leave_days?: string;
-      /**
-       * Gender
-       * @enum {string|null}
-       */
-      gender?: 'MALE' | 'FEMALE' | null;
+    schemas: {
+        EmployeeList: {
+            /** ID */
+            readonly id?: number;
+            /**
+             * Username
+             * @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.
+             */
+            username: string;
+            /**
+             * Email address
+             * Format: email
+             */
+            email?: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role?: "MANAGER" | "STAFF" | "INTERN";
+            /** Contact */
+            contact?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status?: "APPROVED" | "DENIED";
+            /** First name */
+            first_name?: string;
+            /**
+             * Active
+             * @description Designates whether this user should be treated as active. Unselect this instead of deleting accounts.
+             */
+            is_active?: boolean;
+            /**
+             * Hire date
+             * Format: date
+             */
+            readonly hire_date?: string | null;
+            /** Remaining leave days */
+            readonly remaining_leave_days?: string;
+            /**
+             * Gender
+             * @enum {string|null}
+             */
+            gender?: "MALE" | "FEMALE" | null;
+        };
+        EmployeeDetail: {
+            /** ID */
+            readonly id?: number;
+            /**
+             * Username
+             * @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.
+             */
+            username: string;
+            /**
+             * Email address
+             * Format: email
+             */
+            email?: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role?: "MANAGER" | "STAFF" | "INTERN";
+            /** Contact */
+            contact?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status?: "APPROVED" | "DENIED";
+            /** First name */
+            first_name?: string;
+            /**
+             * Active
+             * @description Designates whether this user should be treated as active. Unselect this instead of deleting accounts.
+             */
+            is_active?: boolean;
+            /**
+             * Hire date
+             * Format: date
+             */
+            hire_date?: string | null;
+            /** Annual leave days */
+            annual_leave_days?: number;
+            /** Allowed tabs */
+            allowed_tabs: Record<string, never>;
+            /** Remaining leave days */
+            readonly remaining_leave_days?: string;
+            /** Vacation days */
+            readonly vacation_days?: string;
+            /** Vacation pending days */
+            readonly vacation_pending_days?: string;
+            /**
+             * Gender
+             * @enum {string|null}
+             */
+            gender?: "MALE" | "FEMALE" | null;
+        };
+        VacationRequest: {
+            /** ID */
+            readonly id?: number;
+            /** Employee */
+            employee: number;
+            /** Employee name */
+            readonly employee_name?: string;
+            /**
+             * Start date
+             * Format: date
+             */
+            start_date: string;
+            /**
+             * End date
+             * Format: date
+             */
+            end_date: string;
+            /**
+             * Leave type
+             * @enum {string}
+             */
+            readonly leave_type?: "VACATION" | "HALF_DAY_AM" | "HALF_DAY_PM" | "SICK" | "OTHER" | "WORK";
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+            /** Status display */
+            readonly status_display?: string;
+            /**
+             * Created at
+             * Format: date-time
+             */
+            readonly created_at?: string;
+            /**
+             * Reviewed at
+             * Format: date-time
+             */
+            readonly reviewed_at?: string | null;
+        };
+        InventoryItemSummary: {
+            /** ID */
+            readonly id?: number;
+            /** Product id */
+            product_id?: string;
+            /** Name */
+            name?: string;
+        };
+        InventoryAdjustment: {
+            /** ID */
+            readonly id?: number;
+            /** Variant code */
+            readonly variant_code?: string;
+            /** Product id */
+            readonly product_id?: string;
+            /** Product name */
+            readonly product_name?: string;
+            /**
+             * Delta
+             * @description 보정 수량: 양수/음수 모두 가능
+             */
+            readonly delta?: number;
+            /**
+             * Reason
+             * @description 보정 사유 설명
+             */
+            readonly reason?: string;
+            /**
+             * Created by
+             * @description 보정 작업 수행자(사용자명 또는 ID)
+             */
+            readonly created_by?: string;
+            /**
+             * Created at
+             * Format: date-time
+             */
+            readonly created_at?: string;
+        };
+        ProductVariantStatus: {
+            /** Year */
+            year: number;
+            /** Month */
+            month: number;
+            /** Big category */
+            readonly big_category?: string;
+            /** Middle category */
+            readonly middle_category?: string;
+            /** Category */
+            readonly category?: string;
+            /** Description */
+            readonly description?: string;
+            /** Online name */
+            readonly online_name?: string;
+            /** Offline name */
+            readonly offline_name?: string;
+            /** Option */
+            readonly option?: string;
+            /** Detail option */
+            readonly detail_option?: string;
+            /** Product code */
+            readonly product_code?: string;
+            /** Variant code */
+            readonly variant_code?: string;
+            /** Warehouse stock start */
+            warehouse_stock_start?: number;
+            /** Store stock start */
+            store_stock_start?: number;
+            /** Initial stock */
+            readonly initial_stock?: string;
+            /** Inbound quantity */
+            inbound_quantity?: number;
+            /** Store sales */
+            store_sales?: number;
+            /** Online sales */
+            online_sales?: number;
+            /** Total sales */
+            readonly total_sales?: string;
+            /** Adjustment quantity */
+            readonly adjustment_quantity?: string;
+            /** Adjustment status */
+            readonly adjustment_status?: string;
+            /** Ending stock */
+            readonly ending_stock?: string;
+        };
+        ProductVariant: {
+            /** Product id */
+            readonly product_id?: string;
+            /** Offline name */
+            readonly offline_name?: string;
+            /** Online name */
+            readonly online_name?: string;
+            /** Big category */
+            readonly big_category?: string;
+            /** Middle category */
+            readonly middle_category?: string;
+            /** Category */
+            readonly category?: string;
+            /** Variant code */
+            variant_code: string;
+            /** Option */
+            option: string;
+            /** Stock */
+            readonly stock?: number;
+            /** Price */
+            price?: number;
+            /** Min stock */
+            min_stock?: number;
+            /** Description */
+            readonly description?: string;
+            /** Memo */
+            memo?: string;
+            readonly channels?: string[];
+        };
+        InventoryItemWithVariants: {
+            /** Product id */
+            product_id?: string;
+            /** Name */
+            name?: string;
+            /** Variants */
+            readonly variants?: string;
+        };
+        OrderCompact: {
+            /** Id */
+            readonly id?: number;
+            /** Supplier */
+            readonly supplier?: string;
+            /** Manager */
+            readonly manager?: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status?: "PENDING" | "APPROVED" | "CANCELLED" | "COMPLETED";
+            /** Note */
+            note?: string | null;
+            /**
+             * Order date
+             * Format: date
+             */
+            order_date: string;
+            /**
+             * Expected delivery date
+             * Format: date
+             */
+            readonly expected_delivery_date?: string;
+            /** Total quantity */
+            readonly total_quantity?: string;
+            /** Total price */
+            readonly total_price?: string;
+            /** Product names */
+            readonly product_names?: string;
+        };
+        OrderItem: {
+            /** ID */
+            readonly id?: number;
+            /** Variant code */
+            readonly variant_code?: string;
+            /** Option */
+            readonly option?: string;
+            /** Item name */
+            readonly item_name?: string;
+            /** Quantity */
+            quantity: number;
+            /** Unit */
+            unit?: string;
+            /** Unit price */
+            unit_price: number;
+            /** Remark */
+            remark?: string | null;
+            /** Spec */
+            spec?: string | null;
+        };
+        OrderRead: {
+            /** Id */
+            readonly id?: number;
+            /** Supplier */
+            readonly supplier?: string;
+            /** Manager */
+            readonly manager?: string;
+            /**
+             * Order date
+             * Format: date
+             */
+            order_date: string;
+            /**
+             * Expected delivery date
+             * Format: date
+             */
+            expected_delivery_date?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status?: "PENDING" | "APPROVED" | "CANCELLED" | "COMPLETED";
+            /** Instruction note */
+            instruction_note?: string | null;
+            /** Note */
+            note?: string | null;
+            /**
+             * Created at
+             * Format: date-time
+             */
+            readonly created_at?: string;
+            /** Vat included */
+            vat_included?: boolean;
+            /** Packaging included */
+            packaging_included?: boolean;
+            readonly items?: components["schemas"]["OrderItem"][];
+        };
+        Supplier: {
+            /** ID */
+            readonly id?: number;
+            /** Name */
+            name: string;
+            /** Contact */
+            contact?: string | null;
+            /** Manager */
+            manager?: string | null;
+            /**
+             * Email
+             * Format: email
+             */
+            email?: string | null;
+            /** Address */
+            address?: string | null;
+        };
+        SupplierOption: {
+            /** ID */
+            readonly id?: number;
+            /** Name */
+            name: string;
+            /** Contact */
+            contact?: string | null;
+            /** Manager */
+            manager?: string | null;
+            /**
+             * Email
+             * Format: email
+             */
+            email?: string | null;
+            /** Address */
+            address?: string | null;
+        };
+        SupplierOrderItem: {
+            /** Variant code */
+            readonly variant_code?: string;
+            /** Item name */
+            readonly item_name?: string;
+            /** Quantity */
+            quantity: number;
+            /** Unit price */
+            unit_price: number;
+            /** Total */
+            readonly total?: string;
+        };
+        SupplierOrder: {
+            /** Id */
+            readonly id?: number;
+            /**
+             * Order date
+             * Format: date
+             */
+            order_date: string;
+            /**
+             * Expected delivery date
+             * Format: date
+             */
+            expected_delivery_date?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status?: "PENDING" | "APPROVED" | "CANCELLED" | "COMPLETED";
+            /** Total price */
+            readonly total_price?: string;
+            readonly items?: components["schemas"]["SupplierOrderItem"][];
+        };
     };
-    EmployeeDetail: {
-      /** ID */
-      readonly id?: number;
-      /**
-       * Username
-       * @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.
-       */
-      username: string;
-      /**
-       * Email address
-       * Format: email
-       */
-      email?: string;
-      /**
-       * Role
-       * @enum {string}
-       */
-      role?: 'MANAGER' | 'STAFF' | 'INTERN';
-      /** Contact */
-      contact?: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status?: 'APPROVED' | 'DENIED';
-      /** First name */
-      first_name?: string;
-      /**
-       * Active
-       * @description Designates whether this user should be treated as active. Unselect this instead of deleting accounts.
-       */
-      is_active?: boolean;
-      /**
-       * Hire date
-       * Format: date
-       */
-      hire_date?: string | null;
-      /** Annual leave days */
-      annual_leave_days?: number;
-      /** Allowed tabs */
-      allowed_tabs: Record<string, never>;
-      /** Remaining leave days */
-      readonly remaining_leave_days?: string;
-      /** Vacation days */
-      readonly vacation_days?: string;
-      /** Vacation pending days */
-      readonly vacation_pending_days?: string;
-      /**
-       * Gender
-       * @enum {string|null}
-       */
-      gender?: 'MALE' | 'FEMALE' | null;
-    };
-    VacationRequest: {
-      /** ID */
-      readonly id?: number;
-      /** Employee */
-      employee: number;
-      /** Employee name */
-      readonly employee_name?: string;
-      /**
-       * Start date
-       * Format: date
-       */
-      start_date: string;
-      /**
-       * End date
-       * Format: date
-       */
-      end_date: string;
-      /**
-       * Leave type
-       * @enum {string}
-       */
-      readonly leave_type?: 'VACATION' | 'HALF_DAY_AM' | 'HALF_DAY_PM' | 'SICK' | 'OTHER' | 'WORK';
-      /** Reason */
-      reason?: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
-      /** Status display */
-      readonly status_display?: string;
-      /**
-       * Created at
-       * Format: date-time
-       */
-      readonly created_at?: string;
-      /**
-       * Reviewed at
-       * Format: date-time
-       */
-      readonly reviewed_at?: string | null;
-    };
-    InventoryItemSummary: {
-      /** ID */
-      readonly id?: number;
-      /** Product id */
-      product_id?: string;
-      /** Name */
-      name?: string;
-    };
-    InventoryAdjustment: {
-      /** ID */
-      readonly id?: number;
-      /** Variant code */
-      readonly variant_code?: string;
-      /** Product id */
-      readonly product_id?: string;
-      /** Product name */
-      readonly product_name?: string;
-      /**
-       * Delta
-       * @description 보정 수량: 양수/음수 모두 가능
-       */
-      readonly delta?: number;
-      /**
-       * Reason
-       * @description 보정 사유 설명
-       */
-      readonly reason?: string;
-      /**
-       * Created by
-       * @description 보정 작업 수행자(사용자명 또는 ID)
-       */
-      readonly created_by?: string;
-      /**
-       * Created at
-       * Format: date-time
-       */
-      readonly created_at?: string;
-    };
-    ProductVariantStatus: {
-      /** Year */
-      year: number;
-      /** Month */
-      month: number;
-      /** Big category */
-      readonly big_category?: string;
-      /** Middle category */
-      readonly middle_category?: string;
-      /** Category */
-      readonly category?: string;
-      /** Description */
-      readonly description?: string;
-      /** Online name */
-      readonly online_name?: string;
-      /** Offline name */
-      readonly offline_name?: string;
-      /** Option */
-      readonly option?: string;
-      /** Detail option */
-      readonly detail_option?: string;
-      /** Product code */
-      readonly product_code?: string;
-      /** Variant code */
-      readonly variant_code?: string;
-      /** Warehouse stock start */
-      warehouse_stock_start?: number;
-      /** Store stock start */
-      store_stock_start?: number;
-      /** Initial stock */
-      readonly initial_stock?: string;
-      /** Inbound quantity */
-      inbound_quantity?: number;
-      /** Store sales */
-      store_sales?: number;
-      /** Online sales */
-      online_sales?: number;
-      /** Total sales */
-      readonly total_sales?: string;
-      /** Adjustment quantity */
-      readonly adjustment_quantity?: string;
-      /** Adjustment status */
-      readonly adjustment_status?: string;
-      /** Ending stock */
-      readonly ending_stock?: string;
-    };
-    InventoryItemWithVariants: {
-      /** Product id */
-      product_id?: string;
-      /** Name */
-      name?: string;
-      /** Variants */
-      readonly variants?: string;
-    };
-    OrderCompact: {
-      /** Id */
-      readonly id?: number;
-      /** Supplier */
-      readonly supplier?: string;
-      /** Manager */
-      readonly manager?: string;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status?: 'PENDING' | 'APPROVED' | 'CANCELLED' | 'COMPLETED';
-      /** Note */
-      note?: string | null;
-      /**
-       * Order date
-       * Format: date
-       */
-      order_date: string;
-      /**
-       * Expected delivery date
-       * Format: date
-       */
-      readonly expected_delivery_date?: string;
-      /** Total quantity */
-      readonly total_quantity?: string;
-      /** Total price */
-      readonly total_price?: string;
-      /** Product names */
-      readonly product_names?: string;
-    };
-    OrderItem: {
-      /** ID */
-      readonly id?: number;
-      /** Variant code */
-      readonly variant_code?: string;
-      /** Option */
-      readonly option?: string;
-      /** Item name */
-      readonly item_name?: string;
-      /** Quantity */
-      quantity: number;
-      /** Unit */
-      unit?: string;
-      /** Unit price */
-      unit_price: number;
-      /** Remark */
-      remark?: string | null;
-      /** Spec */
-      spec?: string | null;
-    };
-    OrderRead: {
-      /** Id */
-      readonly id?: number;
-      /** Supplier */
-      readonly supplier?: string;
-      /** Manager */
-      readonly manager?: string;
-      /**
-       * Order date
-       * Format: date
-       */
-      order_date: string;
-      /**
-       * Expected delivery date
-       * Format: date
-       */
-      expected_delivery_date?: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status?: 'PENDING' | 'APPROVED' | 'CANCELLED' | 'COMPLETED';
-      /** Instruction note */
-      instruction_note?: string | null;
-      /** Note */
-      note?: string | null;
-      /**
-       * Created at
-       * Format: date-time
-       */
-      readonly created_at?: string;
-      /** Vat included */
-      vat_included?: boolean;
-      /** Packaging included */
-      packaging_included?: boolean;
-      readonly items?: components['schemas']['OrderItem'][];
-    };
-    Supplier: {
-      /** ID */
-      readonly id?: number;
-      /** Name */
-      name: string;
-      /** Contact */
-      contact?: string | null;
-      /** Manager */
-      manager?: string | null;
-      /**
-       * Email
-       * Format: email
-       */
-      email?: string | null;
-      /** Address */
-      address?: string | null;
-    };
-    SupplierOption: {
-      /** ID */
-      readonly id?: number;
-      /** Name */
-      name: string;
-      /** Contact */
-      contact?: string | null;
-      /** Manager */
-      manager?: string | null;
-      /**
-       * Email
-       * Format: email
-       */
-      email?: string | null;
-      /** Address */
-      address?: string | null;
-    };
-    SupplierOrderItem: {
-      /** Variant code */
-      readonly variant_code?: string;
-      /** Item name */
-      readonly item_name?: string;
-      /** Quantity */
-      quantity: number;
-      /** Unit price */
-      unit_price: number;
-      /** Total */
-      readonly total?: string;
-    };
-    SupplierOrder: {
-      /** Id */
-      readonly id?: number;
-      /**
-       * Order date
-       * Format: date
-       */
-      order_date: string;
-      /**
-       * Expected delivery date
-       * Format: date
-       */
-      expected_delivery_date?: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status?: 'PENDING' | 'APPROVED' | 'CANCELLED' | 'COMPLETED';
-      /** Total price */
-      readonly total_price?: string;
-      readonly items?: components['schemas']['SupplierOrderItem'][];
-    };
-  };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  authentication_approve_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          /**
-           * @description STAFF 사용자 아이디
-           * @example staff1
-           */
-          username: string;
-          /**
-           * @description 변경할 상태
-           * @example APPROVED
-           * @enum {string}
-           */
-          status: 'APPROVED' | 'DENIED';
+    authentication_approve_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-      };
-    };
-    responses: {
-      /** @description 상태 변경 성공 */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description 잘못된 요청 */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description 권한 없음 */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description 사용자 없음 */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  'authentication_change-password_update': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        employee_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          /**
-           * @description 새 비밀번호
-           * @example new_strong_password!
-           */
-          password: string;
-        };
-      };
-    };
-    responses: {
-      /** @description 비밀번호가 성공적으로 변경되었습니다. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Bad Request - 유효하지 않은 데이터 */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Forbidden - 권한 없음 */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Not Found - 직원을 찾을 수 없음 */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  authentication_login_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          /**
-           * @description 사용자 아이디
-           * @example staff1
-           */
-          username: string;
-          /**
-           * Format: password
-           * @description 비밀번호
-           * @example crimson123
-           */
-          password: string;
-        };
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            message?: string;
-            access_token?: string;
-            refresh_token?: string;
-            user?: {
-              username?: string;
-              email?: string;
-              first_name?: string;
-              contact?: string;
-              role?: string;
-              status?: string;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description STAFF 사용자 아이디
+                     * @example staff1
+                     */
+                    username: string;
+                    /**
+                     * @description 변경할 상태
+                     * @example APPROVED
+                     * @enum {string}
+                     */
+                    status: "APPROVED" | "DENIED";
+                };
             };
-          };
-        };
-      };
-      /** @description 잘못된 로그인 정보 */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description 승인되지 않은 계정 */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  authentication_logout_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          /** @description JWT 리프레시 토큰 */
-          refresh_token: string;
-        };
-      };
-    };
-    responses: {
-      /** @description 로그아웃 성공 */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description 잘못된 토큰 */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  authentication_signup_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          /**
-           * @description 사용자 아이디
-           * @example test01
-           */
-          username: string;
-          /**
-           * Format: email
-           * @example test@example.com
-           */
-          email: string;
-          /**
-           * Format: password
-           * @example crimson123
-           */
-          password: string;
-          /** @example 테스트 */
-          first_name: string;
-          /** @example 010-1234-5678 */
-          contact: string;
-        };
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            /** @description 성공 메시지 */
-            message?: string;
-            /** @description JWT 액세스 토큰 */
-            access_token?: string;
-            /** @description JWT 리프레시 토큰 */
-            refresh_token?: string;
-          };
-        };
-      };
-      /** @description 잘못된 입력 */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  dashboard_notifications_list: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  hr_employees_list: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['EmployeeList'][];
-        };
-      };
-    };
-  };
-  hr_employees_read: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        employee_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['EmployeeDetail'];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  hr_employees_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        employee_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          /**
-           * @description 직원 이메일
-           * @example john.doe@example.com
-           */
-          email?: string;
-          /**
-           * @description 이름
-           * @example 유시진
-           */
-          first_name?: string;
-          /**
-           * @description 직원 연락처
-           * @example 010-1234-5678
-           */
-          contact?: string;
-          /**
-           * @description 퇴사 여부 (false이면 퇴사)
-           * @example true
-           */
-          is_active?: boolean;
-          /**
-           * @description 연차일수
-           * @example 24
-           */
-          annual_leave_days?: number;
-          /**
-           * @description 접근 허용 탭 목록 (예: ['INVENTORY', 'HR'])
-           * @example [
-           *       "INVENTORY",
-           *       "SUPPLIER",
-           *       "ORDER",
-           *       "HR"
-           *     ]
-           */
-          allowed_tabs?: string[];
-          /**
-           * Format: date
-           * @description 입사일
-           * @example 2024-03-01
-           */
-          hire_date?: string;
-          /**
-           * @description 직무 구분
-           * @example STAFF
-           * @enum {string}
-           */
-          role?: 'MANAGER' | 'STAFF' | 'INTERN';
-          /**
-           * @description 삭제 여부(소프트 삭제)
-           * @example false
-           */
-          is_deleted?: boolean;
-          /**
-           * @description 성별
-           * @example MALE
-           * @enum {string}
-           */
-          gender?: 'MALE' | 'FEMALE';
-        };
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['EmployeeDetail'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  hr_vacations_list: {
-    parameters: {
-      query?: {
-        /** @description 휴가 유형 필터 (예: VACATION, WORK) */
-        leave_type?: string;
-        /** @description 직원 ID 필터 */
-        employee?: number;
-        /** @description 시작일 필터 (YYYY-MM-DD) */
-        start_date?: string;
-        /** @description 종료일 필터 (YYYY-MM-DD) */
-        end_date?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['VacationRequest'][];
-        };
-      };
-    };
-  };
-  hr_vacations_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          /**
-           * @description 직원 ID
-           * @example 168
-           */
-          employee: number;
-          /**
-           * @description 휴가 유형 (WORK는 관리자만 생성 가능)
-           * @example VACATION
-           * @enum {string}
-           */
-          leave_type: 'VACATION' | 'HALF_DAY_AM' | 'HALF_DAY_PM' | 'SICK' | 'OTHER' | 'WORK';
-          /**
-           * Format: date
-           * @example 2025-08-01
-           */
-          start_date: string;
-          /**
-           * Format: date
-           * @example 2025-08-02
-           */
-          end_date: string;
-          /**
-           * @description 사유
-           * @example 개인 사정으로 인한 연차
-           */
-          reason?: string;
-        };
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['VacationRequest'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Forbidden */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  hr_vacations_review_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          /**
-           * @description 변경할 상태값
-           * @example APPROVED
-           * @enum {string}
-           */
-          status: 'APPROVED' | 'REJECTED';
-        };
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['VacationRequest'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Forbidden */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  inventory_list: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['InventoryItemSummary'][];
-        };
-      };
-    };
-  };
-  inventory_adjustments_list: {
-    parameters: {
-      query?: {
-        /** @description A page number within the paginated result set. */
-        page?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            count: number;
-            /** Format: uri */
-            next?: string | null;
-            /** Format: uri */
-            previous?: string | null;
-            results: components['schemas']['InventoryAdjustment'][];
-          };
-        };
-      };
-    };
-  };
-  inventory_adjustments_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          /**
-           * @description 조정 대상 variant_code
-           * @example P00001-A
-           */
-          variant_code: string;
-          /**
-           * @description 조정 연도 (미입력 시 현재 연도)
-           * @example 2025
-           */
-          year?: number;
-          /**
-           * @description 조정 월 (미입력 시 현재 월)
-           * @example 12
-           */
-          month?: number;
-          /**
-           * @description 재고 조정 수량 (음수/양수 가능)
-           * @example -5
-           */
-          delta: number;
-          /**
-           * @description 조정 사유
-           * @example 분기 실사 재고 차이
-           */
-          reason: string;
-          /**
-           * @description 조정 작업자
-           * @example 김정현
-           */
-          created_by: string;
-        };
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['InventoryAdjustment'];
-        };
-      };
-    };
-  };
-  inventory_category_list: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            /**
-             * @example [
-             *       "STORE",
-             *       "ONLINE"
-             *     ]
-             */
-            big_categories?: string[];
-            /**
-             * @example [
-             *       "FASHION",
-             *       "BOOK"
-             *     ]
-             */
-            middle_categories?: string[];
-            /**
-             * @example [
-             *       "문구",
-             *       "의류"
-             *     ]
-             */
-            categories?: string[];
-          };
-        };
-      };
-    };
-  };
-  'inventory_variant-status_list': {
-    parameters: {
-      query: {
-        /** @description A page number within the paginated result set. */
-        page?: number;
-        /** @description 조회 연도 (예: 2025) */
-        year: number;
-        /** @description 조회 월 (1~12) */
-        month: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            count: number;
-            /** Format: uri */
-            next?: string | null;
-            /** Format: uri */
-            previous?: string | null;
-            results: components['schemas']['ProductVariantStatus'][];
-          };
-        };
-      };
-    };
-  };
-  'inventory_variant-status_partial_update': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description 연도 (예: 2025) */
-        year: number;
-        /** @description 월 (1~12) */
-        month: number;
-        /** @description 상품 variant_code (예: P00000YC000A) */
-        variant_code: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          /** @example 120 */
-          warehouse_stock_start?: number;
-          /** @example 30 */
-          store_stock_start?: number;
-          /** @example 50 */
-          inbound_quantity?: number;
-          /** @example 20 */
-          store_sales?: number;
-          /** @example 10 */
-          online_sales?: number;
-        };
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductVariantStatus'];
-        };
-      };
-      /** @description Invalid field */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  inventory_variants_list: {
-    parameters: {
-      query?: {
-        /** @description 재고 수량 미만 */
-        stock_lt?: number;
-        /** @description 재고 수량 초과 */
-        stock_gt?: number;
-        /** @description 최소 매출 */
-        sales_min?: number;
-        /** @description 최대 매출 */
-        sales_max?: number;
-        /** @description 페이지 번호 (default = 1) */
-        page?: number;
-        /** @description 정렬 필드 (-price, stock 등) */
-        ordering?: string;
-        /** @description 상품명 검색 (부분일치) */
-        product_name?: string;
-        /** @description 상품 카테고리 (부분일치) */
-        category?: string;
-        /** @description 채널 필터 (online/offline) */
-        channel?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductVariant'][];
-        };
-      };
-    };
-  };
-  inventory_variants_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          /**
-           * @description 상품 식별자 (Product ID)
-           * @example P00000YC
-           */
-          product_id: string;
-          /**
-           * @description 오프라인 상품명
-           * @example 방패 필통
-           */
-          name: string;
-          /**
-           * @description 온라인 상품명
-           * @example 방패 필통 온라인
-           */
-          online_name?: string;
-          /**
-           * @description 카테고리
-           * @example 문구
-           */
-          category?: string;
-          /**
-           * @description 대분류
-           * @example STORE
-           */
-          big_category?: string;
-          /**
-           * @description 중분류
-           * @example FASHION
-           */
-          middle_category?: string;
-          /**
-           * @description 옵션 (예: 색상)
-           * @example 화이트
-           */
-          option?: string;
-          /**
-           * @description 상세 옵션 (예: 사이즈)
-           * @example M
-           */
-          detail_option?: string;
-          /**
-           * @description 초기 재고 (기말 재고)
-           * @example 100
-           */
-          stock?: number;
-          /**
-           * @description 판매가
-           * @example 5900
-           */
-          price?: number;
-          /**
-           * @description 최소 재고 알림 기준
-           * @example 5
-           */
-          min_stock?: number;
-          /**
-           * @description 상품 설명
-           * @example 튼튼한 방패 필통
-           */
-          description?: string;
-          /**
-           * @description 메모
-           * @example 23FW 신상품
-           */
-          memo?: string;
-          /**
-           * @description 판매 채널
-           * @example [
-           *       "online",
-           *       "offline"
-           *     ]
-           */
-          channels?: string[];
-        };
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductVariant'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  inventory_variants_export_list: {
-    parameters: {
-      query: {
-        /** @description 조회 연도 (예: 2025) */
-        year: number;
-        /** @description 조회 월 (1~12) */
-        month: number;
-        /** @description 상품 코드 검색 (product_id, 부분 일치) */
-        product_code?: string;
-        /** @description 상품 상세 코드 검색 (variant_code, 부분 일치) */
-        variant_code?: string;
-        /** @description 카테고리 필터 (부분 일치) */
-        category?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductVariantStatus'][];
-        };
-      };
-    };
-  };
-  'inventory_variants_upload-excel_create': {
-    parameters: {
-      query?: {
-        /** @description 재고 기준 연도 (default: 현재 연도) */
-        year?: number;
-        /** @description 재고 기준 월 (default: 현재 월) */
-        month?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'multipart/form-data': {
-          /**
-           * Format: binary
-           * @description 업로드할 엑셀 파일 (.xlsx)
-           */
-          file: string;
-        };
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  inventory_variants_read: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description 조회할 variant_code (예: P00000XN000A) */
-        variant_code: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductVariant'];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  inventory_variants_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description 삭제할 variant_code (예: P00000XN000A) */
-        variant_code: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description 삭제 완료 */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  inventory_variants_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description 수정할 variant_code (예: P00000YC000A) */
-        variant_code: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          /** @example P00000YC */
-          product_id: string;
-          /** @example 방패 필통 */
-          name: string;
-          /** @example 색상 : 크림슨 */
-          option: string;
-          /** @example 5000 */
-          price: number;
-          /** @example 4 */
-          min_stock?: number;
-          /** @example  */
-          description?: string;
-          /** @example  */
-          memo?: string;
-        };
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductVariant'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  inventory_read: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description 조회할 상품의 product_id (예: P00000YC) */
-        product_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['InventoryItemWithVariants'];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  orders_list: {
-    parameters: {
-      query?: {
-        /** @description 정렬 필드 (order_date, expected_delivery_date) */
-        ordering?: string;
-        /** @description 상품명 */
-        product_name?: string;
-        /** @description 공급업체 이름 */
-        supplier?: string;
-        /** @description 주문 상태 */
-        status?: string;
-        /** @description 조회 시작일 (예: 2025-07-01) */
-        start_date?: string;
-        /** @description 조회 종료일 (예: 2025-08-01) */
-        end_date?: string;
-        /** @description 페이지 번호 (default: 1) */
-        page?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrderCompact'][];
-        };
-      };
-    };
-  };
-  orders_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          /** @example 1 */
-          supplier: number;
-          /** @example 유시진 */
-          manager_name: string;
-          /**
-           * Format: date
-           * @example 2025-07-07
-           */
-          order_date: string;
-          /**
-           * Format: date
-           * @example 2025-07-09
-           */
-          expected_delivery_date: string;
-          /** @example PENDING */
-          status: string;
-          /** @example 납품 전에 전화주세요 */
-          instruction_note?: string;
-          /** @example 발주 요청 */
-          note?: string;
-          /** @example true */
-          vat_included?: boolean;
-          /** @example false */
-          packaging_included?: boolean;
-          items: {
-            /** @example P00000XN000A */
-            variant_code?: string;
-            /** @example 100 */
-            quantity?: number;
-            /** @example 5000 */
-            unit_price?: number;
-            /** @example EA */
-            unit?: string;
-            /** @example 박스 포장 */
-            remark?: string;
-            /** @example B급 */
-            spec?: string;
-          }[];
-        };
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrderRead'];
-        };
-      };
-    };
-  };
-  orders_export_list: {
-    parameters: {
-      query?: {
-        ordering?: string;
-        product_name?: string;
-        supplier?: string;
-        status?: string;
-        start_date?: string;
-        end_date?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrderCompact'][];
-        };
-      };
-    };
-  };
-  orders_read: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        order_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrderRead'];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  orders_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        order_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description No Content */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  orders_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        order_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          status: string;
-        };
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrderRead'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  supplier_list: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Supplier'][];
-        };
-      };
-    };
-  };
-  supplier_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Supplier'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Supplier'];
-        };
-      };
-    };
-  };
-  supplier_read: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Supplier'];
-        };
-      };
-    };
-  };
-  supplier_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SupplierOption'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Supplier'];
-        };
-      };
-    };
-  };
-  supplier_orders_list: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['SupplierOrder'][];
-        };
-      };
-    };
-  };
+        };
+        responses: {
+            /** @description 상태 변경 성공 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 잘못된 요청 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 권한 없음 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 사용자 없음 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "authentication_change-password_update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description 새 비밀번호
+                     * @example new_strong_password!
+                     */
+                    password: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 비밀번호가 성공적으로 변경되었습니다. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request - 유효하지 않은 데이터 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden - 권한 없음 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found - 직원을 찾을 수 없음 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    authentication_login_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description 사용자 아이디
+                     * @example staff1
+                     */
+                    username: string;
+                    /**
+                     * Format: password
+                     * @description 비밀번호
+                     * @example crimson123
+                     */
+                    password: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message?: string;
+                        access_token?: string;
+                        refresh_token?: string;
+                        user?: {
+                            username?: string;
+                            email?: string;
+                            first_name?: string;
+                            contact?: string;
+                            role?: string;
+                            status?: string;
+                        };
+                    };
+                };
+            };
+            /** @description 잘못된 로그인 정보 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 승인되지 않은 계정 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    authentication_logout_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description JWT 리프레시 토큰 */
+                    refresh_token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 로그아웃 성공 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 잘못된 토큰 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    authentication_signup_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description 사용자 아이디
+                     * @example test01
+                     */
+                    username: string;
+                    /**
+                     * Format: email
+                     * @example test@example.com
+                     */
+                    email: string;
+                    /**
+                     * Format: password
+                     * @example crimson123
+                     */
+                    password: string;
+                    /** @example 테스트 */
+                    first_name: string;
+                    /** @example 010-1234-5678 */
+                    contact: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description 성공 메시지 */
+                        message?: string;
+                        /** @description JWT 액세스 토큰 */
+                        access_token?: string;
+                        /** @description JWT 리프레시 토큰 */
+                        refresh_token?: string;
+                    };
+                };
+            };
+            /** @description 잘못된 입력 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    dashboard_notifications_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    hr_employees_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeList"][];
+                };
+            };
+        };
+    };
+    hr_employees_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    hr_employees_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description 직원 이메일
+                     * @example john.doe@example.com
+                     */
+                    email?: string;
+                    /**
+                     * @description 이름
+                     * @example 유시진
+                     */
+                    first_name?: string;
+                    /**
+                     * @description 직원 연락처
+                     * @example 010-1234-5678
+                     */
+                    contact?: string;
+                    /**
+                     * @description 퇴사 여부 (false이면 퇴사)
+                     * @example true
+                     */
+                    is_active?: boolean;
+                    /**
+                     * @description 연차일수
+                     * @example 24
+                     */
+                    annual_leave_days?: number;
+                    /**
+                     * @description 접근 허용 탭 목록 (예: ['INVENTORY', 'HR'])
+                     * @example [
+                     *       "INVENTORY",
+                     *       "SUPPLIER",
+                     *       "ORDER",
+                     *       "HR"
+                     *     ]
+                     */
+                    allowed_tabs?: string[];
+                    /**
+                     * Format: date
+                     * @description 입사일
+                     * @example 2024-03-01
+                     */
+                    hire_date?: string;
+                    /**
+                     * @description 직무 구분
+                     * @example STAFF
+                     * @enum {string}
+                     */
+                    role?: "MANAGER" | "STAFF" | "INTERN";
+                    /**
+                     * @description 삭제 여부(소프트 삭제)
+                     * @example false
+                     */
+                    is_deleted?: boolean;
+                    /**
+                     * @description 성별
+                     * @example MALE
+                     * @enum {string}
+                     */
+                    gender?: "MALE" | "FEMALE";
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeDetail"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    hr_vacations_list: {
+        parameters: {
+            query?: {
+                /** @description 휴가 유형 필터 (예: VACATION, WORK) */
+                leave_type?: string;
+                /** @description 직원 ID 필터 */
+                employee?: number;
+                /** @description 시작일 필터 (YYYY-MM-DD) */
+                start_date?: string;
+                /** @description 종료일 필터 (YYYY-MM-DD) */
+                end_date?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VacationRequest"][];
+                };
+            };
+        };
+    };
+    hr_vacations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description 직원 ID
+                     * @example 168
+                     */
+                    employee: number;
+                    /**
+                     * @description 휴가 유형 (WORK는 관리자만 생성 가능)
+                     * @example VACATION
+                     * @enum {string}
+                     */
+                    leave_type: "VACATION" | "HALF_DAY_AM" | "HALF_DAY_PM" | "SICK" | "OTHER" | "WORK";
+                    /**
+                     * Format: date
+                     * @example 2025-08-01
+                     */
+                    start_date: string;
+                    /**
+                     * Format: date
+                     * @example 2025-08-02
+                     */
+                    end_date: string;
+                    /**
+                     * @description 사유
+                     * @example 개인 사정으로 인한 연차
+                     */
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VacationRequest"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    hr_vacations_review_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description 변경할 상태값
+                     * @example APPROVED
+                     * @enum {string}
+                     */
+                    status: "APPROVED" | "REJECTED";
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VacationRequest"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    inventory_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryItemSummary"][];
+                };
+            };
+        };
+    };
+    inventory_adjustments_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        count: number;
+                        /** Format: uri */
+                        next?: string | null;
+                        /** Format: uri */
+                        previous?: string | null;
+                        results: components["schemas"]["InventoryAdjustment"][];
+                    };
+                };
+            };
+        };
+    };
+    inventory_adjustments_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description 조정 대상 variant_code
+                     * @example P00001-A
+                     */
+                    variant_code: string;
+                    /**
+                     * @description 조정 연도 (미입력 시 현재 연도)
+                     * @example 2025
+                     */
+                    year?: number;
+                    /**
+                     * @description 조정 월 (미입력 시 현재 월)
+                     * @example 12
+                     */
+                    month?: number;
+                    /**
+                     * @description 재고 조정 수량 (음수/양수 가능)
+                     * @example -5
+                     */
+                    delta: number;
+                    /**
+                     * @description 조정 사유
+                     * @example 분기 실사 재고 차이
+                     */
+                    reason: string;
+                    /**
+                     * @description 조정 작업자
+                     * @example 김정현
+                     */
+                    created_by: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryAdjustment"];
+                };
+            };
+        };
+    };
+    inventory_category_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @example [
+                         *       "STORE",
+                         *       "ONLINE"
+                         *     ]
+                         */
+                        big_categories?: string[];
+                        /**
+                         * @example [
+                         *       "FASHION",
+                         *       "BOOK"
+                         *     ]
+                         */
+                        middle_categories?: string[];
+                        /**
+                         * @example [
+                         *       "문구",
+                         *       "의류"
+                         *     ]
+                         */
+                        categories?: string[];
+                    };
+                };
+            };
+        };
+    };
+    "inventory_variant-status_list": {
+        parameters: {
+            query: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description 조회 연도 (예: 2025) */
+                year: number;
+                /** @description 조회 월 (1~12) */
+                month: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        count: number;
+                        /** Format: uri */
+                        next?: string | null;
+                        /** Format: uri */
+                        previous?: string | null;
+                        results: components["schemas"]["ProductVariantStatus"][];
+                    };
+                };
+            };
+        };
+    };
+    "inventory_variant-status_partial_update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 연도 (예: 2025) */
+                year: number;
+                /** @description 월 (1~12) */
+                month: number;
+                /** @description 상품 variant_code (예: P00000YC000A) */
+                variant_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example 120 */
+                    warehouse_stock_start?: number;
+                    /** @example 30 */
+                    store_stock_start?: number;
+                    /** @example 50 */
+                    inbound_quantity?: number;
+                    /** @example 20 */
+                    store_sales?: number;
+                    /** @example 10 */
+                    online_sales?: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductVariantStatus"];
+                };
+            };
+            /** @description Invalid field */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    inventory_variants_list: {
+        parameters: {
+            query?: {
+                /** @description 재고 수량 미만 */
+                stock_lt?: number;
+                /** @description 재고 수량 초과 */
+                stock_gt?: number;
+                /** @description 최소 매출 */
+                sales_min?: number;
+                /** @description 최대 매출 */
+                sales_max?: number;
+                /** @description 페이지 번호 (default = 1) */
+                page?: number;
+                /** @description 정렬 필드 (-price, stock 등) */
+                ordering?: string;
+                /** @description 상품명 검색 (부분일치) */
+                product_name?: string;
+                /** @description 상품 카테고리 (부분일치) */
+                category?: string;
+                /** @description 채널 필터 (online/offline) */
+                channel?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductVariant"][];
+                };
+            };
+        };
+    };
+    inventory_variants_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description 상품 식별자 (Product ID)
+                     * @example P00000YC
+                     */
+                    product_id: string;
+                    /**
+                     * @description 오프라인 상품명
+                     * @example 방패 필통
+                     */
+                    name: string;
+                    /**
+                     * @description 온라인 상품명
+                     * @example 방패 필통 온라인
+                     */
+                    online_name?: string;
+                    /**
+                     * @description 카테고리
+                     * @example 문구
+                     */
+                    category?: string;
+                    /**
+                     * @description 대분류
+                     * @example STORE
+                     */
+                    big_category?: string;
+                    /**
+                     * @description 중분류
+                     * @example FASHION
+                     */
+                    middle_category?: string;
+                    /**
+                     * @description 옵션 (예: 색상)
+                     * @example 화이트
+                     */
+                    option?: string;
+                    /**
+                     * @description 상세 옵션 (예: 사이즈)
+                     * @example M
+                     */
+                    detail_option?: string;
+                    /**
+                     * @description 초기 재고 (기말 재고)
+                     * @example 100
+                     */
+                    stock?: number;
+                    /**
+                     * @description 판매가
+                     * @example 5900
+                     */
+                    price?: number;
+                    /**
+                     * @description 최소 재고 알림 기준
+                     * @example 5
+                     */
+                    min_stock?: number;
+                    /**
+                     * @description 상품 설명
+                     * @example 튼튼한 방패 필통
+                     */
+                    description?: string;
+                    /**
+                     * @description 메모
+                     * @example 23FW 신상품
+                     */
+                    memo?: string;
+                    /**
+                     * @description 판매 채널
+                     * @example [
+                     *       "online",
+                     *       "offline"
+                     *     ]
+                     */
+                    channels?: string[];
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductVariant"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    inventory_variants_export_list: {
+        parameters: {
+            query: {
+                /** @description 조회 연도 (예: 2025) */
+                year: number;
+                /** @description 조회 월 (1~12) */
+                month: number;
+                /** @description 상품 코드 검색 (product_id, 부분 일치) */
+                product_code?: string;
+                /** @description 상품 상세 코드 검색 (variant_code, 부분 일치) */
+                variant_code?: string;
+                /** @description 카테고리 필터 (부분 일치) */
+                category?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductVariantStatus"][];
+                };
+            };
+        };
+    };
+    "inventory_variants_upload-excel_create": {
+        parameters: {
+            query?: {
+                /** @description 재고 기준 연도 (default: 현재 연도) */
+                year?: number;
+                /** @description 재고 기준 월 (default: 현재 월) */
+                month?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description 업로드할 엑셀 파일 (.xlsx)
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    inventory_variants_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 조회할 variant_code (예: P00000XN000A) */
+                variant_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductVariant"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    inventory_variants_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 삭제할 variant_code (예: P00000XN000A) */
+                variant_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 삭제 완료 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    inventory_variants_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 수정할 variant_code (예: P00000YC000A) */
+                variant_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example P00000YC */
+                    product_id: string;
+                    /** @example 방패 필통 */
+                    name: string;
+                    /** @example 색상 : 크림슨 */
+                    option: string;
+                    /** @example 5000 */
+                    price: number;
+                    /** @example 4 */
+                    min_stock?: number;
+                    /** @example  */
+                    description?: string;
+                    /** @example  */
+                    memo?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductVariant"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    inventory_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 조회할 상품의 product_id (예: P00000YC) */
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryItemWithVariants"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    orders_list: {
+        parameters: {
+            query?: {
+                /** @description 정렬 필드 (order_date, expected_delivery_date) */
+                ordering?: string;
+                /** @description 상품명 */
+                product_name?: string;
+                /** @description 공급업체 이름 */
+                supplier?: string;
+                /** @description 주문 상태 */
+                status?: string;
+                /** @description 조회 시작일 (예: 2025-07-01) */
+                start_date?: string;
+                /** @description 조회 종료일 (예: 2025-08-01) */
+                end_date?: string;
+                /** @description 페이지 번호 (default: 1) */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderCompact"][];
+                };
+            };
+        };
+    };
+    orders_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example 1 */
+                    supplier: number;
+                    /** @example 유시진 */
+                    manager_name: string;
+                    /**
+                     * Format: date
+                     * @example 2025-07-07
+                     */
+                    order_date: string;
+                    /**
+                     * Format: date
+                     * @example 2025-07-09
+                     */
+                    expected_delivery_date: string;
+                    /** @example PENDING */
+                    status: string;
+                    /** @example 납품 전에 전화주세요 */
+                    instruction_note?: string;
+                    /** @example 발주 요청 */
+                    note?: string;
+                    /** @example true */
+                    vat_included?: boolean;
+                    /** @example false */
+                    packaging_included?: boolean;
+                    items: {
+                        /** @example P00000XN000A */
+                        variant_code?: string;
+                        /** @example 100 */
+                        quantity?: number;
+                        /** @example 5000 */
+                        unit_price?: number;
+                        /** @example EA */
+                        unit?: string;
+                        /** @example 박스 포장 */
+                        remark?: string;
+                        /** @example B급 */
+                        spec?: string;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderRead"];
+                };
+            };
+        };
+    };
+    orders_export_list: {
+        parameters: {
+            query?: {
+                ordering?: string;
+                product_name?: string;
+                supplier?: string;
+                status?: string;
+                start_date?: string;
+                end_date?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderCompact"][];
+                };
+            };
+        };
+    };
+    orders_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderRead"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    orders_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    orders_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    status: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    supplier_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Supplier"][];
+                };
+            };
+        };
+    };
+    supplier_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Supplier"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Supplier"];
+                };
+            };
+        };
+    };
+    supplier_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Supplier"];
+                };
+            };
+        };
+    };
+    supplier_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierOption"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Supplier"];
+                };
+            };
+        };
+    };
+    supplier_orders_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierOrder"][];
+                };
+            };
+        };
+    };
 }
