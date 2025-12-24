@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "format": "prettier --write \"**/*.{js,ts,tsx,jsx,mjs,hbs,json,css,md}\"",
-    "generate:api-types": "swagger2openapi http://localhost:8000/swagger?format=openapi -o src/openapi3.json && npx openapi-typescript ./openapi3.json -o src/types/api.d.ts"
+    "generate:api-types": "swagger2openapi http://localhost:8000/swagger?format=openapi -o src/openapi3.json && npx openapi-typescript ./src/openapi3.json -o src/types/api.d.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
