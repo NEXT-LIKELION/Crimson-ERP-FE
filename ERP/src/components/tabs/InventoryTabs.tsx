@@ -6,9 +6,7 @@ interface InventoryTabsProps {
 }
 
 const InventoryTabs: React.FC<InventoryTabsProps> = ({ activeTab, onTabChange }) => {
-  const tabs = [
-    { id: 'all', label: '전체', count: null },
-  ] as const;
+  const tabs = [{ id: 'all', label: '전체', count: null }] as const;
 
   return (
     <div className='mb-6'>

@@ -217,7 +217,8 @@ const InventoryTable = ({
 
   // 스크롤 위로 가기 함수
   const scrollToTop = () => {
-    const mainContainer = scrollContainerRef.current || document.querySelector('section.overflow-auto');
+    const mainContainer =
+      scrollContainerRef.current || document.querySelector('section.overflow-auto');
     if (mainContainer) {
       mainContainer.scrollTo({
         top: 0,

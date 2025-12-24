@@ -252,8 +252,9 @@ export const mergeVariants = async (payload: {
 
 // 카테고리 목록 조회
 export const fetchCategories = () => {
-  return api.get('/inventory/category/')
-    .then(response => {
+  return api
+    .get('/inventory/category/')
+    .then((response) => {
       // API 응답 형식: { big_categories: [], middle_categories: [], categories: [] }
       // categories 배열만 추출
       const categories = response.data?.categories || [];
@@ -261,7 +262,7 @@ export const fetchCategories = () => {
       const categoryArray = Array.isArray(categories) ? categories : [];
       return { ...response, data: categoryArray };
     })
-    .catch(error => {
+    .catch((error) => {
       console.warn('카테고리 조회 실패, 기본값 사용:', error);
       // 실패 시 기본 카테고리 반환
       return { data: ['의류', '전자제품', '생활용품', '식품', '화장품', '도서', '스포츠', '기타'] };
@@ -277,7 +278,6 @@ export const fetchVariantStatus = (params: {
 }) => {
   return api.get('/inventory/variant-status/', { params });
 };
-
 
 // 월별 재고 현황 개별 항목 수정
 export const updateVariantStatus = (
@@ -296,11 +296,7 @@ export const updateVariantStatus = (
 };
 
 // 월별 재고 현황 엑셀 업로드
-export const uploadVariantStatusExcel = (
-  file: File,
-  year?: number,
-  month?: number
-) => {
+export const uploadVariantStatusExcel = (file: File, year?: number, month?: number) => {
   const formData = new FormData();
   formData.append('file', file);
 
@@ -326,7 +322,7 @@ export const downloadVariantStatusExcel = (params: {
   category?: string;
 }) => {
   return api.get('/inventory/variants/export/', {
-    params
+    params,
     // responseType 제거 - JSON 데이터이므로 기본 처리
   });
 };
