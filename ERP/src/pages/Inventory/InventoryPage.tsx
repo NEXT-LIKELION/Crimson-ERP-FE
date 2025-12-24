@@ -32,7 +32,6 @@ import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { uploadInventoryExcel } from '../../api/upload';
 import { usePermissions } from '../../hooks/usePermissions';
 import * as XLSX from 'xlsx';
-import { useAdjustStock } from '../../hooks/queries/useStockAdjustment';
 import { getErrorMessage } from '../../utils/errorHandling';
 
 const InventoryPage = () => {
@@ -134,10 +133,7 @@ const InventoryPage = () => {
   const data: ApiProductVariant[] = useMemo(() => rawData ?? [], [rawData]);
 
   // 월별 재고 현황 데이터 조회
-  const {
-    data: variantStatusData,
-    isLoading: isStatusLoading,
-  } = useVariantStatus({
+  const { data: variantStatusData, isLoading: isStatusLoading } = useVariantStatus({
     year: selectedYear,
     month: selectedMonth,
     page: 1,
@@ -150,8 +146,6 @@ const InventoryPage = () => {
     enabled: !!statusSelectedVariantCode,
     staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
   });
-
-  const adjustStockMutation = useAdjustStock();
 
   // 병합 모달용 전체 데이터 (모든 페이지 데이터 합치기)
   const [allMergeData, setAllMergeData] = useState<unknown[]>([]);
@@ -228,6 +222,7 @@ const InventoryPage = () => {
       const result = statusSelectedVariantDetail.data;
       return {
         ...result,
+        name: result.offline_name || result.name || '',
         cost_price: result.cost_price || 0,
         min_stock: result.min_stock || 0,
         variant_id: result.variant_code || '',
@@ -248,6 +243,7 @@ const InventoryPage = () => {
 
     const processedResult = {
       ...result,
+      name: result.offline_name || result.name || '',
       cost_price: result.cost_price || 0,
       min_stock: result.min_stock || 0,
       variant_id: result.variant_code || '',
@@ -331,10 +327,14 @@ const InventoryPage = () => {
       handleCloseModal();
       await queryClient.invalidateQueries({ queryKey: ['inventories'] });
       await queryClient.invalidateQueries({ queryKey: ['categories'] }); // 카테고리 목록도 새로고침
-      await queryClient.invalidateQueries({ queryKey: ['variantDetail', statusSelectedVariantCode] }); // 상세 정보도 새로고침
+      await queryClient.invalidateQueries({
+        queryKey: ['variantDetail', statusSelectedVariantCode],
+      }); // 상세 정보도 새로고침
       if (statusSelectedVariantCode) {
         // 월별 재고 현황도 새로고침
-        await queryClient.invalidateQueries({ queryKey: ['variantStatus', selectedYear, selectedMonth] });
+        await queryClient.invalidateQueries({
+          queryKey: ['variantStatus', selectedYear, selectedMonth],
+        });
       }
       await refetch();
     } catch (err) {
@@ -675,19 +675,6 @@ const InventoryPage = () => {
     setStockAdjustModalOpen(true);
   };
 
-  const handleStockAdjust = async (
-    variantCode: string,
-    data: {
-      delta: number;
-      reason: string;
-      created_by: string;
-      year?: number;
-      month?: number;
-    }
-  ) => {
-    await adjustStockMutation.mutateAsync({ variantCode, data });
-  };
-
   const handleStockAdjustSuccess = () => {
     refetch();
     // EditProductModal이 열려있는 경우 해당 product 데이터도 업데이트
@@ -702,7 +689,6 @@ const InventoryPage = () => {
     setStatusSelectedVariantCode(variantCode);
   };
 
-
   // 모든 탭에서 동일한 API 기반 데이터 사용
   const tabData = data ?? [];
   console.log('tabData', tabData);
@@ -710,16 +696,20 @@ const InventoryPage = () => {
   if (error) return <p>에러가 발생했습니다!</p>;
 
   return (
-    <div className='w-full max-w-full overflow-hidden'>
+    <div className='w-full max-w-full overflow-hidden min-h-[calc(100vh+10px)]'>
       {isLoading && <LoadingSpinner overlay text='재고 데이터를 불러오는 중...' />}
       {isPOSUploading && <LoadingSpinner overlay text='POS 데이터를 업로드하는 중...' />}
-      {isStatusExcelUploading && <LoadingSpinner overlay text='월별 재고 현황을 업로드하는 중...' />}
-      {isStatusExcelDownloading && <LoadingSpinner overlay text='월별 재고 현황을 다운로드하는 중...' />}
-      <div className='mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0'>
-        <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4 min-w-0 flex-1'>
-          <h1 className='text-xl sm:text-2xl font-bold truncate'>재고 관리</h1>
+      {isStatusExcelUploading && (
+        <LoadingSpinner overlay text='월별 재고 현황을 업로드하는 중...' />
+      )}
+      {isStatusExcelDownloading && (
+        <LoadingSpinner overlay text='월별 재고 현황을 다운로드하는 중...' />
+      )}
+      <div className='mb-4 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+        <div className='flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4'>
+          <h1 className='truncate text-xl font-bold sm:text-2xl'>재고 관리</h1>
           {/* 뷰 모드 전환 버튼 */}
-          <div className='flex rounded-lg border border-gray-300 bg-white flex-shrink-0 w-fit'>
+          <div className='flex w-fit flex-shrink-0 rounded-lg border border-gray-300 bg-white'>
             <button
               onClick={() => setViewMode('variant')}
               className={`px-4 py-2 text-sm font-medium transition-colors ${
@@ -740,7 +730,7 @@ const InventoryPage = () => {
             </button>
           </div>
         </div>
-        <div className='flex flex-wrap gap-2 flex-shrink-0'>
+        <div className='flex flex-shrink-0 flex-wrap gap-2'>
           {viewMode === 'variant' && permissions.canCreate('INVENTORY') && (
             <>
               <GreenButton
@@ -810,8 +800,8 @@ const InventoryPage = () => {
 
       {/* 월별 재고 현황 모드일 때 년/월 선택 필터 */}
       {viewMode === 'status' && (
-        <div className='mb-4 w-full rounded-lg border border-gray-200 bg-white p-3 sm:p-4 min-w-0'>
-          <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-3 min-w-0'>
+        <div className='mb-4 w-full min-w-0 rounded-lg border border-gray-200 bg-white p-3 sm:p-4'>
+          <div className='flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:space-x-3'>
             <label className='text-sm font-medium text-gray-700'>조회 기간:</label>
             <select
               value={selectedYear}
@@ -839,7 +829,6 @@ const InventoryPage = () => {
           </div>
         </div>
       )}
-
 
       {/* 검색 필터 - 상품 관리 모드일 때만 표시 */}
       {viewMode === 'variant' && (
@@ -973,7 +962,6 @@ const InventoryPage = () => {
             setSelectedVariantForStock(null);
           }}
           variant={selectedVariantForStock}
-          onAdjust={handleStockAdjust}
           onSuccess={handleStockAdjustSuccess}
         />
       )}
