@@ -41,6 +41,7 @@ export interface Product {
   id?: number;
   product_id: string;
   name: string;
+  offline_name?: string; // API의 offline_name 필드
   variants?: ProductVariant[];
   category?: string;
 
