@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { FiX, FiAlertTriangle } from 'react-icons/fi';
 import TextInput from '../input/TextInput';
 import SelectInput from '../input/SelectInput';
-import { FaBoxArchive, FaClipboardList } from 'react-icons/fa6';
-import { BsCoin } from 'react-icons/bs';
+import PrimaryButton from '../button/PrimaryButton';
+import SecondaryButton from '../button/SecondaryButton';
 import { useSuppliers } from '../../hooks/queries/useSuppliers';
 import { Product, Supplier } from '../../types/product';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
@@ -203,37 +203,32 @@ const EditProductModal = ({
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm'>
-      <div className='max-h-[90vh] w-[900px] overflow-auto rounded-lg bg-white shadow-lg'>
-        <div className='flex items-center justify-between border-b border-gray-300 px-6 py-4'>
-          <div className='flex items-center gap-2'>
-            <h2 className='text-lg font-semibold'>상품 정보 편집</h2>
-          </div>
+      <div className='mx-4 flex max-h-[90vh] w-full max-w-4xl flex-col rounded-lg bg-white shadow-lg'>
+        <div className='flex items-center justify-between border-b border-gray-200 px-6 py-4'>
+          <h2 className='text-lg font-semibold'>상품 정보 편집</h2>
           <button onClick={onClose}>
             <FiX className='h-6 w-6 text-gray-500 hover:text-gray-700' />
           </button>
         </div>
 
-        <div className='space-y-8 p-6'>
-          {errors.length > 0 && (
-            <div className='rounded-md border border-red-200 bg-red-50 p-4'>
-              <div className='flex items-start'>
-                <FiAlertTriangle className='mt-1 mr-2 text-red-600' />
-                <ul className='list-inside list-disc text-sm text-red-700'>
-                  {errors.map((err, i) => (
-                    <li key={i}>{err}</li>
-                  ))}
-                </ul>
+        <div className='flex-1 overflow-y-auto px-6 py-4'>
+          <div className='space-y-4'>
+            {errors.length > 0 && (
+              <div className='rounded-md border border-red-200 bg-red-50 p-3'>
+                <div className='flex items-start'>
+                  <FiAlertTriangle className='mt-0.5 mr-2 text-red-600' />
+                  <ul className='list-inside list-disc text-xs text-red-700'>
+                    {errors.map((err, i) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className='grid grid-cols-2 gap-10'>
-            <section>
-              <div className='mb-3 flex items-center gap-2'>
-                <FaBoxArchive className='text-indigo-500' />
-                <h3 className='text-md font-semibold'>기본 정보</h3>
-              </div>
-              <div className='space-y-4'>
+            {/* 기본 정보 */}
+            <div className='grid grid-cols-2 gap-4'>
+              <div className='space-y-3'>
                 <TextInput label='상품코드' value={form.product_id} disabled />
                 <TextInput label='품목코드' value={form.variant_id?.toString() || ''} disabled />
                 <TextInput
@@ -247,14 +242,8 @@ const EditProductModal = ({
                   onChange={(val) => handleChange('option', val)}
                 />
               </div>
-            </section>
 
-            <section>
-              <div className='mb-3 flex items-center gap-2'>
-                <BsCoin className='text-indigo-500' />
-                <h3 className='text-md font-semibold'>판매 정보</h3>
-              </div>
-              <div className='space-y-4'>
+              <div className='space-y-3'>
                 <TextInput
                   label='판매가'
                   type='number'
@@ -264,13 +253,11 @@ const EditProductModal = ({
                   noSpinner
                 />
                 <TextInput label='매입가' value={avgCost?.toLocaleString() || ''} disabled />
-                <div className='space-y-1'>
-                  <label className='block text-sm font-medium text-gray-700'>현재 재고</label>
+                <div>
+                  <label className='mb-1 block text-sm font-medium text-gray-700'>현재 재고</label>
                   <div
                     onClick={() => {
-                      // 최신 재고 데이터 사용
                       const currentStock = latestVariantData?.data?.stock ?? form.stock ?? 0;
-                      // offline_name을 우선적으로 사용, 없으면 name 사용
                       const productName = product.offline_name || form.name || '';
                       onStockAdjustClick({
                         variant_code: form.variant_code || form.variant_id?.toString() || '',
@@ -281,16 +268,11 @@ const EditProductModal = ({
                         min_stock: form.min_stock || 0,
                       });
                     }}
-                    className='w-full cursor-pointer rounded-md border border-gray-300 bg-blue-50 px-3 py-2 text-sm transition-colors hover:bg-blue-100 focus:border-transparent focus:ring-2 focus:ring-blue-500'
+                    className='w-full cursor-pointer rounded-md border border-gray-300 bg-blue-50 px-3 py-2 text-sm transition-colors hover:bg-blue-100'
                     title='클릭하여 재고 조정'>
-                    {Math.max(
-                      0,
-                      Number(latestVariantData?.data?.stock ?? form.stock) || 0
-                    ).toLocaleString()}
+                    {Math.max(0, Number(latestVariantData?.data?.stock ?? form.stock) || 0).toLocaleString()}
                   </div>
-                  <p className='mt-1 text-xs text-blue-600'>
-                    💡 재고 칸을 클릭하여 재고를 조정할 수 있습니다.
-                  </p>
+                  <p className='mt-1 text-xs text-gray-500'>클릭하여 재고 조정</p>
                 </div>
                 <TextInput
                   label='최소 재고'
@@ -300,154 +282,134 @@ const EditProductModal = ({
                   onKeyDown={handleNumberKeyDown}
                   noSpinner
                 />
-                <p className='mt-1 text-xs text-gray-500'>
-                  재고가 이 수준 이하로 떨어지면 경고가 표시됩니다.
-                </p>
+              </div>
+            </div>
 
-                {/* 판매 채널 선택 */}
-                <div className='mt-4'>
-                  <label className='mb-2 block text-sm font-medium text-gray-700'>
-                    판매 채널 <span className='text-red-500'>*</span>
-                  </label>
-                  <div className='flex gap-4'>
-                    <label className='flex items-center'>
-                      <input
-                        type='checkbox'
-                        checked={form.channels.includes('online')}
-                        onChange={(e) => {
-                          const channels = e.target.checked
-                            ? [...form.channels, 'online']
-                            : form.channels.filter((c) => c !== 'online');
-                          handleChange('channels', channels);
-                        }}
-                        className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                      />
-                      온라인
-                    </label>
-                    <label className='flex items-center'>
-                      <input
-                        type='checkbox'
-                        checked={form.channels.includes('offline')}
-                        onChange={(e) => {
-                          const channels = e.target.checked
-                            ? [...form.channels, 'offline']
-                            : form.channels.filter((c) => c !== 'offline');
-                          handleChange('channels', channels);
-                        }}
-                        className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                      />
-                      오프라인
-                    </label>
-                  </div>
-                  <p className='mt-1 text-xs text-gray-500'>
-                    온라인, 오프라인 중 최소 하나 이상 선택해야 합니다. 중복 선택도 가능합니다.
-                  </p>
+            {/* 판매 채널 */}
+            <div>
+              <label className='mb-2 block text-sm font-medium text-gray-700'>
+                판매 채널 <span className='text-red-500'>*</span>
+              </label>
+              <div className='flex gap-4'>
+                <label className='flex items-center text-sm'>
+                  <input
+                    type='checkbox'
+                    checked={form.channels.includes('online')}
+                    onChange={(e) => {
+                      const channels = e.target.checked
+                        ? [...form.channels, 'online']
+                        : form.channels.filter((c) => c !== 'online');
+                      handleChange('channels', channels);
+                    }}
+                    className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                  />
+                  온라인
+                </label>
+                <label className='flex items-center text-sm'>
+                  <input
+                    type='checkbox'
+                    checked={form.channels.includes('offline')}
+                    onChange={(e) => {
+                      const channels = e.target.checked
+                        ? [...form.channels, 'offline']
+                        : form.channels.filter((c) => c !== 'offline');
+                      handleChange('channels', channels);
+                    }}
+                    className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                  />
+                  오프라인
+                </label>
+              </div>
+            </div>
+
+            {/* 설명 */}
+            <div>
+              <label className='mb-1.5 block text-sm font-medium text-gray-700'>설명</label>
+              <textarea
+                className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+                rows={2}
+                value={form.description || ''}
+                onChange={(e) => handleChange('description', e.target.value)}
+              />
+            </div>
+
+            {/* 공급업체 정보 */}
+            <div className='rounded-md border border-gray-200'>
+              <div className='border-b border-gray-200 bg-gray-50 px-3 py-2'>
+                <h3 className='text-sm font-medium text-gray-700'>공급업체 정보</h3>
+              </div>
+              <div className='overflow-x-auto'>
+                <table className='w-full border-collapse text-sm'>
+                  <thead>
+                    <tr className='border-b border-gray-200 bg-gray-50'>
+                      <th className='px-3 py-2 text-left text-xs font-medium text-gray-500'>공급업체</th>
+                      <th className='px-3 py-2 text-left text-xs font-medium text-gray-500'>매입가</th>
+                      <th className='px-3 py-2 text-center text-xs font-medium text-gray-500'>주요</th>
+                      <th className='px-3 py-2 text-center text-xs font-medium text-gray-500'>삭제</th>
+                    </tr>
+                  </thead>
+                  <tbody className='divide-y divide-gray-200'>
+                    {form.suppliers.map((s, i) => (
+                      <tr key={i}>
+                        <td className='px-3 py-2'>
+                          <SelectInput
+                            value={s.supplier_name}
+                            options={supplierOptions}
+                            onChange={(val) => handleSupplierChange(i, 'supplier_name', val)}
+                          />
+                        </td>
+                        <td className='px-3 py-2'>
+                          <TextInput
+                            type='number'
+                            value={s.cost_price.toString()}
+                            onChange={(val) => handleSupplierChange(i, 'cost_price', Number(val))}
+                          />
+                        </td>
+                        <td className='px-3 py-2 text-center'>
+                          <input
+                            type='checkbox'
+                            checked={s.is_primary}
+                            onChange={(e) => handleSupplierChange(i, 'is_primary', e.target.checked)}
+                            className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                          />
+                        </td>
+                        <td className='px-3 py-2 text-center'>
+                          <button
+                            onClick={() => handleRemoveSupplier(i)}
+                            className='text-xs text-red-500 hover:text-red-700'>
+                            삭제
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className='border-t border-gray-200 px-3 py-2'>
+                  <button
+                    onClick={handleAddSupplier}
+                    className='text-sm text-blue-600 hover:text-blue-700'>
+                    + 공급업체 추가
+                  </button>
                 </div>
               </div>
-            </section>
-          </div>
-          {/* 설명 추가 */}
-          <section>
-            <div className='mb-2'>
-              <label className='text-sm font-medium text-gray-700'>설명</label>
-            </div>
-            <textarea
-              className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-200 focus:outline-none'
-              rows={3}
-              value={form.description || ''}
-              onChange={(e) => handleChange('description', e.target.value)}
-            />
-          </section>
-
-          <section>
-            <div className='mb-3 flex items-center gap-2'>
-              <FaClipboardList className='text-indigo-500' />
-              <h3 className='text-md font-semibold'>공급업체 정보</h3>
             </div>
 
-            <table className='w-full table-auto border-collapse border border-gray-300'>
-              <thead>
-                <tr className='bg-gray-100'>
-                  <th className='border px-4 py-2 text-left'>공급업체</th>
-                  <th className='border px-4 py-2 text-left'>매입가</th>
-                  <th className='border px-4 py-2 text-center'>주요 공급자</th>
-                  <th className='border px-4 py-2 text-center'>삭제</th>
-                </tr>
-              </thead>
-              <tbody>
-                {form.suppliers.map((s, i) => (
-                  <tr key={i}>
-                    {/* 공급업체 선택 */}
-                    <td className='border px-4 py-2'>
-                      <SelectInput
-                        value={s.supplier_name}
-                        options={supplierOptions}
-                        onChange={(val) => handleSupplierChange(i, 'supplier_name', val)}
-                      />
-                    </td>
-
-                    {/* 매입가 입력 */}
-                    <td className='border px-4 py-2'>
-                      <TextInput
-                        type='number'
-                        value={s.cost_price.toString()}
-                        onChange={(val) => handleSupplierChange(i, 'cost_price', Number(val))}
-                      />
-                    </td>
-
-                    {/* 주요공급자 체크박스 */}
-                    <td className='border px-4 py-2 text-center'>
-                      <input
-                        type='checkbox'
-                        checked={s.is_primary}
-                        onChange={(e) => handleSupplierChange(i, 'is_primary', e.target.checked)}
-                      />
-                    </td>
-
-                    {/* 행 삭제 버튼 */}
-                    <td className='border px-4 py-2 text-center'>
-                      <button
-                        onClick={() => handleRemoveSupplier(i)}
-                        className='text-red-500 hover:underline'>
-                        삭제
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-
-                {/* 새로운 공급자 추가 버튼 */}
-                <tr>
-                  <td colSpan={4} className='px-4 py-2'>
-                    <button
-                      onClick={handleAddSupplier}
-                      className='text-sm text-indigo-600 hover:underline'>
-                      + 공급업체 추가
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            {/* 관리자 메모 */}
             <div>
-              <label className='text-sm text-gray-600'>관리자 메모</label>
+              <label className='mb-1.5 block text-sm font-medium text-gray-700'>관리자 메모</label>
               <textarea
-                className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm'
-                rows={3}
+                className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+                rows={2}
                 value={form.memo?.toString() || ''}
                 onChange={(e) => handleChange('memo', e.target.value)}
               />
             </div>
-          </section>
-
-          <div className='flex justify-end gap-3 border-t border-gray-300 px-6 py-4'>
-            <button onClick={onClose} className='rounded-md border px-4 py-2 text-gray-700'>
-              취소
-            </button>
-            <button
-              onClick={handleSubmit}
-              className='rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700'>
-              저장하기
-            </button>
           </div>
+        </div>
+
+        <div className='flex justify-end gap-3 border-t border-gray-200 px-6 py-4'>
+          <SecondaryButton text='취소' onClick={onClose} />
+          <PrimaryButton text='저장하기' onClick={handleSubmit} />
         </div>
       </div>
     </div>
