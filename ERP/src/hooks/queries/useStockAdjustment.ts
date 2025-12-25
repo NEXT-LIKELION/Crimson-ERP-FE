@@ -33,7 +33,12 @@ export const useAdjustStock = () => {
 };
 
 // 재고 변경 이력 조회 훅
-export const useStockHistory = (params?: { page?: number; variant_code?: string }) => {
+export const useStockHistory = (params?: {
+  page?: number;
+  variant_code?: string;
+  year?: number;
+  month?: number;
+}) => {
   return useQuery({
     queryKey: ['stockHistory', params],
     queryFn: () => fetchStockAdjustments(params),

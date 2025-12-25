@@ -6,9 +6,10 @@ import PrimaryButton from '../button/PrimaryButton';
 import SecondaryButton from '../button/SecondaryButton';
 import { useAuthStore } from '../../store/authStore';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
-import { useAdjustStock } from '../../hooks/queries/useStockAdjustment';
+import { useAdjustStock, useStockHistory } from '../../hooks/queries/useStockAdjustment';
 import { useQuery } from '@tanstack/react-query';
 import { fetchVariantDetail } from '../../api/inventory';
+import { InventoryAdjustment } from '../../types/product';
 
 interface StockAdjustmentModalProps {
   isOpen: boolean;
@@ -40,6 +41,10 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
   const [reason, setReason] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
 
+  // props로 전달받은 연도/월 사용, 없으면 현재 연도/월 사용
+  const currentYear = year ?? new Date().getFullYear();
+  const currentMonth = month ?? new Date().getMonth() + 1;
+
   // 최신 variant 정보 조회 (실시간 재고 정보 포함)
   const { data: latestVariantData } = useQuery({
     queryKey: ['variantDetail', variant?.variant_code],
@@ -47,6 +52,16 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
     enabled: isOpen && !!variant?.variant_code,
     staleTime: 0, // 항상 최신 데이터 가져오기
   });
+
+  // 재고조정 이력 조회
+  const { data: adjustmentHistory } = useStockHistory({
+    variant_code: variant?.variant_code,
+    year: currentYear,
+    month: currentMonth,
+    page: 1,
+  });
+
+  const adjustments: InventoryAdjustment[] = adjustmentHistory?.results || [];
 
   // 모달이 열릴 때마다 초기화
   useEffect(() => {
@@ -101,9 +116,6 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       return;
     }
 
-    // props로 전달받은 연도/월 사용, 없으면 현재 연도/월 사용
-    const currentYear = year ?? new Date().getFullYear();
-    const currentMonth = month ?? new Date().getMonth() + 1;
 
     adjustStockMutation.mutate(
       {
@@ -142,10 +154,20 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
   const currentStockFromLatest = latestVariantData?.data?.stock ?? variant.current_stock;
   const delta = parseInt(actualStock) - currentStockFromLatest;
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('ko-KR', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm'>
-      <div className='mx-4 w-full max-w-md rounded-lg bg-white shadow-lg'>
-        <div className='flex items-center justify-between border-b border-gray-300 px-6 py-4'>
+      <div className='mx-4 flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg bg-white shadow-lg'>
+        <div className='flex items-center justify-between border-b border-gray-200 px-6 py-4'>
           <div className='flex items-center gap-2'>
             <FaBoxes className='text-blue-500' />
             <h2 className='text-lg font-semibold'>재고 조정</h2>
@@ -155,111 +177,147 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
           </button>
         </div>
 
-        <div className='space-y-6 p-6'>
-          {errors.length > 0 && (
-            <div className='rounded-md border border-red-200 bg-red-50 p-4'>
-              <div className='flex items-start'>
-                <FiAlertTriangle className='mt-1 mr-2 text-red-600' />
-                <ul className='list-inside list-disc text-sm text-red-700'>
-                  {errors.map((err, i) => (
-                    <li key={i}>{err}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-
-          {/* 상품 정보 */}
-          <div className='rounded-md bg-gray-50 p-4'>
-            <h3 className='mb-2 text-sm font-medium text-gray-700'>상품 정보</h3>
-            <div className='space-y-1 text-sm text-gray-600'>
-              <p>
-                <span className='font-medium'>상품코드:</span> {variant.product_id}
-              </p>
-              <p>
-                <span className='font-medium'>품목코드:</span> {variant.variant_code}
-              </p>
-              <p>
-                <span className='font-medium'>상품명:</span> {variant.name}
-              </p>
-              <p>
-                <span className='font-medium'>옵션:</span> {variant.option}
-              </p>
-            </div>
-          </div>
-
-          {/* 재고 정보 */}
-          <div className='rounded-md bg-blue-50 p-4'>
-            <h3 className='mb-3 text-sm font-medium text-blue-900'>재고 현황</h3>
-            <div className='grid grid-cols-2 gap-4 text-sm'>
-              <div>
-                <span className='font-medium text-blue-700'>현재 재고</span>
-                <p className='text-xl font-bold text-blue-900'>{currentStockFromLatest}EA</p>
-              </div>
-              <div>
-                <span className='font-medium text-blue-700'>최소 재고</span>
-                <p className='text-lg font-semibold text-blue-800'>{variant.min_stock}EA</p>
-              </div>
-            </div>
-          </div>
-
-          {/* 조정 입력 */}
+        <div className='flex-1 overflow-y-auto px-6 py-4'>
           <div className='space-y-4'>
-            <TextInput
-              label='실제 재고수량'
-              type='number'
-              value={actualStock}
-              onChange={(val) => {
-                // 빈 값은 허용, 음수는 무시
-                if (val === '') {
-                  setActualStock('');
-                  return;
-                }
-                const n = Number(val);
-                if (!Number.isNaN(n) && n >= 0) {
-                  setActualStock(val);
-                }
-              }}
-              onKeyDown={handleNumberKeyDown}
-              noSpinner
-              placeholder='실제 확인한 재고수량을 입력하세요'
-            />
-
-            {actualStock && !isNaN(parseInt(actualStock)) && (
-              <div
-                className={`rounded-md p-3 ${
-                  delta > 0 ? 'bg-green-50' : delta < 0 ? 'bg-red-50' : 'bg-gray-50'
-                }`}>
-                <div className='flex items-center justify-between text-sm'>
-                  <span className='font-medium'>변경량:</span>
-                  <span
-                    className={`font-bold ${
-                      delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-600' : 'text-gray-600'
-                    }`}>
-                    {delta > 0 ? '+' : ''}
-                    {delta}EA
-                    {delta > 0 ? ' (증가)' : delta < 0 ? ' (감소)' : ' (변경없음)'}
-                  </span>
+            {errors.length > 0 && (
+              <div className='rounded-md border border-red-200 bg-red-50 p-3'>
+                <div className='flex items-start'>
+                  <FiAlertTriangle className='mt-0.5 mr-2 text-red-600' />
+                  <ul className='list-inside list-disc text-xs text-red-700'>
+                    {errors.map((err, i) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             )}
 
-            <div>
-              <label className='mb-2 block text-sm font-medium text-gray-700'>
-                조정 사유 <span className='text-red-500'>*</span>
-              </label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder='예: 2025년 1분기 실사, 파손/불량, 도난/분실 등'
-                rows={3}
-                className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500'
+            {/* 상품 정보 - 간소화 */}
+            <div className='grid grid-cols-2 gap-3 text-sm'>
+              <div>
+                <span className='text-gray-500'>상품코드</span>
+                <p className='font-medium'>{variant.product_id}</p>
+              </div>
+              <div>
+                <span className='text-gray-500'>품목코드</span>
+                <p className='font-medium'>{variant.variant_code}</p>
+              </div>
+              <div className='col-span-2'>
+                <span className='text-gray-500'>상품명</span>
+                <p className='font-medium'>{variant.name}</p>
+              </div>
+            </div>
+
+            {/* 재고 현황 - 간소화 */}
+            <div className='flex items-center gap-4 rounded-md border border-gray-200 bg-gray-50 p-3'>
+              <div>
+                <span className='text-xs text-gray-500'>현재 재고</span>
+                <p className='text-lg font-semibold text-gray-900'>{currentStockFromLatest}EA</p>
+              </div>
+              <div className='h-8 w-px bg-gray-300' />
+              <div>
+                <span className='text-xs text-gray-500'>최소 재고</span>
+                <p className='text-sm font-medium text-gray-700'>{variant.min_stock}EA</p>
+              </div>
+            </div>
+
+            {/* 재고조정 이력 */}
+            {adjustments.length > 0 && (
+              <div className='rounded-md border border-gray-200 bg-gray-50'>
+                <div className='border-b border-gray-200 px-3 py-2'>
+                  <h3 className='text-sm font-medium text-gray-700'>
+                    조정 이력 ({currentYear}년 {currentMonth}월)
+                  </h3>
+                </div>
+                <div className='max-h-48 overflow-y-auto'>
+                  <div className='divide-y divide-gray-200'>
+                    {adjustments.map((adj) => (
+                      <div key={adj.id} className='px-3 py-2 text-xs'>
+                        <div className='flex items-start justify-between gap-2'>
+                          <div className='flex-1 min-w-0'>
+                            <div className='flex items-center gap-2'>
+                              <span
+                                className={`font-medium ${
+                                  adj.delta > 0 ? 'text-green-600' : adj.delta < 0 ? 'text-red-600' : 'text-gray-600'
+                                }`}>
+                                {adj.delta > 0 ? '+' : ''}
+                                {adj.delta}EA
+                              </span>
+                              <span className='text-gray-500'>·</span>
+                              <span className='text-gray-600'>{adj.created_by}</span>
+                              <span className='text-gray-400'>{formatDate(adj.created_at)}</span>
+                            </div>
+                            <p className='mt-1 text-gray-600'>{adj.reason}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 조정 입력 */}
+            <div className='space-y-3'>
+              <TextInput
+                label='실제 재고수량'
+                type='number'
+                value={actualStock}
+                onChange={(val) => {
+                  // 빈 값은 허용, 음수는 무시
+                  if (val === '') {
+                    setActualStock('');
+                    return;
+                  }
+                  const n = Number(val);
+                  if (!Number.isNaN(n) && n >= 0) {
+                    setActualStock(val);
+                  }
+                }}
+                onKeyDown={handleNumberKeyDown}
+                noSpinner
+                placeholder='실제 확인한 재고수량을 입력하세요'
               />
+
+              {actualStock && !isNaN(parseInt(actualStock)) && (
+                <div
+                  className={`rounded-md border p-2.5 ${
+                    delta > 0
+                      ? 'border-green-200 bg-green-50'
+                      : delta < 0
+                        ? 'border-red-200 bg-red-50'
+                        : 'border-gray-200 bg-gray-50'
+                  }`}>
+                  <div className='flex items-center justify-between text-sm'>
+                    <span className='text-gray-600'>변경량</span>
+                    <span
+                      className={`font-semibold ${
+                        delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                      {delta > 0 ? '+' : ''}
+                      {delta}EA
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className='mb-1.5 block text-sm font-medium text-gray-700'>
+                  조정 사유 <span className='text-red-500'>*</span>
+                </label>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder='예: 2025년 1분기 실사, 파손/불량, 도난/분실 등'
+                  rows={2}
+                  className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        <div className='flex justify-end gap-3 border-t border-gray-300 px-6 py-4'>
+        <div className='flex justify-end gap-3 border-t border-gray-200 px-6 py-4'>
           <SecondaryButton text='취소' onClick={onClose} disabled={adjustStockMutation.isPending} />
           <PrimaryButton
             text={adjustStockMutation.isPending ? '조정 중...' : '재고 조정'}

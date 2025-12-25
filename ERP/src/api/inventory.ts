@@ -224,7 +224,12 @@ export const adjustStock = (
 };
 
 // 재고 변경 이력 조회
-export const fetchStockAdjustments = (params?: { page?: number; variant_code?: string }) => {
+export const fetchStockAdjustments = (params?: {
+  page?: number;
+  variant_code?: string;
+  year?: number;
+  month?: number;
+}) => {
   return api
     .get('/inventory/adjustments/', { params })
     .then((response) => {
