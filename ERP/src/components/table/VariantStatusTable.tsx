@@ -167,7 +167,7 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
 
     return (
       <td
-        className={`${className} ${isSaving ? 'opacity-50' : 'cursor-pointer hover:bg-blue-50'} transition-colors`}
+        className={`${className} whitespace-nowrap ${isSaving ? 'opacity-50' : 'cursor-pointer hover:bg-blue-50'} transition-colors`}
         onDoubleClick={() => handleCellDoubleClick(rowIndex, field, value)}
         title='더블클릭하여 수정'
         style={style}>
@@ -192,105 +192,105 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
   }
 
   return (
-    <div className='w-full max-w-full'>
+    <div className='w-full overflow-x-auto'>
       {/* 테이블 */}
-      <div className='w-full max-w-full overflow-x-auto rounded-lg border border-gray-200'>
-        <table className='w-full table-fixed border-collapse text-xs text-gray-700'>
+      <div className='rounded-lg border border-gray-200'>
+        <table className='w-full min-w-[1200px] table-auto border-collapse text-xs text-gray-700'>
           <thead className='bg-gray-50'>
             <tr>
               <th
-                className='px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '4%' }}>
+                className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '4%', minWidth: '60px' }}>
                 대분류
               </th>
               <th
-                className='px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '4%' }}>
+                className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '4%', minWidth: '60px' }}>
                 중분류
               </th>
               <th
-                className='px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '5%' }}>
+                className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '5%', minWidth: '80px' }}>
                 카테고리
               </th>
               <th
-                className='px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '8%' }}>
+                className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '8%', minWidth: '120px' }}>
                 설명
               </th>
               <th
-                className='px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '12%' }}>
+                className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '12%', minWidth: '180px' }}>
                 온라인 품목명
               </th>
               <th
-                className='px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '12%' }}>
+                className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '12%', minWidth: '180px' }}>
                 오프라인 품목명
               </th>
               <th
-                className='px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '4%' }}>
+                className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '4%', minWidth: '60px' }}>
                 옵션
               </th>
               <th
-                className='px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '5%' }}>
+                className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '5%', minWidth: '80px' }}>
                 상세옵션
               </th>
               <th
-                className='px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '6%' }}>
+                className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '6%', minWidth: '100px' }}>
                 상품코드
               </th>
               <th
-                className='px-1 py-1 text-right text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '5%' }}>
+                className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '5%', minWidth: '80px' }}>
                 월초창고재고
               </th>
               <th
-                className='px-1 py-1 text-right text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '5%' }}>
+                className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '5%', minWidth: '80px' }}>
                 월초매장재고
               </th>
               <th
-                className='px-1 py-1 text-right text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '5%' }}>
+                className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '5%', minWidth: '80px' }}>
                 기초재고
               </th>
               <th
-                className='px-1 py-1 text-right text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '5%' }}>
+                className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '5%', minWidth: '80px' }}>
                 당월입고
               </th>
               <th
-                className='px-1 py-1 text-right text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '5%' }}>
+                className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '5%', minWidth: '80px' }}>
                 매장판매
               </th>
               <th
-                className='px-1 py-1 text-right text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '5%' }}>
+                className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '5%', minWidth: '80px' }}>
                 온라인판매
               </th>
               <th
-                className='px-1 py-1 text-right text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '5%' }}>
+                className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '5%', minWidth: '80px' }}>
                 판매합계
               </th>
               <th
-                className='px-1 py-1 text-right text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '5%' }}>
+                className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '5%', minWidth: '80px' }}>
                 재고조정수량
               </th>
               <th
                 className='px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '8%' }}>
+                style={{ width: '8%', minWidth: '120px' }}>
                 재고조정상태
               </th>
               <th
-                className='px-1 py-1 text-right text-xs font-medium text-gray-500 uppercase'
-                style={{ width: '5%' }}>
+                className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '5%', minWidth: '80px' }}>
                 기말재고
               </th>
             </tr>
@@ -299,66 +299,66 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
             {data.map((item, index) => (
               <tr key={`${item.variant_code}-${index}`} className='hover:bg-gray-50'>
                 <td
-                  className='cursor-pointer px-1 py-2 text-xs text-gray-900 hover:bg-blue-50 sm:px-2'
+                  className='cursor-pointer px-1 py-2 text-xs whitespace-nowrap text-gray-900 hover:bg-blue-50 sm:px-2'
                   onClick={() => onRowClick?.(item.variant_code || '')}
                   title='클릭하여 상품 상세보기'
-                  style={{ width: '4%' }}>
+                  style={{ width: '4%', minWidth: '60px' }}>
                   {item.big_category}
                 </td>
                 <td
-                  className='cursor-pointer px-1 py-2 text-xs text-gray-900 hover:bg-blue-50 sm:px-2'
+                  className='cursor-pointer px-1 py-2 text-xs whitespace-nowrap text-gray-900 hover:bg-blue-50 sm:px-2'
                   onClick={() => onRowClick?.(item.variant_code || '')}
                   title='클릭하여 상품 상세보기'
-                  style={{ width: '4%' }}>
+                  style={{ width: '4%', minWidth: '60px' }}>
                   {item.middle_category}
                 </td>
                 <td
-                  className='cursor-pointer px-1 py-2 text-xs text-gray-900 hover:bg-blue-50 sm:px-2'
+                  className='cursor-pointer px-1 py-2 text-xs whitespace-nowrap text-gray-900 hover:bg-blue-50 sm:px-2'
                   onClick={() => onRowClick?.(item.variant_code || '')}
                   title='클릭하여 상품 상세보기'
-                  style={{ width: '5%' }}>
+                  style={{ width: '5%', minWidth: '80px' }}>
                   {item.category}
                 </td>
                 <td
-                  className='cursor-pointer px-1 py-2 text-xs text-gray-900 hover:bg-blue-50 sm:px-2'
+                  className='cursor-pointer px-1 py-2 text-xs whitespace-nowrap text-gray-900 hover:bg-blue-50 sm:px-2'
                   onClick={() => onRowClick?.(item.variant_code || '')}
                   title={`${item.description} - 클릭하여 상품 상세보기`}
-                  style={{ width: '8%' }}>
+                  style={{ width: '8%', minWidth: '120px' }}>
                   {item.description}
                 </td>
                 <td
-                  className='cursor-pointer px-1 py-2 text-xs text-gray-900 hover:bg-blue-50 sm:px-2'
+                  className='cursor-pointer px-1 py-2 text-xs whitespace-nowrap text-gray-900 hover:bg-blue-50 sm:px-2'
                   onClick={() => onRowClick?.(item.variant_code || '')}
                   title={`${item.online_name} - 클릭하여 상품 상세보기`}
-                  style={{ width: '12%' }}>
+                  style={{ width: '12%', minWidth: '180px' }}>
                   {item.online_name}
                 </td>
                 <td
-                  className='cursor-pointer px-1 py-2 text-xs text-gray-900 hover:bg-blue-50 sm:px-2'
+                  className='cursor-pointer px-1 py-2 text-xs whitespace-nowrap text-gray-900 hover:bg-blue-50 sm:px-2'
                   onClick={() => onRowClick?.(item.variant_code || '')}
                   title={`${item.offline_name} - 클릭하여 상품 상세보기`}
-                  style={{ width: '12%' }}>
+                  style={{ width: '12%', minWidth: '180px' }}>
                   {item.offline_name}
                 </td>
                 <td
-                  className='cursor-pointer px-1 py-2 text-xs text-gray-900 hover:bg-blue-50 sm:px-2'
+                  className='cursor-pointer px-1 py-2 text-xs whitespace-nowrap text-gray-900 hover:bg-blue-50 sm:px-2'
                   onClick={() => onRowClick?.(item.variant_code || '')}
                   title='클릭하여 상품 상세보기'
-                  style={{ width: '4%' }}>
+                  style={{ width: '4%', minWidth: '60px' }}>
                   {item.option}
                 </td>
                 <td
-                  className='cursor-pointer px-1 py-2 text-xs text-gray-900 hover:bg-blue-50 sm:px-2'
+                  className='cursor-pointer px-1 py-2 text-xs whitespace-nowrap text-gray-900 hover:bg-blue-50 sm:px-2'
                   onClick={() => onRowClick?.(item.variant_code || '')}
                   title='클릭하여 상품 상세보기'
-                  style={{ width: '5%' }}>
+                  style={{ width: '5%', minWidth: '80px' }}>
                   {item.detail_option}
                 </td>
                 <td
-                  className='cursor-pointer px-1 py-2 text-xs font-medium text-blue-600 hover:bg-blue-100 hover:text-blue-800 sm:px-2'
+                  className='cursor-pointer px-1 py-2 text-xs font-medium whitespace-nowrap text-blue-600 hover:bg-blue-100 hover:text-blue-800 sm:px-2'
                   onClick={() => onRowClick?.(item.variant_code || '')}
                   title='클릭하여 상품 상세보기'
-                  style={{ width: '6%' }}>
+                  style={{ width: '6%', minWidth: '100px' }}>
                   {item.product_code}
                 </td>
                 {renderEditableCell(
@@ -367,7 +367,7 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                   item.warehouse_stock_start,
                   item.variant_code || '',
                   'px-1 sm:px-2 py-2 text-right text-xs text-gray-900',
-                  { width: '5%' }
+                  { width: '5%', minWidth: '80px' }
                 )}
                 {renderEditableCell(
                   index,
@@ -375,11 +375,11 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                   item.store_stock_start,
                   item.variant_code || '',
                   'px-1 sm:px-2 py-2 text-right text-xs text-gray-900',
-                  { width: '5%' }
+                  { width: '5%', minWidth: '80px' }
                 )}
                 <td
-                  className='px-1 py-2 text-right text-xs font-medium text-gray-900 sm:px-2'
-                  style={{ width: '5%' }}>
+                  className='px-1 py-2 text-right text-xs font-medium whitespace-nowrap text-gray-900 sm:px-2'
+                  style={{ width: '5%', minWidth: '80px' }}>
                   {item.initial_stock?.toLocaleString() || 0}
                 </td>
                 {renderEditableCell(
@@ -388,7 +388,7 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                   item.inbound_quantity,
                   item.variant_code || '',
                   'px-1 sm:px-2 py-2 text-right text-xs text-gray-900',
-                  { width: '5%' }
+                  { width: '5%', minWidth: '80px' }
                 )}
                 {renderEditableCell(
                   index,
@@ -396,7 +396,7 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                   item.store_sales,
                   item.variant_code || '',
                   'px-1 sm:px-2 py-2 text-right text-xs text-gray-900',
-                  { width: '5%' }
+                  { width: '5%', minWidth: '80px' }
                 )}
                 {renderEditableCell(
                   index,
@@ -404,22 +404,22 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                   item.online_sales,
                   item.variant_code || '',
                   'px-1 sm:px-2 py-2 text-right text-xs text-gray-900',
-                  { width: '5%' }
+                  { width: '5%', minWidth: '80px' }
                 )}
                 <td
-                  className='px-1 py-2 text-right text-xs font-medium text-gray-900 sm:px-2'
-                  style={{ width: '5%' }}>
+                  className='px-1 py-2 text-right text-xs font-medium whitespace-nowrap text-gray-900 sm:px-2'
+                  style={{ width: '5%', minWidth: '80px' }}>
                   {item.total_sales?.toLocaleString() || 0}
                 </td>
                 <td
-                  className='px-1 py-2 text-right text-xs text-gray-900 cursor-pointer hover:bg-blue-50 transition-colors sm:px-2'
-                  style={{ width: '5%' }}
+                  className='cursor-pointer px-1 py-2 text-right text-xs whitespace-nowrap text-gray-900 transition-colors hover:bg-blue-50 sm:px-2'
+                  style={{ width: '5%', minWidth: '80px' }}
                   onClick={() => onStockAdjust?.(item)}
                   title='클릭하여 재고 조정'>
                   {item.adjustment_quantity ? Number(item.adjustment_quantity).toLocaleString() : 0}
                 </td>
                 <td
-                  className='px-1 py-2 text-xs text-gray-900 cursor-pointer hover:bg-blue-50 transition-colors sm:px-2'
+                  className='cursor-pointer px-1 py-2 text-xs text-gray-900 transition-colors hover:bg-blue-50 sm:px-2'
                   style={{ width: '8%' }}
                   onClick={() => onStockAdjust?.(item)}
                   title='클릭하여 재고 조정'>
@@ -461,8 +461,8 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                   </div>
                 </td>
                 <td
-                  className='px-1 py-2 text-right text-xs font-medium text-green-600 sm:px-2'
-                  style={{ width: '5%' }}>
+                  className='px-1 py-2 text-right text-xs font-medium whitespace-nowrap text-green-600 sm:px-2'
+                  style={{ width: '5%', minWidth: '80px' }}>
                   {item.ending_stock?.toLocaleString() || 0}
                 </td>
               </tr>
