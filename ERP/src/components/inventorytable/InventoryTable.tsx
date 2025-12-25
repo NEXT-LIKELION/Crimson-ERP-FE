@@ -13,12 +13,7 @@ type ProductVariant = components['schemas']['ProductVariant'];
 // Custom type for table data with string variant_id
 interface TableProduct extends ProductVariant {
   variant_id: string;
-  cost_price: number;
-  orderCount: number;
-  returnCount: number;
-  totalSales: string;
   status: string;
-  sales: string; // sales 필드는 string으로 고정
   name: string;
 }
 
@@ -115,16 +110,11 @@ const InventoryTable = ({
         offline_name: item.offline_name || '',
         option: item.option || '',
         price: item.price || 0,
-        cost_price: item.cost_price || 0,
         min_stock: minStock,
         variant_id: item.variant_code || '',
-        orderCount: item.order_count ?? 0,
-        returnCount: item.return_count ?? 0,
-        totalSales: item.sales ? `${item.sales.toLocaleString()}원` : '0원',
         status: status,
         category: item.category || '',
         stock,
-        sales: item.sales?.toString() || '0',
         name: item.name || '',
         description: item.description,
         memo: item.memo,
@@ -242,23 +232,6 @@ const InventoryTable = ({
         const aValue = a[key];
         const bValue = b[key];
 
-        // totalSales는 문자열이므로 원본 sales 값으로 정렬
-        if (key === 'totalSales') {
-          const aSales =
-            typeof a.sales === 'number'
-              ? a.sales
-              : typeof a.sales === 'string'
-                ? Number(a.sales.replace(/\D/g, '')) || 0
-                : 0;
-          const bSales =
-            typeof b.sales === 'number'
-              ? b.sales
-              : typeof b.sales === 'string'
-                ? Number(b.sales.replace(/\D/g, '')) || 0
-                : 0;
-          return order === 'asc' ? aSales - bSales : bSales - aSales;
-        }
-
         if (typeof aValue === 'number' && typeof bValue === 'number') {
           return order === 'asc' ? aValue - bValue : bValue - aValue;
         }
@@ -328,12 +301,6 @@ const InventoryTable = ({
                 onSort={handleSort}
               />
               <SortableHeader
-                label='매입가'
-                sortKey='cost_price'
-                sortOrder={sortConfig.key === 'cost_price' ? sortConfig.order : null}
-                onSort={handleSort}
-              />
-              <SortableHeader
                 label='재고(최소재고)'
                 sortKey='stock'
                 sortOrder={sortConfig.key === 'stock' ? sortConfig.order : null}
@@ -343,14 +310,6 @@ const InventoryTable = ({
                 label='상태'
                 sortKey='status'
                 sortOrder={sortConfig.key === 'status' ? sortConfig.order : null}
-                onSort={handleSort}
-              />
-              <th className='border-b border-gray-300 px-4 py-3'>결제수량</th>
-              <th className='border-b border-gray-300 px-4 py-3'>환불수량</th>
-              <SortableHeader
-                label='판매합계'
-                sortKey='totalSales'
-                sortOrder={sortConfig.key === 'totalSales' ? sortConfig.order : null}
                 onSort={handleSort}
               />
               <th className='border-b border-gray-300 px-4 py-3'>관리</th>
@@ -369,7 +328,6 @@ const InventoryTable = ({
                 <td className='px-4 py-2'>{product.category}</td>
                 <td className='px-4 py-2'>{product.option}</td>
                 <td className='px-4 py-2'>{Number(product.price).toLocaleString()}원</td>
-                <td className='px-4 py-2'>{Number(product.cost_price).toLocaleString()}원</td>
                 <td className='px-4 py-2'>
                   {product.stock}EA ({product.min_stock !== undefined ? product.min_stock : '-'})
                 </td>
@@ -379,9 +337,6 @@ const InventoryTable = ({
                     {product.status}
                   </span>
                 </td>
-                <td className='px-4 py-2'>{product.orderCount}개</td>
-                <td className='px-4 py-2'>{product.returnCount}개</td>
-                <td className='px-4 py-2'>{product.totalSales}</td>
                 <td className='px-4 py-2 text-center align-middle'>
                   <div className='inline-flex items-center justify-center gap-2'>
                     <MdOutlineEdit

@@ -212,9 +212,6 @@ const InventoryPage = () => {
   const selectedProduct = useMemo(():
     | (ApiProductVariant & {
         variant_id: string;
-        orderCount: number;
-        returnCount: number;
-        totalSales: string;
       })
     | null => {
     // 월별 재고 현황에서 선택된 variant가 있는 경우
@@ -226,9 +223,6 @@ const InventoryPage = () => {
         cost_price: result.cost_price || 0,
         min_stock: result.min_stock || 0,
         variant_id: result.variant_code || '',
-        orderCount: result.order_count ?? 0,
-        returnCount: result.return_count ?? 0,
-        totalSales: result.sales ? `${String(result.sales).replace(/\D/g, '')}` : '0',
         description: result.description || '',
         memo: result.memo || '',
         suppliers: result.suppliers || '',
@@ -247,9 +241,6 @@ const InventoryPage = () => {
       cost_price: result.cost_price || 0,
       min_stock: result.min_stock || 0,
       variant_id: result.variant_code || '',
-      orderCount: result.order_count ?? 0,
-      returnCount: result.return_count ?? 0,
-      totalSales: result.sales ? `${String(result.sales).replace(/\D/g, '')}` : '0',
       description: result.description || '',
       memo: result.memo || '',
       suppliers: result.suppliers || '',
@@ -600,7 +591,6 @@ const InventoryPage = () => {
         카테고리: item.category,
         옵션: item.option,
         판매가: item.price,
-        매입가: item.cost_price,
         재고수량: Math.max(0, Number(item.stock) || 0),
         최소재고: Math.max(0, Number(item.min_stock) || 0),
         상태:
@@ -609,9 +599,6 @@ const InventoryPage = () => {
             : (item.stock || 0) < (item.min_stock || 0)
               ? '재고부족'
               : '정상',
-        결제수량: item.order_count,
-        환불수량: item.return_count,
-        판매합계: item.sales,
         설명: item.description,
         메모: item.memo,
         '주요 공급업체': (() => {
@@ -632,13 +619,9 @@ const InventoryPage = () => {
         { wch: 10 }, // 카테고리
         { wch: 15 }, // 옵션
         { wch: 10 }, // 판매가
-        { wch: 10 }, // 매입가
         { wch: 8 }, // 재고수량
         { wch: 8 }, // 최소재고
         { wch: 8 }, // 상태
-        { wch: 8 }, // 결제수량
-        { wch: 8 }, // 환불수량
-        { wch: 12 }, // 판매합계
         { wch: 30 }, // 설명
         { wch: 20 }, // 메모
         { wch: 15 }, // 주요 공급업체
