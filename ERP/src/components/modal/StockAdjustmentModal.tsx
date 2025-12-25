@@ -22,6 +22,8 @@ interface StockAdjustmentModalProps {
     min_stock: number;
   } | null;
   onSuccess?: () => void;
+  year?: number; // 재고조정 대상 연도 (미지정 시 현재 연도)
+  month?: number; // 재고조정 대상 월 (미지정 시 현재 월)
 }
 
 const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
@@ -29,6 +31,8 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
   onClose,
   variant,
   onSuccess,
+  year,
+  month,
 }) => {
   const user = useAuthStore((state) => state.user);
   const adjustStockMutation = useAdjustStock();
@@ -97,9 +101,9 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       return;
     }
 
-    // 현재 연도/월 가져오기 (필요시 props로 전달받을 수 있음)
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
+    // props로 전달받은 연도/월 사용, 없으면 현재 연도/월 사용
+    const currentYear = year ?? new Date().getFullYear();
+    const currentMonth = month ?? new Date().getMonth() + 1;
 
     adjustStockMutation.mutate(
       {
@@ -139,7 +143,7 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
   const delta = parseInt(actualStock) - currentStockFromLatest;
 
   return (
-    <div className='bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black'>
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm'>
       <div className='mx-4 w-full max-w-md rounded-lg bg-white shadow-lg'>
         <div className='flex items-center justify-between border-b border-gray-300 px-6 py-4'>
           <div className='flex items-center gap-2'>

@@ -664,6 +664,40 @@ const InventoryPage = () => {
     if (editId && selectedVariantForStock) {
       queryClient.invalidateQueries({ queryKey: ['inventories'] });
     }
+    // 월별 재고 현황 데이터도 새로고침
+    queryClient.invalidateQueries({ queryKey: ['variantStatus', selectedYear, selectedMonth] });
+  };
+
+  // 월별 재고 현황에서 재고조정 클릭 핸들러
+  const handleStatusStockAdjust = (item: ProductVariantStatus) => {
+    // ProductVariantStatus를 StockAdjustmentModal에 필요한 형식으로 변환
+    // variant_detail을 먼저 조회하여 최신 재고 정보 가져오기
+    fetchVariantDetail(item.variant_code || '')
+      .then((response) => {
+        const variantDetail = response.data;
+        setSelectedVariantForStock({
+          variant_code: item.variant_code || '',
+          product_id: item.product_code || '',
+          name: item.offline_name || item.online_name || '',
+          option: item.option || '',
+          current_stock: variantDetail?.stock ?? 0,
+          min_stock: 0, // ProductVariantStatus에는 min_stock이 없으므로 0으로 설정
+        });
+        setStockAdjustModalOpen(true);
+      })
+      .catch((error) => {
+        console.error('상품 상세 정보 조회 실패:', error);
+        // 조회 실패 시에도 기본 정보로 모달 열기
+        setSelectedVariantForStock({
+          variant_code: item.variant_code || '',
+          product_id: item.product_code || '',
+          name: item.offline_name || item.online_name || '',
+          option: item.option || '',
+          current_stock: 0,
+          min_stock: 0,
+        });
+        setStockAdjustModalOpen(true);
+      });
   };
 
   // 월별 재고 현황 테이블에서 상품 클릭 핸들러
@@ -911,6 +945,7 @@ const InventoryPage = () => {
           year={selectedYear}
           month={selectedMonth}
           onRowClick={handleStatusRowClick}
+          onStockAdjust={handleStatusStockAdjust}
         />
       )}
       {selectedProduct && (
@@ -946,6 +981,8 @@ const InventoryPage = () => {
           }}
           variant={selectedVariantForStock}
           onSuccess={handleStockAdjustSuccess}
+          year={viewMode === 'status' ? selectedYear : undefined}
+          month={viewMode === 'status' ? selectedMonth : undefined}
         />
       )}
       {isStockHistoryModalOpen && (

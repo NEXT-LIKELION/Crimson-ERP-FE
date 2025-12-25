@@ -9,6 +9,7 @@ interface VariantStatusTableProps {
   year: number;
   month: number;
   onRowClick?: (variantCode: string) => void;
+  onStockAdjust?: (item: ProductVariantStatus) => void;
 }
 
 type EditableField =
@@ -35,6 +36,7 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
   year,
   month,
   onRowClick,
+  onStockAdjust,
 }) => {
   const queryClient = useQueryClient();
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
@@ -410,11 +412,17 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                   {item.total_sales?.toLocaleString() || 0}
                 </td>
                 <td
-                  className='px-1 py-2 text-right text-xs text-gray-900 sm:px-2'
-                  style={{ width: '5%' }}>
+                  className='px-1 py-2 text-right text-xs text-gray-900 cursor-pointer hover:bg-blue-50 transition-colors sm:px-2'
+                  style={{ width: '5%' }}
+                  onClick={() => onStockAdjust?.(item)}
+                  title='클릭하여 재고 조정'>
                   {item.adjustment_quantity ? Number(item.adjustment_quantity).toLocaleString() : 0}
                 </td>
-                <td className='px-1 py-2 text-xs text-gray-900 sm:px-2' style={{ width: '8%' }}>
+                <td
+                  className='px-1 py-2 text-xs text-gray-900 cursor-pointer hover:bg-blue-50 transition-colors sm:px-2'
+                  style={{ width: '8%' }}
+                  onClick={() => onStockAdjust?.(item)}
+                  title='클릭하여 재고 조정'>
                   <div className='whitespace-pre-line'>
                     {(() => {
                       const adjustmentStatus = item.adjustment_status;
