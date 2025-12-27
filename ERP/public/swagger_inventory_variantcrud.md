@@ -4,9 +4,9 @@ POST /inventory/variants/ 상품 상세 정보 생성 inventory_variants_create
 
 상품 상세(SKU) 생성 API
 
-product_id 기준으로 상품(InventoryItem)을 조회/생성 Product 필드와 Variant 필드를 동시에 입력 가능
-옵션/상세옵션 기반으로 variant_code(SKU)는 자동 생성됨 Parameters Try it out Name Description data _
-object (body) Example Value Model { product_id_ string example: P00000YC 상품 식별자 (Product ID)
+product*id 기준으로 상품(InventoryItem)을 조회/생성 Product 필드와 Variant 필드를 동시에 입력 가능
+옵션/상세옵션 기반으로 variant_code(SKU)는 자동 생성됨 Parameters Try it out Name Description data *
+object (body) Example Value Model { product*id* string example: P00000YC 상품 식별자 (Product ID)
 
 name\* string example: 방패 필통 오프라인 상품명
 
