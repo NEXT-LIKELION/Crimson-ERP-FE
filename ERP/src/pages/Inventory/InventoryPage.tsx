@@ -12,8 +12,6 @@ import { useVariantStatus } from '../../hooks/queries/useVariantStatus';
 import {
   deleteProductVariant,
   updateInventoryVariant,
-  mergeVariants,
-  fetchAllInventoriesForMerge,
   fetchFilteredInventoriesForExport,
   fetchCategories,
   uploadVariantStatusExcel,
@@ -23,12 +21,9 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import EditProductModal from '../../components/modal/EditProductModal';
 import AddProductModal from '../../components/modal/AddProductModal';
-import MergeVariantsModal from '../../components/modal/MergeVariantsModal';
 import StockAdjustmentModal from '../../components/modal/StockAdjustmentModal';
-import StockHistoryModal from '../../components/modal/StockHistoryModal';
 import { Product, ProductVariantStatus } from '../../types/product';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { uploadInventoryExcel } from '../../api/upload';
 import { usePermissions } from '../../hooks/usePermissions';
 import * as XLSX from 'xlsx';
 import { getErrorMessage } from '../../utils/errorHandling';
@@ -39,10 +34,7 @@ const InventoryPage = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [isAddModalOpen, setAddModalOpen] = useState(false);
-  const [isMergeModalOpen, setMergeModalOpen] = useState(false);
   const [isStockAdjustModalOpen, setStockAdjustModalOpen] = useState(false);
-  const [isStockHistoryModalOpen, setStockHistoryModalOpen] = useState(false);
-  const [isPOSUploading, setIsPOSUploading] = useState(false);
   const [isStatusExcelUploading, setIsStatusExcelUploading] = useState(false);
   const [isStatusExcelDownloading, setIsStatusExcelDownloading] = useState(false);
 
@@ -146,10 +138,6 @@ const InventoryPage = () => {
     staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
   });
 
-  // 병합 모달용 전체 데이터 (모든 페이지 데이터 합치기)
-  const [allMergeData, setAllMergeData] = useState<unknown[]>([]);
-  const [isMergeDataLoading, setIsMergeDataLoading] = useState(false);
-
   // 카테고리 목록 조회 (React Query 사용)
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
@@ -165,21 +153,6 @@ const InventoryPage = () => {
     const uniqueCategories = [...new Set(categories)].sort();
     return uniqueCategories;
   }, [categoriesData]);
-
-  // // 병합 모달이 열릴 때만 데이터 로드 (lazy loading)
-  // const loadMergeData = async () => {
-  //   if (allMergeData.length === 0) {
-  //     setIsMergeDataLoading(true);
-  //     try {
-  //       const allData = await fetchAllInventoriesForMerge();
-  //       setAllMergeData(allData);
-  //     } catch (error) {
-  //       alert('전체 데이터를 불러오는 중 오류가 발생했습니다: ' + getErrorMessage(error));
-  //     } finally {
-  //       setIsMergeDataLoading(false);
-  //     }
-  //   }
-  // };
 
   // URL 업데이트 함수 (페이지 파라미터 제거)
   const updateURL = useCallback(
@@ -365,31 +338,7 @@ const InventoryPage = () => {
     }
   };
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const statusExcelInputRef = useRef<HTMLInputElement>(null);
-
-  const handlePOSButtonClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handlePOSUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsPOSUploading(true);
-    try {
-      await uploadInventoryExcel(file);
-      alert('POS 데이터가 성공적으로 업로드되었습니다.');
-      // 재고 데이터 캐시 무효화
-      queryClient.invalidateQueries({ queryKey: ['inventories'] });
-      await refetch();
-    } catch (err) {
-      alert('POS 데이터 업로드 중 오류 발생: ' + getErrorMessage(err));
-    } finally {
-      setIsPOSUploading(false);
-      e.target.value = '';
-    }
-  };
 
   // 월별 재고 현황 엑셀 업로드 핸들러
   const handleStatusExcelButtonClick = () => {
@@ -530,51 +479,31 @@ const InventoryPage = () => {
     // 필터 초기화로 자동 refetch됨
   };
 
-  const handleMerge = async (targetCode: string, sourceCodes: string[]) => {
-    await mergeVariants({
-      target_variant_code: targetCode,
-      source_variant_codes: sourceCodes,
-    });
-    // 병합 후 모든 캐시 클리어하고 강제 새로고침
-    await queryClient.clear(); // 모든 캐시 클리어
-    await queryClient.invalidateQueries({ queryKey: ['inventories'] });
-    await refetch();
-
-    // 필터 초기화해서 최신 데이터 확인
-    setAppliedFilters({});
-  };
-
   const handleExportToExcel = async () => {
     try {
       // 현재 필터링된 전체 데이터 가져오기 (페이지네이션 무시)
       let exportData: unknown[] = [];
 
-      if (Object.keys(appliedFilters).length === 0) {
-        // 필터가 없는 경우 → 전체 데이터 가져오기
-        exportData = allMergeData; // 이미 로드된 전체 데이터 사용
-      } else {
-        // 필터가 있는 경우 → api에서 처리
-        // API 파라미터명 변환
-        const exportFilters: Record<string, unknown> = { ...appliedFilters };
-        if (appliedFilters.min_stock !== undefined) {
-          exportFilters.stock_gt = appliedFilters.min_stock - 1;
-          delete exportFilters.min_stock;
-        }
-        if (appliedFilters.max_stock !== undefined) {
-          exportFilters.stock_lt = appliedFilters.max_stock + 1;
-          delete exportFilters.max_stock;
-        }
-        if (appliedFilters.min_sales !== undefined) {
-          exportFilters.sales_min = appliedFilters.min_sales;
-          delete exportFilters.min_sales;
-        }
-        if (appliedFilters.max_sales !== undefined) {
-          exportFilters.sales_max = appliedFilters.max_sales;
-          delete exportFilters.max_sales;
-        }
-
-        exportData = await fetchFilteredInventoriesForExport(exportFilters);
+      // API 파라미터명 변환
+      const exportFilters: Record<string, unknown> = { ...appliedFilters };
+      if (appliedFilters.min_stock !== undefined) {
+        exportFilters.stock_gt = appliedFilters.min_stock - 1;
+        delete exportFilters.min_stock;
       }
+      if (appliedFilters.max_stock !== undefined) {
+        exportFilters.stock_lt = appliedFilters.max_stock + 1;
+        delete exportFilters.max_stock;
+      }
+      if (appliedFilters.min_sales !== undefined) {
+        exportFilters.sales_min = appliedFilters.min_sales;
+        delete exportFilters.min_sales;
+      }
+      if (appliedFilters.max_sales !== undefined) {
+        exportFilters.sales_max = appliedFilters.max_sales;
+        delete exportFilters.max_sales;
+      }
+
+      exportData = await fetchFilteredInventoriesForExport(exportFilters);
 
       if (!exportData || exportData.length === 0) {
         alert('내보낼 데이터가 없습니다.');
@@ -714,7 +643,6 @@ const InventoryPage = () => {
   return (
     <div className='min-h-[calc(100vh+10px)] w-full max-w-full overflow-hidden'>
       {isLoading && <LoadingSpinner overlay text='재고 데이터를 불러오는 중...' />}
-      {isPOSUploading && <LoadingSpinner overlay text='POS 데이터를 업로드하는 중...' />}
       {isStatusExcelUploading && (
         <LoadingSpinner overlay text='월별 재고 현황을 업로드하는 중...' />
       )}
@@ -754,25 +682,6 @@ const InventoryPage = () => {
                 icon={<FaPlus size={16} />}
                 onClick={() => setAddModalOpen(true)}
               />
-              {/* <SecondaryButton
-                text='상품 병합'
-                icon={<FaCodePullRequest size={16} />}
-                onClick={async () => {
-                  await loadMergeData(); // 병합 데이터 로드
-                  setMergeModalOpen(true);
-                }}
-              />
-              <SecondaryButton
-                text='재고 변경 이력'
-                icon={<FaHistory size={16} />}
-                onClick={() => setStockHistoryModalOpen(true)}
-              />
-              <PrimaryButton
-                text='POS 데이터 업로드'
-                icon={<FaFileArrowUp size={16} />}
-                onClick={handlePOSButtonClick}
-                disabled={isPOSUploading}
-              /> */}
             </>
           )}
 
@@ -794,15 +703,7 @@ const InventoryPage = () => {
             </>
           )}
 
-          {/* 파일 입력 필드들 */}
-          <input
-            ref={fileInputRef}
-            id='posUploadInput'
-            type='file'
-            accept='.xlsx,.xls'
-            className='hidden'
-            onChange={handlePOSUpload}
-          />
+          {/* 파일 입력 필드 */}
           <input
             ref={statusExcelInputRef}
             id='statusExcelUploadInput'
@@ -963,14 +864,6 @@ const InventoryPage = () => {
           onSave={handleAddSave}
         />
       )}
-      {isMergeModalOpen && (
-        <MergeVariantsModal
-          isOpen={isMergeModalOpen}
-          onClose={() => setMergeModalOpen(false)}
-          variants={allMergeData as Product[]}
-          onMerge={handleMerge}
-        />
-      )}
       {isStockAdjustModalOpen && selectedVariantForStock && (
         <StockAdjustmentModal
           isOpen={isStockAdjustModalOpen}
@@ -983,17 +876,6 @@ const InventoryPage = () => {
           year={viewMode === 'status' ? selectedYear : undefined}
           month={viewMode === 'status' ? selectedMonth : undefined}
         />
-      )}
-      {isStockHistoryModalOpen && (
-        <StockHistoryModal
-          isOpen={isStockHistoryModalOpen}
-          onClose={() => setStockHistoryModalOpen(false)}
-        />
-      )}
-
-      {/* 병합 데이터 로딩 스피너 */}
-      {isMergeDataLoading && (
-        <LoadingSpinner overlay={true} text='병합용 데이터를 불러오는 중...' />
       )}
     </div>
   );
