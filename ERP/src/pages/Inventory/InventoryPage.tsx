@@ -53,20 +53,16 @@ const InventoryPage = () => {
     min_stock: number;
   } | null>(null);
   const [productName, setProductName] = useState('');
+  const [bigCategory, setBigCategory] = useState('');
+  const [middleCategory, setMiddleCategory] = useState('');
   const [category, setCategory] = useState('');
   const [status, setStatus] = useState('');
-  const [minStock, setMinStock] = useState('0');
-  const [maxStock, setMaxStock] = useState('1000');
-  const [minSales, setMinSales] = useState('0');
-  const [maxSales, setMaxSales] = useState('5000000');
   const [appliedFilters, setAppliedFilters] = useState<{
     product_name?: string;
+    big_category?: string;
+    middle_category?: string;
     category?: string;
     status?: string;
-    min_stock?: number;
-    max_stock?: number;
-    min_sales?: number;
-    max_sales?: number;
     channel?: string;
   }>({});
 
@@ -77,33 +73,23 @@ const InventoryPage = () => {
     if (isInitialized) return; // 이미 초기화되었으면 실행하지 않음
 
     const urlName = searchParams.get('product_name') || '';
+    const urlBigCategory = searchParams.get('big_category') || '';
+    const urlMiddleCategory = searchParams.get('middle_category') || '';
     const urlCategory = searchParams.get('category') || '';
     const urlStatus = searchParams.get('status') || '';
-    const urlMinStock = searchParams.get('min_stock') || '0';
-    const urlMaxStock = searchParams.get('max_stock') || '1000';
-    const urlMinSales = searchParams.get('min_sales') || '0';
-    const urlMaxSales = searchParams.get('max_sales') || '5000000';
 
     setProductName(urlName);
+    setBigCategory(urlBigCategory);
+    setMiddleCategory(urlMiddleCategory);
     setCategory(urlCategory);
     setStatus(urlStatus === '모든 상태' ? '' : urlStatus);
-    setMinStock(urlMinStock);
-    setMaxStock(urlMaxStock);
-    setMinSales(urlMinSales);
-    setMaxSales(urlMaxSales);
 
     const filters: Record<string, string | number> = {};
     if (urlName) filters.product_name = urlName;
+    if (urlBigCategory) filters.big_category = urlBigCategory;
+    if (urlMiddleCategory) filters.middle_category = urlMiddleCategory;
     if (urlCategory) filters.category = urlCategory;
     if (urlStatus && urlStatus !== '모든 상태') filters.status = urlStatus;
-    if (urlMinStock !== '0' || urlMaxStock !== '1000') {
-      filters.min_stock = parseInt(urlMinStock);
-      filters.max_stock = parseInt(urlMaxStock);
-    }
-    if (urlMinSales !== '0' || urlMaxSales !== '5000000') {
-      filters.min_sales = parseInt(urlMinSales);
-      filters.max_sales = parseInt(urlMaxSales);
-    }
 
     setAppliedFilters(filters);
     setIsInitialized(true);
@@ -146,12 +132,32 @@ const InventoryPage = () => {
     gcTime: 1000 * 60 * 10, // 10분간 가비지 컬렉션 방지
   });
 
-  // 카테고리 옵션 처리 (중복 제거 및 정렬)
+  // 카테고리 옵션 처리
+  const bigCategoryOptions = useMemo(() => {
+    const data =
+      (categoriesData?.data as
+        | { big_categories?: string[]; middle_categories?: string[]; categories?: string[] }
+        | undefined) || {};
+    const bigCategories = data.big_categories || [];
+    return Array.isArray(bigCategories) ? [...new Set(bigCategories)].sort() : [];
+  }, [categoriesData]);
+
+  const middleCategoryOptions = useMemo(() => {
+    const data =
+      (categoriesData?.data as
+        | { big_categories?: string[]; middle_categories?: string[]; categories?: string[] }
+        | undefined) || {};
+    const middleCategories = data.middle_categories || [];
+    return Array.isArray(middleCategories) ? [...new Set(middleCategories)].sort() : [];
+  }, [categoriesData]);
+
   const categoryOptions = useMemo(() => {
-    const categories = categoriesData?.data || [];
-    // 중복 제거 및 정렬
-    const uniqueCategories = [...new Set(categories)].sort();
-    return uniqueCategories;
+    const data =
+      (categoriesData?.data as
+        | { big_categories?: string[]; middle_categories?: string[]; categories?: string[] }
+        | undefined) || {};
+    const categories = data.categories || [];
+    return Array.isArray(categories) ? [...new Set(categories)].sort() : [];
   }, [categoriesData]);
 
   // URL 업데이트 함수 (페이지 파라미터 제거)
@@ -160,16 +166,11 @@ const InventoryPage = () => {
       const params = new URLSearchParams();
 
       if (newFilters.product_name) params.set('product_name', String(newFilters.product_name));
+      if (newFilters.big_category) params.set('big_category', String(newFilters.big_category));
+      if (newFilters.middle_category)
+        params.set('middle_category', String(newFilters.middle_category));
       if (newFilters.category) params.set('category', String(newFilters.category));
       if (newFilters.status) params.set('status', String(newFilters.status));
-      if (newFilters.min_stock !== undefined)
-        params.set('min_stock', newFilters.min_stock.toString());
-      if (newFilters.max_stock !== undefined)
-        params.set('max_stock', newFilters.max_stock.toString());
-      if (newFilters.min_sales !== undefined)
-        params.set('min_sales', newFilters.min_sales.toString());
-      if (newFilters.max_sales !== undefined)
-        params.set('max_sales', newFilters.max_sales.toString());
 
       // edit 파라미터는 유지
       const editId = searchParams.get('edit');
@@ -215,7 +216,6 @@ const InventoryPage = () => {
       variant_id: result.variant_code || '',
       description: result.description || '',
       memo: result.memo || '',
-      suppliers: result.suppliers || '',
     };
 
     return processedResult;
@@ -255,7 +255,7 @@ const InventoryPage = () => {
       // variant_code를 우선 사용하고, 없으면 variant_id 사용 (Product 타입 호환성)
       const variantIdentifier =
         updatedProduct.variant_code ||
-        ('variant_id' in updatedProduct ? updatedProduct.variant_id : undefined);
+        ('variant_id' in updatedProduct ? updatedProduct.product_id : undefined);
       if (!variantIdentifier) {
         throw new Error('variant 식별자를 찾을 수 없습니다.');
       }
@@ -464,12 +464,10 @@ const InventoryPage = () => {
 
   const handleReset = () => {
     setProductName('');
+    setBigCategory('');
+    setMiddleCategory('');
     setCategory('');
     setStatus('');
-    setMinStock('0');
-    setMaxStock('1000');
-    setMinSales('0');
-    setMaxSales('5000000');
 
     // 전체 탭만 사용하므로 채널 필터 없이 초기화
     const baseFilters: Record<string, string | number> = {};
@@ -486,22 +484,6 @@ const InventoryPage = () => {
 
       // API 파라미터명 변환
       const exportFilters: Record<string, unknown> = { ...appliedFilters };
-      if (appliedFilters.min_stock !== undefined) {
-        exportFilters.stock_gt = appliedFilters.min_stock - 1;
-        delete exportFilters.min_stock;
-      }
-      if (appliedFilters.max_stock !== undefined) {
-        exportFilters.stock_lt = appliedFilters.max_stock + 1;
-        delete exportFilters.max_stock;
-      }
-      if (appliedFilters.min_sales !== undefined) {
-        exportFilters.sales_min = appliedFilters.min_sales;
-        delete exportFilters.min_sales;
-      }
-      if (appliedFilters.max_sales !== undefined) {
-        exportFilters.sales_max = appliedFilters.max_sales;
-        delete exportFilters.max_sales;
-      }
 
       exportData = await fetchFilteredInventoriesForExport(exportFilters);
 
@@ -754,40 +736,20 @@ const InventoryPage = () => {
           <InputField
             productName={productName}
             onProductNameChange={setProductName}
+            bigCategory={bigCategory}
+            onBigCategoryChange={setBigCategory}
+            middleCategory={middleCategory}
+            onMiddleCategoryChange={setMiddleCategory}
             category={category}
             onCategoryChange={setCategory}
+            bigCategoryOptions={bigCategoryOptions}
+            middleCategoryOptions={middleCategoryOptions}
             categoryOptions={categoryOptions}
             status={status}
             onStatusChange={setStatus}
-            minStock={minStock}
-            onMinStockChange={setMinStock}
-            maxStock={maxStock}
-            onMaxStockChange={setMaxStock}
-            minSales={minSales}
-            onMinSalesChange={setMinSales}
-            maxSales={maxSales}
-            onMaxSalesChange={setMaxSales}
             onSearch={() => {
-              // 유효성 검사
-              const minSalesValue = parseInt(minSales) || 0;
-              const maxSalesValue = parseInt(maxSales) || 5000000;
-              const minStockValue = parseInt(minStock) || 0;
-              const maxStockValue = maxStock ? parseInt(maxStock) : 1000;
-
-              if (minSalesValue > maxSalesValue) {
-                alert('판매합계 최소값이 최대값보다 클 수 없습니다.');
-                return;
-              }
-
-              if (minStockValue > maxStockValue) {
-                alert('재고수량 최소값이 최대값보다 클 수 없습니다.');
-                return;
-              }
-
               // 검색 실행
               const newFilters: Record<string, string | number> = {};
-
-              // 채널 필터 제거 (전체 탭만 사용)
 
               // 상품명 필터
               if (productName.trim()) {
@@ -795,6 +757,12 @@ const InventoryPage = () => {
               }
 
               // 카테고리 필터
+              if (bigCategory) {
+                newFilters.big_category = bigCategory;
+              }
+              if (middleCategory) {
+                newFilters.middle_category = middleCategory;
+              }
               if (category) {
                 newFilters.category = category;
               }
@@ -802,20 +770,6 @@ const InventoryPage = () => {
               // 상태 필터
               if (status && status !== '모든 상태') {
                 newFilters.status = status;
-              }
-
-              // 재고 필터 (기본값이 아닌 경우만)
-              const isDefaultStock = minStockValue === 0 && maxStockValue === 1000;
-              if (!isDefaultStock) {
-                newFilters.min_stock = minStockValue;
-                newFilters.max_stock = maxStockValue;
-              }
-
-              // 판매 필터 (기본값이 아닌 경우만)
-              const isDefaultSales = minSalesValue === 0 && maxSalesValue === 5000000;
-              if (!isDefaultSales) {
-                newFilters.min_sales = minSalesValue;
-                newFilters.max_sales = maxSalesValue;
               }
 
               setAppliedFilters(newFilters);

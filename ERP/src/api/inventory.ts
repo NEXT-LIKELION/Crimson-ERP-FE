@@ -261,16 +261,20 @@ export const fetchCategories = () => {
     .get('/inventory/category/')
     .then((response) => {
       // API 응답 형식: { big_categories: [], middle_categories: [], categories: [] }
-      // categories 배열만 추출
-      const categories = response.data?.categories || [];
-      // 배열이 아닌 경우 빈 배열 반환
-      const categoryArray = Array.isArray(categories) ? categories : [];
-      return { ...response, data: categoryArray };
+      // 전체 객체 반환
+      const data = response.data || {};
+      return { ...response, data };
     })
     .catch((error) => {
-      console.warn('카테고리 조회 실패, 기본값 사용:', error);
-      // 실패 시 기본 카테고리 반환
-      return { data: ['의류', '전자제품', '생활용품', '식품', '화장품', '도서', '스포츠', '기타'] };
+      console.warn('카테고리 조회 실패:', error);
+      // 실패 시 빈 배열 반환
+      return {
+        data: {
+          big_categories: [],
+          middle_categories: [],
+          categories: [],
+        },
+      };
     });
 };
 
