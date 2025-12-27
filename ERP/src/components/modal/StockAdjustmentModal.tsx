@@ -116,7 +116,6 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       return;
     }
 
-
     adjustStockMutation.mutate(
       {
         variantCode: variant.variant_code,
@@ -234,11 +233,15 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                     {adjustments.map((adj) => (
                       <div key={adj.id} className='px-3 py-2 text-xs'>
                         <div className='flex items-start justify-between gap-2'>
-                          <div className='flex-1 min-w-0'>
+                          <div className='min-w-0 flex-1'>
                             <div className='flex items-center gap-2'>
                               <span
                                 className={`font-medium ${
-                                  adj.delta > 0 ? 'text-green-600' : adj.delta < 0 ? 'text-red-600' : 'text-gray-600'
+                                  adj.delta > 0
+                                    ? 'text-green-600'
+                                    : adj.delta < 0
+                                      ? 'text-red-600'
+                                      : 'text-gray-600'
                                 }`}>
                                 {adj.delta > 0 ? '+' : ''}
                                 {adj.delta}EA
@@ -310,7 +313,7 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                   onChange={(e) => setReason(e.target.value)}
                   placeholder='예: 2025년 1분기 실사, 파손/불량, 도난/분실 등'
                   rows={2}
-                  className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+                  className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none'
                 />
               </div>
             </div>

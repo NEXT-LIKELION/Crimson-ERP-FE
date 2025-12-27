@@ -14,6 +14,8 @@ interface CategorySelectProps {
   showCount?: boolean;
   disabled?: boolean;
   className?: string;
+  placeholder?: string; // 기본 placeholder 옵션 커스터마이징
+  label?: string; // 라벨 추가
 }
 
 const CategorySelect: React.FC<CategorySelectProps> = ({
@@ -23,6 +25,8 @@ const CategorySelect: React.FC<CategorySelectProps> = ({
   showCount = false,
   disabled = false,
   className = '',
+  placeholder = '모든 카테고리',
+  label,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [filteredOptions, setFilteredOptions] = useState<CategoryOption[]>([]);
@@ -30,17 +34,25 @@ const CategorySelect: React.FC<CategorySelectProps> = ({
 
   // 옵션 변환
   useEffect(() => {
-    const categoryOptions: CategoryOption[] = [
-      { value: '', label: '모든 카테고리' },
-      ...options.map((option) => ({
-        value: option,
-        label: option,
-        count: showCount ? Math.floor(Math.random() * 100) : undefined, // 임시 카운트
-      })),
-    ];
+    // options에 이미 placeholder가 포함되어 있으면 중복 추가하지 않음
+    const hasPlaceholder = options.some((opt) => opt === placeholder || opt === '모든 카테고리');
+    const categoryOptions: CategoryOption[] = hasPlaceholder
+      ? options.map((option) => ({
+          value: option,
+          label: option,
+          count: showCount ? Math.floor(Math.random() * 100) : undefined, // 임시 카운트
+        }))
+      : [
+          { value: '', label: placeholder },
+          ...options.map((option) => ({
+            value: option,
+            label: option,
+            count: showCount ? Math.floor(Math.random() * 100) : undefined, // 임시 카운트
+          })),
+        ];
 
     setFilteredOptions(categoryOptions);
-  }, [options, showCount]);
+  }, [options, showCount, placeholder]);
 
   // 외부 클릭 시 닫기
   useEffect(() => {
@@ -64,20 +76,21 @@ const CategorySelect: React.FC<CategorySelectProps> = ({
     setIsOpen(false);
   };
 
-  const displayValue = value || '모든 카테고리';
+  const displayValue = value || placeholder;
 
   return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
+    <div className={`relative w-full max-w-[208px] min-w-[200px] ${className}`} ref={dropdownRef}>
+      {label && <label className='mb-1 block text-sm text-gray-600'>{label}</label>}
       {/* 메인 버튼 */}
       <button
         type='button'
-        className={`flex w-48 items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors duration-200 ease-in-out ${
+        className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors duration-200 ease-in-out ${
           disabled
             ? 'cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400'
             : isOpen
               ? 'border-blue-500 bg-white ring-1 ring-blue-500'
               : 'border-gray-300 bg-white hover:border-gray-400'
-        } text-gray-900`}
+        } h-9 text-gray-900`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}>
         <span className='block truncate'>{displayValue}</span>
@@ -90,7 +103,7 @@ const CategorySelect: React.FC<CategorySelectProps> = ({
 
       {/* 드롭다운 메뉴 */}
       {isOpen && !disabled && (
-        <div className='absolute top-full left-0 z-50 mt-1 max-h-64 w-48 overflow-hidden rounded-md border border-gray-300 bg-white shadow-lg'>
+        <div className='absolute top-full left-0 z-50 mt-1 max-h-64 w-full overflow-hidden rounded-md border border-gray-300 bg-white shadow-lg'>
           {/* 옵션 리스트 */}
           <div className='max-h-48 overflow-y-auto'>
             {filteredOptions.length > 0 ? (

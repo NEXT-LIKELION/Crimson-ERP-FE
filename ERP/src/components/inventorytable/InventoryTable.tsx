@@ -14,7 +14,6 @@ type ProductVariant = components['schemas']['ProductVariant'];
 interface TableProduct extends ProductVariant {
   variant_id: string;
   status: string;
-  name: string;
 }
 
 interface InventoryTableProps {
@@ -77,6 +76,7 @@ const InventoryTable = ({
   isFetchingNextPage,
   infiniteScroll,
 }: InventoryTableProps) => {
+  console.log(inventories);
   const navigate = useNavigate();
   const [data, setData] = useState<TableProduct[]>([]);
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -108,6 +108,9 @@ const InventoryTable = ({
         product_id: item.product_id || '',
         variant_code: item.variant_code || '',
         offline_name: item.offline_name || '',
+        online_name: item.online_name || '',
+        big_category: item.big_category || '',
+        middle_category: item.middle_category || '',
         option: item.option || '',
         price: item.price || 0,
         min_stock: minStock,
@@ -115,10 +118,6 @@ const InventoryTable = ({
         status: status,
         category: item.category || '',
         stock,
-        name: item.name || '',
-        description: item.description,
-        memo: item.memo,
-        channels: item.channels,
       };
       return row;
     });
@@ -241,6 +240,41 @@ const InventoryTable = ({
           : String(bValue).localeCompare(String(aValue));
       });
       setData(sortedData);
+    } else {
+      // 정렬 해제 시 원래 순서로 복원 (inventories prop 기반)
+      if (!Array.isArray(inventories)) return;
+      const rows = inventories.map((item) => {
+        const stock = Number(item.stock) || 0;
+        const minStock = Number(item.min_stock) || 0;
+
+        let status = '정상';
+        if (stock === 0) {
+          status = '품절';
+        } else if (stock && stock < minStock) {
+          status = '재고부족';
+        }
+
+        const row: TableProduct = {
+          product_id: item.product_id || '',
+          variant_code: item.variant_code || '',
+          offline_name: item.offline_name || '',
+          online_name: item.online_name || '',
+          big_category: item.big_category || '',
+          middle_category: item.middle_category || '',
+          option: item.option || '',
+          price: item.price || 0,
+          min_stock: minStock,
+          variant_id: item.variant_code || '',
+          status: status,
+          category: item.category || '',
+          stock,
+          description: item.description,
+          memo: item.memo,
+          channels: item.channels,
+        };
+        return row;
+      });
+      setData(rows);
     }
   };
 
@@ -265,8 +299,10 @@ const InventoryTable = ({
       </div>
 
       {/* 테이블 */}
-      <div className='relative overflow-x-auto sm:rounded-lg'>
-        <table className='w-full border-collapse text-sm text-gray-700'>
+      <div className='relative w-full overflow-x-auto sm:rounded-lg' style={{ maxWidth: '100%' }}>
+        <table
+          className='w-full border-collapse text-sm text-gray-700'
+          style={{ minWidth: '2000px' }}>
           <thead className='border-b border-gray-300 bg-gray-50 text-xs uppercase'>
             <tr>
               <SortableHeader
@@ -282,9 +318,27 @@ const InventoryTable = ({
                 onSort={handleSort}
               />
               <SortableHeader
-                label='상품명'
+                label='오프라인명'
                 sortKey='offline_name'
                 sortOrder={sortConfig.key === 'offline_name' ? sortConfig.order : null}
+                onSort={handleSort}
+              />
+              <SortableHeader
+                label='온라인명'
+                sortKey='online_name'
+                sortOrder={sortConfig.key === 'online_name' ? sortConfig.order : null}
+                onSort={handleSort}
+              />
+              <SortableHeader
+                label='대분류'
+                sortKey='big_category'
+                sortOrder={sortConfig.key === 'big_category' ? sortConfig.order : null}
+                onSort={handleSort}
+              />
+              <SortableHeader
+                label='중분류'
+                sortKey='middle_category'
+                sortOrder={sortConfig.key === 'middle_category' ? sortConfig.order : null}
                 onSort={handleSort}
               />
               <SortableHeader
@@ -322,22 +376,27 @@ const InventoryTable = ({
                 className={`border-b border-gray-200 ${
                   Number(product.stock) < Number(product.min_stock) ? 'bg-red-50' : 'bg-white'
                 }`}>
-                <td className='px-4 py-2'>{product.product_id}</td>
-                <td className='px-4 py-2'>{product.variant_code}</td>
-                <td className='px-4 py-2'>{product.offline_name}</td>
-                <td className='px-4 py-2'>{product.category}</td>
-                <td className='px-4 py-2'>{product.option}</td>
-                <td className='px-4 py-2'>{Number(product.price).toLocaleString()}원</td>
-                <td className='px-4 py-2'>
+                <td className='px-4 py-2 whitespace-nowrap'>{product.product_id}</td>
+                <td className='px-4 py-2 whitespace-nowrap'>{product.variant_code}</td>
+                <td className='px-4 py-2 whitespace-nowrap'>{product.offline_name}</td>
+                <td className='px-4 py-2 whitespace-nowrap'>{product.online_name}</td>
+                <td className='px-4 py-2 whitespace-nowrap'>{product.big_category}</td>
+                <td className='px-4 py-2 whitespace-nowrap'>{product.middle_category}</td>
+                <td className='px-4 py-2 whitespace-nowrap'>{product.category}</td>
+                <td className='px-4 py-2 whitespace-nowrap'>{product.option}</td>
+                <td className='px-4 py-2 whitespace-nowrap'>
+                  {Number(product.price).toLocaleString()}원
+                </td>
+                <td className='px-4 py-2 whitespace-nowrap'>
                   {product.stock}EA ({product.min_stock !== undefined ? product.min_stock : '-'})
                 </td>
-                <td className='px-4 py-2'>
+                <td className='px-4 py-2 whitespace-nowrap'>
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${getStatusStyle(product.status)}`}>
                     {product.status}
                   </span>
                 </td>
-                <td className='px-4 py-2 text-center align-middle'>
+                <td className='px-4 py-2 text-center align-middle whitespace-nowrap'>
                   <div className='inline-flex items-center justify-center gap-2'>
                     <MdOutlineEdit
                       className='cursor-pointer text-indigo-500'
