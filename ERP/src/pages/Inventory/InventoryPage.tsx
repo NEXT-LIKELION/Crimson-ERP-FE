@@ -210,8 +210,8 @@ const InventoryPage = () => {
 
     const processedResult = {
       ...result,
-      name: result.offline_name || result.name || '',
-      cost_price: result.cost_price || 0,
+      name: result.offline_name || '',
+      price: result.price || 0,
       min_stock: result.min_stock || 0,
       variant_id: result.variant_code || '',
       description: result.description || '',
@@ -261,14 +261,9 @@ const InventoryPage = () => {
       }
 
       // readOnly 필드들만 제외
-      const { sales, cost_price, order_count, return_count, stock, ...editableFields } =
-        updatedProduct;
+      const { stock, ...editableFields } = updatedProduct;
 
       // readOnly 필드들은 사용되지 않지만 구조분해할당으로 제외하기 위해 필요
-      void sales;
-      void cost_price;
-      void order_count;
-      void return_count;
       void stock;
 
       // API에 전송할 수정 가능한 필드들 (suppliers 포함)
@@ -555,19 +550,6 @@ const InventoryPage = () => {
     }
   };
 
-  // 재고 조정 핸들러
-  const handleStockClick = (variant: {
-    variant_code: string;
-    product_id: string;
-    name: string;
-    option: string;
-    current_stock: number;
-    min_stock: number;
-  }) => {
-    setSelectedVariantForStock(variant);
-    setStockAdjustModalOpen(true);
-  };
-
   const handleStockAdjustSuccess = () => {
     refetch();
     // EditProductModal이 열려있는 경우 해당 product 데이터도 업데이트
@@ -808,7 +790,6 @@ const InventoryPage = () => {
           onClose={handleCloseModal}
           product={selectedProduct as Product}
           onSave={handleUpdateSave}
-          onStockAdjustClick={handleStockClick}
         />
       )}
       {isAddModalOpen && (

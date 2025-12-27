@@ -49,9 +49,13 @@ export const createInventoryItem = async (itemPayload: Omit<Product, 'id' | 'var
 }; // 상품만 생성
 
 // 상품과 variant를 함께 생성하는 함수 (백엔드 구조에 따라 사용)
-export const createProductWithVariant = async (
-  itemPayload: Omit<ProductVariantCreate, 'category_name'>
-) => {
+// API 타입 직접 사용
+import type { operations } from '../types/api';
+
+type VariantCreatePayload =
+  operations['inventory_variants_create']['requestBody']['content']['application/json'];
+
+export const createProductWithVariant = async (itemPayload: VariantCreatePayload) => {
   const res = await api.post(`/inventory/variants/`, itemPayload);
   return res.data;
 };
