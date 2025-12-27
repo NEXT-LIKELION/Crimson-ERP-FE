@@ -3,8 +3,7 @@ import GreenButton from '../../components/button/GreenButton';
 import PrimaryButton from '../../components/button/PrimaryButton';
 import SecondaryButton from '../../components/button/SecondaryButton';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { FaPlus, FaFileArrowUp, FaCodePullRequest, FaFileArrowDown } from 'react-icons/fa6';
-import { FaHistory } from 'react-icons/fa';
+import { FaPlus, FaFileArrowUp, FaFileArrowDown } from 'react-icons/fa6';
 import InputField from '../../components/inputfield/InputField';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import VariantStatusTable from '../../components/table/VariantStatusTable';
@@ -167,20 +166,20 @@ const InventoryPage = () => {
     return uniqueCategories;
   }, [categoriesData]);
 
-  // 병합 모달이 열릴 때만 데이터 로드 (lazy loading)
-  const loadMergeData = async () => {
-    if (allMergeData.length === 0) {
-      setIsMergeDataLoading(true);
-      try {
-        const allData = await fetchAllInventoriesForMerge();
-        setAllMergeData(allData);
-      } catch (error) {
-        alert('전체 데이터를 불러오는 중 오류가 발생했습니다: ' + getErrorMessage(error));
-      } finally {
-        setIsMergeDataLoading(false);
-      }
-    }
-  };
+  // // 병합 모달이 열릴 때만 데이터 로드 (lazy loading)
+  // const loadMergeData = async () => {
+  //   if (allMergeData.length === 0) {
+  //     setIsMergeDataLoading(true);
+  //     try {
+  //       const allData = await fetchAllInventoriesForMerge();
+  //       setAllMergeData(allData);
+  //     } catch (error) {
+  //       alert('전체 데이터를 불러오는 중 오류가 발생했습니다: ' + getErrorMessage(error));
+  //     } finally {
+  //       setIsMergeDataLoading(false);
+  //     }
+  //   }
+  // };
 
   // URL 업데이트 함수 (페이지 파라미터 제거)
   const updateURL = useCallback(
@@ -755,7 +754,7 @@ const InventoryPage = () => {
                 icon={<FaPlus size={16} />}
                 onClick={() => setAddModalOpen(true)}
               />
-              <SecondaryButton
+              {/* <SecondaryButton
                 text='상품 병합'
                 icon={<FaCodePullRequest size={16} />}
                 onClick={async () => {
@@ -773,7 +772,7 @@ const InventoryPage = () => {
                 icon={<FaFileArrowUp size={16} />}
                 onClick={handlePOSButtonClick}
                 disabled={isPOSUploading}
-              />
+              /> */}
             </>
           )}
 
