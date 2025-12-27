@@ -1,8 +1,9 @@
 authentication
 
-POST /authentication/approve/ 직원 계정 상태 전환 (STAFF/INTERN) authentication_approve_create
+POST /authentication/approve/ 직원 계정 상태 전환 (STAFF/INTERN/MANAGER)
+authentication_approve_create
 
-MANAGER가 STAFF 또는 INTERN 계정을 승인(APPROVED)하거나 거절(DENIED)할 수 있습니다.
+MANAGER가 STAFF, INTERN 또는 MANAGER 계정을 승인(APPROVED)하거나 거절(DENIED)할 수 있습니다.
 
 Parameters Try it out Name Description data _ object (body) Example Value Model { username_ string
 example: staff1 STAFF 사용자 아이디
@@ -27,9 +28,9 @@ authentication_change-password_update
 로그인한 본인의 비밀번호를 직접 변경하거나, 'MANAGER' 권한을 가진 사용자가 다른 직원의 비밀번호를
 변경합니다.
 
-일반 사용자: URL의 employee*id에 자신의 ID를 넣어서 요청해야 합니다. 매니저: URL의 employee_id에
-대상 직원의 ID를 넣어 요청할 수 있습니다. Parameters Try it out Name Description data * object
-(body) Example Value Model { password\_ string example: new_strong_password! 새 비밀번호
+일반 사용자: URL의 employee_id에 자신의 ID를 넣어서 요청해야 합니다. 매니저: URL의 employee_id에
+대상 직원의 ID를 넣어 요청할 수 있습니다. Parameters Try it out Name Description data _ object
+(body) Example Value Model { password_ string example: new_strong_password! 새 비밀번호
 
 } employee_id \* string (path) employee_id Responses Response content type
 

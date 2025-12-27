@@ -61,8 +61,8 @@ x-nullable: true status string title: Status Enum: Array [ 4 ] instruction_note 
 Instruction note x-nullable: true note string title: Note x-nullable: true created_at
 string($date-time) title: Created at readOnly: true vat_included boolean title: Vat included
 packaging_included boolean title: Packaging included items [ readOnly: true OrderItem{ id ID[...]
-variant_code Variant code[...] item_name Item name[...] quantity* Quantity[...] unit Unit[...]
-unit_price\* Unit price[...] remark Remark[...] spec Spec[...]
+variant_code Variant code[...] option Option[...] item_name Item name[...] quantity* Quantity[...]
+unit Unit[...] unit_price\* Unit price[...] remark Remark[...] spec Spec[...]
 
 }]
 
@@ -110,8 +110,8 @@ x-nullable: true status string title: Status Enum: Array [ 4 ] instruction_note 
 Instruction note x-nullable: true note string title: Note x-nullable: true created_at
 string($date-time) title: Created at readOnly: true vat_included boolean title: Vat included
 packaging_included boolean title: Packaging included items [ readOnly: true OrderItem{ id ID[...]
-variant_code Variant code[...] item_name Item name[...] quantity* Quantity[...] unit Unit[...]
-unit_price\* Unit price[...] remark Remark[...] spec Spec[...]
+variant_code Variant code[...] option Option[...] item_name Item name[...] quantity* Quantity[...]
+unit Unit[...] unit_price\* Unit price[...] remark Remark[...] spec Spec[...]
 
 }]
 
@@ -135,8 +135,8 @@ x-nullable: true status string title: Status Enum: Array [ 4 ] instruction_note 
 Instruction note x-nullable: true note string title: Note x-nullable: true created_at
 string($date-time) title: Created at readOnly: true vat_included boolean title: Vat included
 packaging_included boolean title: Packaging included items [ readOnly: true OrderItem{ id ID[...]
-variant_code Variant code[...] item_name Item name[...] quantity* Quantity[...] unit Unit[...]
-unit_price\* Unit price[...] remark Remark[...] spec Spec[...]
+variant_code Variant code[...] option Option[...] item_name Item name[...] quantity* Quantity[...]
+unit Unit[...] unit_price\* Unit price[...] remark Remark[...] spec Spec[...]
 
 }]
 

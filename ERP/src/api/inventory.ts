@@ -199,13 +199,22 @@ export const fetchFilteredInventoriesForExport = async (
 export const adjustStock = (
   variantCode: string,
   data: {
-    actual_stock: number;
+    delta: number;
     reason: string;
-    updated_by: string;
+    created_by: string;
+    year?: number;
+    month?: number;
   }
 ) => {
   return api
-    .put(`/inventory/variants/stock/${variantCode}/`, data)
+    .post('/inventory/adjustments/', {
+      variant_code: variantCode,
+      delta: data.delta,
+      reason: data.reason,
+      created_by: data.created_by,
+      year: data.year,
+      month: data.month,
+    })
     .then((response) => {
       return response;
     })
@@ -215,45 +224,14 @@ export const adjustStock = (
 };
 
 // 재고 변경 이력 조회
-export const fetchStockAdjustments = (params?: { page?: number; variant_code?: string }) => {
+export const fetchStockAdjustments = (params?: {
+  page?: number;
+  variant_code?: string;
+  year?: number;
+  month?: number;
+}) => {
   return api
     .get('/inventory/adjustments/', { params })
-    .then((response) => {
-      return response;
-    })
-    .catch((error) => {
-      throw error;
-    });
-};
-
-// 스냅샷 목록 조회
-export const fetchInventorySnapshots = (params?: { page?: number }) => {
-  return api
-    .get('/inventory/snapshot', { params })
-    .then((response) => {
-      return response;
-    })
-    .catch((error) => {
-      throw error;
-    });
-};
-
-// 스냅샷 상세 조회
-export const fetchInventorySnapshot = (id: number) => {
-  return api
-    .get(`/inventory/snapshot/${id}/`)
-    .then((response) => {
-      return response;
-    })
-    .catch((error) => {
-      throw error;
-    });
-};
-
-// 재고 롤백
-export const rollbackToSnapshot = (snapshotId: number, reason?: string) => {
-  return api
-    .post(`/inventory/rollback/${snapshotId}/`, { reason })
     .then((response) => {
       return response;
     })
@@ -278,4 +256,78 @@ export const mergeVariants = async (payload: {
 };
 
 // 카테고리 목록 조회
-export const fetchCategories = () => api.get('/inventory/category/');
+export const fetchCategories = () => {
+  return api
+    .get('/inventory/category/')
+    .then((response) => {
+      // API 응답 형식: { big_categories: [], middle_categories: [], categories: [] }
+      // categories 배열만 추출
+      const categories = response.data?.categories || [];
+      // 배열이 아닌 경우 빈 배열 반환
+      const categoryArray = Array.isArray(categories) ? categories : [];
+      return { ...response, data: categoryArray };
+    })
+    .catch((error) => {
+      console.warn('카테고리 조회 실패, 기본값 사용:', error);
+      // 실패 시 기본 카테고리 반환
+      return { data: ['의류', '전자제품', '생활용품', '식품', '화장품', '도서', '스포츠', '기타'] };
+    });
+};
+
+// 월별 재고 현황 조회
+export const fetchVariantStatus = (params: {
+  year: number;
+  month: number;
+  page?: number;
+  ordering?: string;
+}) => {
+  return api.get('/inventory/variant-status/', { params });
+};
+
+// 월별 재고 현황 개별 항목 수정
+export const updateVariantStatus = (
+  year: number,
+  month: number,
+  variantCode: string,
+  data: {
+    warehouse_stock_start?: number;
+    store_stock_start?: number;
+    inbound_quantity?: number;
+    store_sales?: number;
+    online_sales?: number;
+  }
+) => {
+  return api.patch(`/inventory/variant-status/${year}/${month}/${variantCode}/`, data);
+};
+
+// 월별 재고 현황 엑셀 업로드
+export const uploadVariantStatusExcel = (file: File, year?: number, month?: number) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const params = new URLSearchParams();
+  if (year) params.append('year', year.toString());
+  if (month) params.append('month', month.toString());
+
+  const url = `/inventory/variants/upload-excel/${params.toString() ? `?${params.toString()}` : ''}`;
+
+  return api.post(url, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
+// 월별 재고 현황 엑셀 다운로드 (JSON 데이터 반환)
+export const downloadVariantStatusExcel = (params: {
+  year: number;
+  month: number;
+  product_code?: string;
+  variant_code?: string;
+  category?: string;
+}) => {
+  return api.get('/inventory/variants/export/', {
+    params,
+    // responseType 제거 - JSON 데이터이므로 기본 처리
+  });
+};

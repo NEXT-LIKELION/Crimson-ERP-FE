@@ -13,14 +13,14 @@ readOnly: true username\* Usernamestring title: Username pattern: ^[\w.@+-]+$ ma
 minLength: 1 Required. 150 characters or fewer. Letters, digits and @/./+/-/\_ only.
 
 email Email addressstring($email) title: Email address maxLength: 254 role Rolestring title: Role
-Enum: [ MANAGER, STAFF, INTERN ] contact Contactstring title: Contact maxLength: 20 x-nullable: true
-status Statusstring title: Status Enum: [ APPROVED, DENIED ] first_name First namestring title:
-First name maxLength: 150 is_active Activeboolean title: Active Designates whether this user should
-be treated as active. Unselect this instead of deleting accounts.
+Enum: Array [ 3 ] contact Contactstring title: Contact maxLength: 20 x-nullable: true status
+Statusstring title: Status Enum: Array [ 2 ] first_name First namestring title: First name
+maxLength: 150 is_active Activeboolean title: Active Designates whether this user should be treated
+as active. Unselect this instead of deleting accounts.
 
 hire_date Hire datestring($date) title: Hire date readOnly: true x-nullable: true
 remaining_leave_days Remaining leave daysstring title: Remaining leave days readOnly: true gender
-Genderstring title: Gender x-nullable: true Enum: [ MALE, FEMALE ]
+Genderstring title: Gender x-nullable: true Enum: Array [ 2 ]
 
 }]
 
@@ -35,18 +35,17 @@ application/json Code Description 200 Example Value Model EmployeeDetail{ id int
 readOnly: true username\* string title: Username pattern: ^[\w.@+-]+$ maxLength: 150 minLength: 1
 Required. 150 characters or fewer. Letters, digits and @/./+/-/\_ only.
 
-email string($email) title: Email address maxLength: 254 role string title: Role Enum: [ MANAGER,
-STAFF, INTERN ] contact string title: Contact maxLength: 20 x-nullable: true status string title:
-Status Enum: [ APPROVED, DENIED ] first_name string title: First name maxLength: 150 is_active
-boolean title: Active Designates whether this user should be treated as active. Unselect this
-instead of deleting accounts.
+email string($email) title: Email address maxLength: 254 role string title: Role Enum: Array [ 3 ]
+contact string title: Contact maxLength: 20 x-nullable: true status string title: Status Enum: Array
+[ 2 ] first_name string title: First name maxLength: 150 is_active boolean title: Active Designates
+whether this user should be treated as active. Unselect this instead of deleting accounts.
 
 hire_date string($date) title: Hire date x-nullable: true annual_leave_days integer title: Annual
 leave days maximum: 2147483647 minimum: 0 allowed_tabs\* Allowed tabs{
 
 } remaining_leave_days string title: Remaining leave days readOnly: true vacation_days string title:
 Vacation days readOnly: true vacation_pending_days string title: Vacation pending days readOnly:
-true gender string title: Gender x-nullable: true Enum: [ MALE, FEMALE ]
+true gender string title: Gender x-nullable: true Enum: Array [ 2 ]
 
 } 404 Not Found
 
@@ -72,11 +71,11 @@ string] hire_date string($date) example: 2024-03-01 입사일
 
 role string example: STAFF 직무 구분
 
-Enum: [ MANAGER, STAFF, INTERN ] is_deleted boolean example: false 삭제 여부(소프트 삭제)
+Enum: Array [ 3 ] is_deleted boolean example: false 삭제 여부(소프트 삭제)
 
 gender string example: MALE 성별
 
-Enum: [ MALE, FEMALE ]
+Enum: Array [ 2 ]
 
 } employee_id \* string (path) employee_id Responses Response content type
 
@@ -84,18 +83,17 @@ application/json Code Description 200 Example Value Model EmployeeDetail{ id int
 readOnly: true username\* string title: Username pattern: ^[\w.@+-]+$ maxLength: 150 minLength: 1
 Required. 150 characters or fewer. Letters, digits and @/./+/-/\_ only.
 
-email string($email) title: Email address maxLength: 254 role string title: Role Enum: [ MANAGER,
-STAFF, INTERN ] contact string title: Contact maxLength: 20 x-nullable: true status string title:
-Status Enum: [ APPROVED, DENIED ] first_name string title: First name maxLength: 150 is_active
-boolean title: Active Designates whether this user should be treated as active. Unselect this
-instead of deleting accounts.
+email string($email) title: Email address maxLength: 254 role string title: Role Enum: Array [ 3 ]
+contact string title: Contact maxLength: 20 x-nullable: true status string title: Status Enum: Array
+[ 2 ] first_name string title: First name maxLength: 150 is_active boolean title: Active Designates
+whether this user should be treated as active. Unselect this instead of deleting accounts.
 
 hire_date string($date) title: Hire date x-nullable: true annual_leave_days integer title: Annual
 leave days maximum: 2147483647 minimum: 0 allowed_tabs\* Allowed tabs{
 
 } remaining_leave_days string title: Remaining leave days readOnly: true vacation_days string title:
 Vacation days readOnly: true vacation_pending_days string title: Vacation pending days readOnly:
-true gender string title: Gender x-nullable: true Enum: [ MALE, FEMALE ]
+true gender string title: Gender x-nullable: true Enum: Array [ 2 ]
 
 } 400 Bad Request
 
@@ -121,10 +119,9 @@ Employee name readOnly: true minLength: 1 start_date* Start
 datestring($date)
 title: Start date
 end_date*	End datestring($date) title: End date leave_type Leave
-typestring title: Leave type readOnly: true Enum: [ VACATION, HALF_DAY_AM, HALF_DAY_PM, SICK, OTHER,
-WORK ] reason Reasonstring title: Reason x-nullable: true status Statusstring title: Status Enum: [
-PENDING, APPROVED, REJECTED, CANCELLED ] status_display Status displaystring title: Status display
-readOnly: true minLength: 1 created_at Created
+typestring title: Leave type readOnly: true Enum: Array [ 6 ] reason Reasonstring title: Reason
+x-nullable: true status Statusstring title: Status Enum: Array [ 4 ] status_display Status
+displaystring title: Status display readOnly: true minLength: 1 created_at Created
 atstring($date-time)
 title: Created at
 readOnly: true
@@ -135,16 +132,15 @@ Reviewed at readOnly: true x-nullable: true
 
 POST /hr/vacations/ 휴가 신청 등록 hr_vacations_create
 
-휴가 신청을 등록합니다. WORK 타입은 관리자만 생성 가능하며 자동으로 승인됩니다.
+휴가 신청을 등록합니다.
 
 Parameters Try it out Name Description data _ object (body) Example Value Model { employee_ integer
 example: 168 직원 ID
 
 leave_type\* string example: VACATION 휴가 유형 (WORK는 관리자만 생성 가능)
 
-Enum: [ VACATION, HALF_DAY_AM, HALF_DAY_PM, SICK, OTHER, WORK ] start_date* string($date) example:
-2025-08-01 end_date* string($date) example: 2025-08-02 reason string example: 개인 사정으로 인한
-연차 사유
+Enum: Array [ 6 ] start_date* string($date) example: 2025-08-01 end_date* string($date) example:
+2025-08-02 reason string example: 개인 사정으로 인한 연차 사유
 
 } Responses Response content type
 
@@ -153,10 +149,9 @@ readOnly: true employee* integer title: Employee employee_name string title: Emp
 true minLength: 1 start_date* string($date)
 title: Start date
 end_date*	string($date) title: End date
-leave_type string title: Leave type readOnly: true Enum: [ VACATION, HALF_DAY_AM, HALF_DAY_PM, SICK,
-OTHER, WORK ] reason string title: Reason x-nullable: true status string title: Status Enum: [
-PENDING, APPROVED, REJECTED, CANCELLED ] status_display string title: Status display readOnly: true
-minLength: 1 created_at
+leave_type string title: Leave type readOnly: true Enum: Array [ 6 ] reason string title: Reason
+x-nullable: true status string title: Status Enum: Array [ 4 ] status_display string title: Status
+display readOnly: true minLength: 1 created_at
 string($date-time)
 title: Created at
 readOnly: true
@@ -175,7 +170,7 @@ PATCH /hr/vacations/review/{id}/ 휴가 신청 취소/승인/거절 hr_vacations
 Parameters Try it out Name Description data _ object (body) Example Value Model { status_ string
 example: APPROVED 변경할 상태값
 
-Enum: [ APPROVED, REJECTED ]
+Enum: Array [ 2 ]
 
 } id \* string (path) id Responses Response content type
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import TextInput from '../input/TextInput';
 import SelectInput from '../input/SelectInput';
+import CategorySelect from '../input/CategorySelect';
 import PrimaryButton from '../button/PrimaryButton';
 import { MdSearch, MdRefresh } from 'react-icons/md';
 import Slider from 'rc-slider';
@@ -37,7 +38,7 @@ const InputField: React.FC<InputFieldProps> = ({
   onProductNameChange,
   category,
   onCategoryChange,
-  categoryOptions = ['모든 카테고리', '일반', '특가', '한정판'],
+  categoryOptions,
   status,
   onStatusChange,
   minStock,
@@ -120,11 +121,11 @@ const InputField: React.FC<InputFieldProps> = ({
         </div>
         <div className='flex flex-col'>
           <p className='text-sm font-semibold text-gray-700'>카테고리</p>
-          <SelectInput
-            defaultText='모든 카테고리'
-            options={categoryOptions}
+          <CategorySelect
             value={category}
             onChange={onCategoryChange}
+            options={categoryOptions || []}
+            showCount={false}
           />
         </div>
         <div className='flex flex-col'>

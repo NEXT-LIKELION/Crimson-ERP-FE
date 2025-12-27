@@ -4,23 +4,23 @@ import { MdOutlineDownload } from 'react-icons/md';
 import { RxCaretSort } from 'react-icons/rx';
 import { HiArrowUp } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
-import { Product } from '../../types/product';
+import type { ApiProductVariant } from '../../hooks/queries/useInventories';
+import type { components } from '../../types/api';
+
+// ProductVariant 타입 별칭
+type ProductVariant = components['schemas']['ProductVariant'];
 
 // Custom type for table data with string variant_id
-interface TableProduct extends Omit<Product, 'variant_id'> {
+interface TableProduct extends ProductVariant {
   variant_id: string;
-  orderCount: number;
-  returnCount: number;
-  totalSales: string;
   status: string;
-  category: string;
+  name: string;
 }
 
 interface InventoryTableProps {
-  inventories: Product[];
+  inventories: ApiProductVariant[];
   onDelete: (productId: string) => Promise<void>;
   onExportToExcel: () => void;
-  lastUpdateDate?: string | { onlineDate?: string; offlineDate?: string }; // POS 마지막 업데이트 날짜 (채널별 구분)
   // 무한 스크롤 관련 props
   fetchNextPage: () => void;
   hasNextPage: boolean;
@@ -72,7 +72,6 @@ const InventoryTable = ({
   inventories,
   onDelete,
   onExportToExcel,
-  lastUpdateDate,
   fetchNextPage,
   hasNextPage,
   isFetchingNextPage,
@@ -105,17 +104,21 @@ const InventoryTable = ({
         status = '재고부족';
       }
 
-      const row = {
-        ...item,
-        cost_price: item.cost_price || 0,
+      const row: TableProduct = {
+        product_id: item.product_id || '',
+        variant_code: item.variant_code || '',
+        offline_name: item.offline_name || '',
+        option: item.option || '',
+        price: item.price || 0,
         min_stock: minStock,
         variant_id: item.variant_code || '',
-        orderCount: item.order_count ?? 0,
-        returnCount: item.return_count ?? 0,
-        totalSales: item.sales ? `${item.sales.toLocaleString()}원` : '0원',
         status: status,
         category: item.category || '',
         stock,
+        name: item.name || '',
+        description: item.description,
+        memo: item.memo,
+        channels: item.channels,
       };
       return row;
     });
@@ -126,10 +129,37 @@ const InventoryTable = ({
   // 스크롤 기반 무한 스크롤 - 강화된 중복 호출 방지
   const isLoadingRef = useRef(false);
   const lastRequestTimeRef = useRef(0);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
 
+  // 스크롤 컨테이너 찾기 및 스크롤 감지
+  useEffect(() => {
+    // 실제 스크롤 컨테이너 찾기 (layout.tsx의 section.overflow-auto)
+    const mainContainer = document.querySelector('section.overflow-auto') as HTMLElement;
+    if (!mainContainer) return;
+
+    scrollContainerRef.current = mainContainer;
+
+    const handleScroll = () => {
+      // 스크롤이 시작되면 hasScrolled를 true로 설정
+      if (mainContainer.scrollTop > 0 && !hasScrolled) {
+        setHasScrolled(true);
+      }
+    };
+
+    handleScroll();
+    mainContainer.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      mainContainer.removeEventListener('scroll', handleScroll);
+    };
+  }, [hasScrolled]);
+
+  // IntersectionObserver 설정 - 스크롤 컨테이너를 root로 사용
   useEffect(() => {
     const observerTarget = document.getElementById('infinite-scroll-trigger');
-    if (!observerTarget) return;
+    const scrollContainer = scrollContainerRef.current;
+
+    if (!observerTarget || !scrollContainer) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -158,10 +188,12 @@ const InventoryTable = ({
         }
       },
       {
+        // 스크롤 컨테이너를 root로 설정
+        root: scrollContainer,
         // 더 정확한 트리거를 위해 threshold 설정
-        threshold: 0.5,
-        // rootMargin을 더 줄여서 정확한 위치에서만 트리거
-        rootMargin: '50px',
+        threshold: 0.1,
+        // rootMargin을 설정하여 조금 더 일찍 트리거
+        rootMargin: '100px',
       }
     );
 
@@ -173,29 +205,10 @@ const InventoryTable = ({
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, hasScrolled]);
 
-  // 스크롤 위로 가기 버튼 표시 여부 관리 + 스크롤 감지
-  useEffect(() => {
-    const mainContainer = document.querySelector('section.overflow-y-auto');
-    if (!mainContainer) return;
-
-    const handleScroll = () => {
-      // 스크롤이 시작되면 hasScrolled를 true로 설정
-      if (mainContainer.scrollTop > 0 && !hasScrolled) {
-        setHasScrolled(true);
-      }
-    };
-
-    handleScroll();
-    mainContainer.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      mainContainer.removeEventListener('scroll', handleScroll);
-    };
-  }, [hasScrolled]);
-
   // 스크롤 위로 가기 함수
   const scrollToTop = () => {
-    const mainContainer = document.querySelector('section.overflow-y-auto');
+    const mainContainer =
+      scrollContainerRef.current || document.querySelector('section.overflow-auto');
     if (mainContainer) {
       mainContainer.scrollTo({
         top: 0,
@@ -219,13 +232,6 @@ const InventoryTable = ({
         const aValue = a[key];
         const bValue = b[key];
 
-        // totalSales는 문자열이므로 원본 sales 값으로 정렬
-        if (key === 'totalSales') {
-          const aSales = (a as any).sales || 0;
-          const bSales = (b as any).sales || 0;
-          return order === 'asc' ? aSales - bSales : bSales - aSales;
-        }
-
         if (typeof aValue === 'number' && typeof bValue === 'number') {
           return order === 'asc' ? aValue - bValue : bValue - aValue;
         }
@@ -241,39 +247,11 @@ const InventoryTable = ({
   // 백엔드에서 이미 페이지네이션된 데이터를 받으므로 슬라이싱하지 않음
   const paginatedData = data;
 
-  // 업데이트 날짜 렌더링 함수
-  const renderUpdateDate = () => {
-    if (!lastUpdateDate) return null;
-
-    if (typeof lastUpdateDate === 'string') {
-      // 단일 탭 (온라인 또는 오프라인)
-      return `(${lastUpdateDate} 업데이트)`;
-    }
-
-    if (typeof lastUpdateDate === 'object') {
-      // 전체 탭 (온라인/오프라인 구분 표시)
-      const { onlineDate, offlineDate } = lastUpdateDate;
-      const parts = [];
-
-      if (onlineDate) parts.push(`온라인: ${onlineDate}`);
-      if (offlineDate) parts.push(`오프라인: ${offlineDate}`);
-
-      return parts.length > 0 ? `(${parts.join(', ')} 업데이트)` : null;
-    }
-
-    return null;
-  };
-
   return (
     <div className='rounded-lg bg-white p-6 shadow-md'>
       {/* 헤더 */}
       <div className='mb-4 flex items-center justify-between'>
-        <h2 className='flex items-center text-lg font-semibold'>
-          상품별 재고 현황
-          {renderUpdateDate() && (
-            <span className='ml-2 text-sm font-normal text-gray-500'>{renderUpdateDate()}</span>
-          )}
-        </h2>
+        <h2 className='flex items-center text-lg font-semibold'>상품별 재고 현황</h2>
         <div className='flex items-center space-x-3 text-gray-500'>
           <span className='text-sm'>
             총 {infiniteScroll.totalCount}개 상품 ({infiniteScroll.totalLoaded}개 로딩됨)
@@ -299,14 +277,14 @@ const InventoryTable = ({
               />
               <SortableHeader
                 label='품목코드'
-                sortKey='variant_id'
-                sortOrder={sortConfig.key === 'variant_id' ? sortConfig.order : null}
+                sortKey='variant_code'
+                sortOrder={sortConfig.key === 'variant_code' ? sortConfig.order : null}
                 onSort={handleSort}
               />
               <SortableHeader
                 label='상품명'
-                sortKey='name'
-                sortOrder={sortConfig.key === 'name' ? sortConfig.order : null}
+                sortKey='offline_name'
+                sortOrder={sortConfig.key === 'offline_name' ? sortConfig.order : null}
                 onSort={handleSort}
               />
               <SortableHeader
@@ -323,12 +301,6 @@ const InventoryTable = ({
                 onSort={handleSort}
               />
               <SortableHeader
-                label='매입가'
-                sortKey='cost_price'
-                sortOrder={sortConfig.key === 'cost_price' ? sortConfig.order : null}
-                onSort={handleSort}
-              />
-              <SortableHeader
                 label='재고(최소재고)'
                 sortKey='stock'
                 sortOrder={sortConfig.key === 'stock' ? sortConfig.order : null}
@@ -338,14 +310,6 @@ const InventoryTable = ({
                 label='상태'
                 sortKey='status'
                 sortOrder={sortConfig.key === 'status' ? sortConfig.order : null}
-                onSort={handleSort}
-              />
-              <th className='border-b border-gray-300 px-4 py-3'>결제수량</th>
-              <th className='border-b border-gray-300 px-4 py-3'>환불수량</th>
-              <SortableHeader
-                label='판매합계'
-                sortKey='totalSales'
-                sortOrder={sortConfig.key === 'totalSales' ? sortConfig.order : null}
                 onSort={handleSort}
               />
               <th className='border-b border-gray-300 px-4 py-3'>관리</th>
@@ -359,12 +323,11 @@ const InventoryTable = ({
                   Number(product.stock) < Number(product.min_stock) ? 'bg-red-50' : 'bg-white'
                 }`}>
                 <td className='px-4 py-2'>{product.product_id}</td>
-                <td className='px-4 py-2'>{product.variant_id}</td>
-                <td className='px-4 py-2'>{product.name}</td>
+                <td className='px-4 py-2'>{product.variant_code}</td>
+                <td className='px-4 py-2'>{product.offline_name}</td>
                 <td className='px-4 py-2'>{product.category}</td>
                 <td className='px-4 py-2'>{product.option}</td>
                 <td className='px-4 py-2'>{Number(product.price).toLocaleString()}원</td>
-                <td className='px-4 py-2'>{Number(product.cost_price).toLocaleString()}원</td>
                 <td className='px-4 py-2'>
                   {product.stock}EA ({product.min_stock !== undefined ? product.min_stock : '-'})
                 </td>
@@ -374,9 +337,6 @@ const InventoryTable = ({
                     {product.status}
                   </span>
                 </td>
-                <td className='px-4 py-2'>{product.orderCount}개</td>
-                <td className='px-4 py-2'>{product.returnCount}개</td>
-                <td className='px-4 py-2'>{product.totalSales}</td>
                 <td className='px-4 py-2 text-center align-middle'>
                   <div className='inline-flex items-center justify-center gap-2'>
                     <MdOutlineEdit

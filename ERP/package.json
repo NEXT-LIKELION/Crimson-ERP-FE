@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "format": "prettier --write \"**/*.{js,ts,tsx,jsx,mjs,hbs,json,css,md}\""
+    "format": "prettier --write \"**/*.{js,ts,tsx,jsx,mjs,hbs,json,css,md}\"",
+    "generate:api-types": "swagger2openapi http://localhost:8000/swagger?format=openapi -o src/openapi3.json && npx openapi-typescript ./src/openapi3.json -o src/types/api.d.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -43,9 +44,11 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.18",
     "globals": "^15.14.0",
+    "openapi-typescript": "^7.10.1",
     "postcss": "^8.5.3",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
+    "swagger2openapi": "^7.0.8",
     "tailwindcss": "^4.0.15",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.22.0",
