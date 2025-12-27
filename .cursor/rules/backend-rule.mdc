@@ -1,0 +1,26 @@
+---
+globs:
+alwaysApply: true
+---
+백엔드의 구조는 다음과 같고, 너는 이제부터 API를 연결하는 역할을 맡은 프론트엔드 개발자야.
+
+정의는 다음과 같아:
+
+- inventory → variant들이 공유하는 공통 상품의 특징들 (e.g. 호랑이 방패 반팔티)
+- variants → 상품의 한 단위 (e.g. 호랑이 방패 반팔티 (화이트, L))
+- variant-status → 상품의 동적인 재고 정보를 담은
+- 상품 관리 메인 페이지
+    - 해당 페이지에서는 현재 상품의 상태를 불러오고, 정적인 상품 정보를 수정 및 삭제할 수 있도록 할거야.
+        - GET /inventory/variants/
+    - 이후 연필 모양의 아이콘을 클릭하면 상품 상세 정보를 수정할 수 있음:
+        - GET /inventory/variants/{variant_code}
+        - PATCH /inventory/variants/{variant_code}
+- 월별 재고 현황 메인 페이지
+    - 해당 페이지에서는 자세한 재고 현황을 불러와.
+        - GET /inventory/variant-status/
+    - 수정할 수 있는 요소는 크게 3가지로, 상품 상세 정보, 상품 재고&판매현황, 재고조정 상태를 조정할 수 있어.
+        - (상품 상세) GET /inventory/variants/{variant_code}
+        - (상품 상세) PATCH /inventory/variants/{variant_code}
+        - (상품 재고 & 판매현황) PATCH /inventory/variant-status/{year}/{month}/{variant_code}
+        - (재고조정) GET /inventory/adjustments/
+        - (재고조정) POST /inventory/adjustments/
