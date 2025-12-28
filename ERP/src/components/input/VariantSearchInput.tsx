@@ -237,4 +237,3 @@ const VariantSearchInput: React.FC<VariantSearchInputProps> = ({
 };
 
 export default VariantSearchInput;
-

@@ -114,25 +114,29 @@ export const useInventories = (filters?: {
   }, [query.data?.pages]);
 
   // 프론트엔드 상태 필터링 적용 (점진적으로 서버로 이동 예정)
-  const filteredData = useMemo(() => allData.filter((item: ApiProductVariant) => {
-    // 상태 필터 확인 (나머지 필터는 이미 서버에서 처리됨)
-    if (frontendStatus && frontendStatus !== '모든 상태') {
-      const stock = item.stock;
-      const minStock = item.min_stock || 0;
+  const filteredData = useMemo(
+    () =>
+      allData.filter((item: ApiProductVariant) => {
+        // 상태 필터 확인 (나머지 필터는 이미 서버에서 처리됨)
+        if (frontendStatus && frontendStatus !== '모든 상태') {
+          const stock = item.stock;
+          const minStock = item.min_stock || 0;
 
-      let status = '정상';
-      if (Number(stock) === 0) {
-        status = '품절';
-      } else if ((Number(stock) || 0) < minStock) {
-        status = '재고부족';
-      }
+          let status = '정상';
+          if (Number(stock) === 0) {
+            status = '품절';
+          } else if ((Number(stock) || 0) < minStock) {
+            status = '재고부족';
+          }
 
-      if (status !== frontendStatus) {
-        return false;
-      }
-    }
-    return true;
-  }), [allData, frontendStatus]);
+          if (status !== frontendStatus) {
+            return false;
+          }
+        }
+        return true;
+      }),
+    [allData, frontendStatus]
+  );
 
   // 전체 개수 계산
   const totalCount = query.data?.pages?.[0]?.count ?? 0;
