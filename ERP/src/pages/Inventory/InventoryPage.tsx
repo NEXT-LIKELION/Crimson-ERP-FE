@@ -5,6 +5,7 @@ import SecondaryButton from '../../components/button/SecondaryButton';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { FaPlus, FaFileArrowUp, FaFileArrowDown } from 'react-icons/fa6';
 import InputField from '../../components/inputfield/InputField';
+import CategorySelect from '../../components/input/CategorySelect';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import VariantStatusTable from '../../components/table/VariantStatusTable';
 import { useInventories, type ApiProductVariant } from '../../hooks/queries/useInventories';
@@ -684,26 +685,26 @@ const InventoryPage = () => {
         <div className='mb-4 w-full min-w-0 rounded-lg border border-gray-200 bg-white p-3 sm:p-4'>
           <div className='flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:space-x-3'>
             <label className='text-sm font-medium text-gray-700'>조회 기간:</label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className='rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none'>
-              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
-                <option key={year} value={year}>
-                  {year}년
-                </option>
-              ))}
-            </select>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className='rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none'>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                <option key={month} value={month}>
-                  {month}월
-                </option>
-              ))}
-            </select>
+            <CategorySelect
+              value={`${selectedYear}년`}
+              onChange={(value) => {
+                const year = Number(value.replace('년', ''));
+                setSelectedYear(year);
+              }}
+              options={Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(
+                (year) => `${year}년`
+              )}
+              placeholder='연도 선택'
+            />
+            <CategorySelect
+              value={`${selectedMonth}월`}
+              onChange={(value) => {
+                const month = Number(value.replace('월', ''));
+                setSelectedMonth(month);
+              }}
+              options={Array.from({ length: 12 }, (_, i) => i + 1).map((month) => `${month}월`)}
+              placeholder='월 선택'
+            />
             <span className='text-sm text-gray-500'>
               {selectedYear}년 {selectedMonth}월 재고 현황
             </span>
