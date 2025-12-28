@@ -1,23 +1,10 @@
 import { useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { fetchInventories } from '../../api/inventory';
-import { ProductVariant } from '../../types/product';
+import { components } from '../../types/api';
 
-// 로컬 ProductVariant 타입 기반 (실제 응답 구조)
-export type ApiProductVariant = ProductVariant & {
-  // 백엔드 응답에 name 필드가 포함되는 경우를 위한 확장
-  name?: string;
-  offline_name?: string;
-  online_name?: string;
-  // 백엔드에서 추가로 내려주는 필드들 (스키마에는 없지만 실제 응답에 포함될 수 있음)
-  product_id?: string;
-  category?: string;
-  cost_price?: number;
-  order_count?: number;
-  return_count?: number;
-  sales?: number | string;
-  suppliers?: string;
-};
+// API 응답 타입 (api.d.ts의 ProductVariant 사용)
+export type ApiProductVariant = components['schemas']['ProductVariant'];
 
 // API 응답 타입 정의
 interface InventoryPageData {
@@ -127,27 +114,29 @@ export const useInventories = (filters?: {
   }, [query.data?.pages]);
 
   // 프론트엔드 상태 필터링 적용 (점진적으로 서버로 이동 예정)
-  const filteredData = useMemo(() => {
-    return allData.filter((item: ApiProductVariant) => {
-      // 상태 필터 확인 (나머지 필터는 이미 서버에서 처리됨)
-      if (frontendStatus && frontendStatus !== '모든 상태') {
-        const stock = item.stock;
-        const minStock = item.min_stock || 0;
+  const filteredData = useMemo(
+    () =>
+      allData.filter((item: ApiProductVariant) => {
+        // 상태 필터 확인 (나머지 필터는 이미 서버에서 처리됨)
+        if (frontendStatus && frontendStatus !== '모든 상태') {
+          const stock = item.stock;
+          const minStock = item.min_stock || 0;
 
-        let status = '정상';
-        if (stock === 0) {
-          status = '품절';
-        } else if ((stock ?? 0) < minStock) {
-          status = '재고부족';
-        }
+          let status = '정상';
+          if (Number(stock) === 0) {
+            status = '품절';
+          } else if ((Number(stock) || 0) < minStock) {
+            status = '재고부족';
+          }
 
-        if (status !== frontendStatus) {
-          return false;
+          if (status !== frontendStatus) {
+            return false;
+          }
         }
-      }
-      return true;
-    });
-  }, [allData, frontendStatus]);
+        return true;
+      }),
+    [allData, frontendStatus]
+  );
 
   // 전체 개수 계산
   const totalCount = query.data?.pages?.[0]?.count ?? 0;

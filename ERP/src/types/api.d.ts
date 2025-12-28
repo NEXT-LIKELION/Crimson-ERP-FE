@@ -230,7 +230,8 @@ export interface paths {
     };
     /**
      * 상품 옵션 리스트 조회
-     * @description 상품 드롭다운용으로 product_id와 name만 간단히 반환합니다.
+     * @description 드롭다운용 상품 옵션 리스트를 반환합니다.
+     *     표시명: 상품명 (option, detail_option)
      */
     get: operations['inventory_list'];
     put?: never;
@@ -434,7 +435,7 @@ export interface paths {
     options?: never;
     head?: never;
     /**
-     * 세부 품목 정보 수정 (방패필통 크림슨)
+     * 세부 품목 정보 수정
      * @description GET / PATCH / DELETE: 특정 상품의 상세 정보 접근
      */
     patch: operations['inventory_variants_partial_update'];
@@ -743,10 +744,10 @@ export interface components {
     InventoryItemSummary: {
       /** ID */
       readonly id?: number;
-      /** Product id */
-      product_id?: string;
+      /** Variant code */
+      variant_code: string;
       /** Name */
-      name?: string;
+      readonly name?: string;
     };
     InventoryAdjustment: {
       /** ID */
@@ -841,8 +842,10 @@ export interface components {
       variant_code: string;
       /** Option */
       option: string;
+      /** Detail option */
+      readonly detail_option?: string;
       /** Stock */
-      readonly stock?: number;
+      readonly stock?: string;
       /** Price */
       price?: number;
       /** Min stock */
@@ -1672,11 +1675,6 @@ export interface operations {
            * @example 분기 실사 재고 차이
            */
           reason: string;
-          /**
-           * @description 조정 작업자
-           * @example 김정현
-           */
-          created_by: string;
         };
       };
     };
@@ -1823,24 +1821,18 @@ export interface operations {
   inventory_variants_list: {
     parameters: {
       query?: {
-        /** @description 재고 수량 미만 */
-        stock_lt?: number;
-        /** @description 재고 수량 초과 */
-        stock_gt?: number;
-        /** @description 최소 매출 */
-        sales_min?: number;
-        /** @description 최대 매출 */
-        sales_max?: number;
         /** @description 페이지 번호 (default = 1) */
         page?: number;
-        /** @description 정렬 필드 (-price, stock 등) */
+        /** @description 정렬 필드 */
         ordering?: string;
         /** @description 상품명 검색 (부분일치) */
         product_name?: string;
-        /** @description 상품 카테고리 (부분일치) */
+        /** @description 대분류 */
+        big_category?: string;
+        /** @description 중분류 */
+        middle_category?: string;
+        /** @description 소분류 */
         category?: string;
-        /** @description 채널 필터 (online/offline) */
-        channel?: string;
       };
       header?: never;
       path?: never;
@@ -1908,11 +1900,6 @@ export interface operations {
            * @example M
            */
           detail_option?: string;
-          /**
-           * @description 초기 재고 (기말 재고)
-           * @example 100
-           */
-          stock?: number;
           /**
            * @description 판매가
            * @example 5900
@@ -2086,7 +2073,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        /** @description 수정할 variant_code (예: P00000YC000A) */
+        /** @description 수정할 variant_code */
         variant_code: string;
       };
       cookie?: never;
@@ -2094,20 +2081,35 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
-          /** @example P00000YC */
-          product_id: string;
           /** @example 방패 필통 */
-          name: string;
+          name?: string;
+          /** @example 방패 필통 크림슨 */
+          online_name?: string;
+          /** @example 문구 */
+          big_category?: string;
+          /** @example 필기류 */
+          middle_category?: string;
+          /** @example 필통 */
+          category?: string;
           /** @example 색상 : 크림슨 */
-          option: string;
+          option?: string;
+          /** @example  */
+          detail_option?: string;
           /** @example 5000 */
-          price: number;
+          price?: number;
           /** @example 4 */
           min_stock?: number;
           /** @example  */
           description?: string;
           /** @example  */
           memo?: string;
+          /**
+           * @example [
+           *       "online",
+           *       "offline"
+           *     ]
+           */
+          channels?: string[];
         };
       };
     };

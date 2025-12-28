@@ -686,7 +686,7 @@
       "get": {
         "operationId": "inventory_list",
         "summary": "상품 옵션 리스트 조회",
-        "description": "상품 드롭다운용으로 product_id와 name만 간단히 반환합니다.",
+        "description": "드롭다운용 상품 옵션 리스트를 반환합니다.\n표시명: 상품명 (option, detail_option)",
         "responses": {
           "200": {
             "description": "",
@@ -793,11 +793,6 @@
                     "description": "조정 사유",
                     "type": "string",
                     "example": "분기 실사 재고 차이"
-                  },
-                  "created_by": {
-                    "description": "조정 작업자",
-                    "type": "string",
-                    "example": "김정현"
                   }
                 }
               }
@@ -1062,38 +1057,6 @@
         "description": "POST : 상품 상세 추가\nGET : 쿼리 파라미터 기반 Product Variant 조회",
         "parameters": [
           {
-            "name": "stock_lt",
-            "in": "query",
-            "description": "재고 수량 미만",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "name": "stock_gt",
-            "in": "query",
-            "description": "재고 수량 초과",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "name": "sales_min",
-            "in": "query",
-            "description": "최소 매출",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "name": "sales_max",
-            "in": "query",
-            "description": "최대 매출",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
             "name": "page",
             "in": "query",
             "description": "페이지 번호 (default = 1)",
@@ -1104,7 +1067,7 @@
           {
             "name": "ordering",
             "in": "query",
-            "description": "정렬 필드 (-price, stock 등)",
+            "description": "정렬 필드",
             "schema": {
               "type": "string"
             }
@@ -1118,17 +1081,25 @@
             }
           },
           {
-            "name": "category",
+            "name": "big_category",
             "in": "query",
-            "description": "상품 카테고리 (부분일치)",
+            "description": "대분류",
             "schema": {
               "type": "string"
             }
           },
           {
-            "name": "channel",
+            "name": "middle_category",
             "in": "query",
-            "description": "채널 필터 (online/offline)",
+            "description": "중분류",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "소분류",
             "schema": {
               "type": "string"
             }
@@ -1202,11 +1173,6 @@
                     "type": "string",
                     "example": "M"
                   },
-                  "stock": {
-                    "description": "초기 재고 (기말 재고)",
-                    "type": "integer",
-                    "example": 100
-                  },
                   "price": {
                     "description": "판매가",
                     "type": "integer",
@@ -1245,7 +1211,6 @@
                   "category": "문구",
                   "option": "화이트",
                   "detail_option": "M",
-                  "stock": 100,
                   "price": 5900,
                   "min_stock": 5,
                   "description": "튼튼한 방패 필통",
@@ -1429,13 +1394,13 @@
       },
       "patch": {
         "operationId": "inventory_variants_partial_update",
-        "summary": "세부 품목 정보 수정 (방패필통 크림슨)",
+        "summary": "세부 품목 정보 수정",
         "description": "GET / PATCH / DELETE: 특정 상품의 상세 정보 접근",
         "parameters": [
           {
             "name": "variant_code",
             "in": "path",
-            "description": "수정할 variant_code (예: P00000YC000A)",
+            "description": "수정할 variant_code",
             "required": true,
             "schema": {
               "type": "string"
@@ -1446,20 +1411,35 @@
           "content": {
             "application/json": {
               "schema": {
-                "required": ["product_id", "name", "option", "stock", "price"],
                 "type": "object",
                 "properties": {
-                  "product_id": {
-                    "type": "string",
-                    "example": "P00000YC"
-                  },
                   "name": {
                     "type": "string",
                     "example": "방패 필통"
                   },
+                  "online_name": {
+                    "type": "string",
+                    "example": "방패 필통 크림슨"
+                  },
+                  "big_category": {
+                    "type": "string",
+                    "example": "문구"
+                  },
+                  "middle_category": {
+                    "type": "string",
+                    "example": "필기류"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "필통"
+                  },
                   "option": {
                     "type": "string",
                     "example": "색상 : 크림슨"
+                  },
+                  "detail_option": {
+                    "type": "string",
+                    "example": ""
                   },
                   "price": {
                     "type": "integer",
@@ -1476,6 +1456,13 @@
                   "memo": {
                     "type": "string",
                     "example": ""
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": ["online", "offline"]
                   }
                 }
               }
@@ -2315,6 +2302,7 @@
         }
       },
       "InventoryItemSummary": {
+        "required": ["variant_code"],
         "type": "object",
         "properties": {
           "id": {
@@ -2322,8 +2310,8 @@
             "type": "integer",
             "readOnly": true
           },
-          "product_id": {
-            "title": "Product id",
+          "variant_code": {
+            "title": "Variant code",
             "type": "string",
             "maxLength": 50,
             "minLength": 1
@@ -2331,7 +2319,7 @@
           "name": {
             "title": "Name",
             "type": "string",
-            "maxLength": 255
+            "readOnly": true
           }
         }
       },
@@ -2574,9 +2562,15 @@
             "maxLength": 255,
             "minLength": 1
           },
+          "detail_option": {
+            "title": "Detail option",
+            "type": "string",
+            "readOnly": true,
+            "minLength": 1
+          },
           "stock": {
             "title": "Stock",
-            "type": "integer",
+            "type": "string",
             "readOnly": true
           },
           "price": {

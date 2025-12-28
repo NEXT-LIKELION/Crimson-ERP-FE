@@ -27,8 +27,8 @@ POST /inventory/adjustments/ 재고 조정 등록 inventory_adjustments_create
 처리 흐름:
 
 InventoryAdjustment 생성 (이력 저장) 해당 year/month의 ProductVariantStatus 조회 또는 생성
-stock_adjustment에 delta 누적 반영 Parameters Try it out Name Description data _ object (body)
-Example Value Model { variant_code_ string example: P00001-A 조정 대상 variant_code
+stock*adjustment에 delta 누적 반영 Parameters Try it out Name Description data * object (body)
+Example Value Model { variant*code* string example: P00001-A 조정 대상 variant_code
 
 year integer example: 2025 조정 연도 (미입력 시 현재 연도)
 
