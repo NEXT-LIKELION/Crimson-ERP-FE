@@ -15,6 +15,7 @@ interface VariantStatusTableProps {
 type EditableField =
   | 'warehouse_stock_start'
   | 'store_stock_start'
+  | 'initial_stock'
   | 'inbound_quantity'
   | 'store_sales'
   | 'online_sales';
@@ -244,6 +245,11 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                 상품코드
               </th>
               <th
+                className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '6%', minWidth: '100px' }}>
+                품목코드
+              </th>
+              <th
                 className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
                 style={{ width: '5%', minWidth: '80px' }}>
                 월초창고재고
@@ -361,6 +367,13 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                   style={{ width: '6%', minWidth: '100px' }}>
                   {item.product_code}
                 </td>
+                <td
+                  className='cursor-pointer px-1 py-2 text-xs font-medium whitespace-nowrap text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800 sm:px-2'
+                  onClick={() => onRowClick?.(item.variant_code || '')}
+                  title='클릭하여 상품 상세보기'
+                  style={{ width: '6%', minWidth: '100px' }}>
+                  {item.variant_code}
+                </td>
                 {renderEditableCell(
                   index,
                   'warehouse_stock_start',
@@ -377,11 +390,14 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                   'px-1 sm:px-2 py-2 text-right text-xs text-gray-900',
                   { width: '5%', minWidth: '80px' }
                 )}
-                <td
-                  className='px-1 py-2 text-right text-xs font-medium whitespace-nowrap text-gray-900 sm:px-2'
-                  style={{ width: '5%', minWidth: '80px' }}>
-                  {item.initial_stock?.toLocaleString() || 0}
-                </td>
+                {renderEditableCell(
+                  index,
+                  'initial_stock',
+                  item.initial_stock ? Number(item.initial_stock) : undefined,
+                  item.variant_code || '',
+                  'px-1 sm:px-2 py-2 text-right text-xs text-gray-900',
+                  { width: '5%', minWidth: '80px' }
+                )}
                 {renderEditableCell(
                   index,
                   'inbound_quantity',

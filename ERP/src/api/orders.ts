@@ -114,11 +114,11 @@ export const searchProducts = async (query: string) => {
 
     // 중복 제거: 각 variant_code별로 하나씩만 사용
     const uniqueVariants = new Map();
-    allVariants.forEach((variant: { product_id: string; name: string; variant_code: string }) => {
+    allVariants.forEach((variant) => {
       if (!uniqueVariants.has(variant.variant_code)) {
         uniqueVariants.set(variant.variant_code, {
           product_id: variant.product_id,
-          name: variant.name,
+          name: variant.offline_name || variant.online_name || '',
           variant_code: variant.variant_code,
         });
       }
