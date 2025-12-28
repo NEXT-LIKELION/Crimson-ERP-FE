@@ -112,12 +112,16 @@ const InventoryTable = ({
         big_category: item.big_category || '',
         middle_category: item.middle_category || '',
         option: item.option || '',
+        detail_option: item.detail_option || '',
         price: item.price || 0,
         min_stock: minStock,
         variant_id: item.variant_code || '',
         status: status,
         category: item.category || '',
-        stock,
+        stock: String(stock),
+        description: item.description,
+        memo: item.memo,
+        channels: item.channels,
       };
       return row;
     });
@@ -262,12 +266,13 @@ const InventoryTable = ({
           big_category: item.big_category || '',
           middle_category: item.middle_category || '',
           option: item.option || '',
+          detail_option: item.detail_option || '',
           price: item.price || 0,
           min_stock: minStock,
           variant_id: item.variant_code || '',
           status: status,
           category: item.category || '',
-          stock,
+          stock: String(stock),
           description: item.description,
           memo: item.memo,
           channels: item.channels,
@@ -348,6 +353,7 @@ const InventoryTable = ({
                 onSort={handleSort}
               />
               <th className='border-b border-gray-300 px-4 py-3'>옵션</th>
+              <th className='border-b border-gray-300 px-4 py-3'>상세 옵션</th>
               <SortableHeader
                 label='판매가'
                 sortKey='price'
@@ -384,6 +390,7 @@ const InventoryTable = ({
                 <td className='px-4 py-2 whitespace-nowrap'>{product.middle_category}</td>
                 <td className='px-4 py-2 whitespace-nowrap'>{product.category}</td>
                 <td className='px-4 py-2 whitespace-nowrap'>{product.option}</td>
+                <td className='px-4 py-2 whitespace-nowrap'>{product.detail_option}</td>
                 <td className='px-4 py-2 whitespace-nowrap'>
                   {Number(product.price).toLocaleString()}원
                 </td>
