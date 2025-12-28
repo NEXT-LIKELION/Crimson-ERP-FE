@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FiSearch, FiLoader } from 'react-icons/fi';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { fetchInventories } from '../../api/inventory';
@@ -80,7 +80,10 @@ const VariantSearchInput: React.FC<VariantSearchInputProps> = ({
   });
 
   // 검색 결과 플랫화
-  const searchResults = queryData?.pages.flatMap((page) => page.results || []) || [];
+  const searchResults = useMemo(
+    () => queryData?.pages.flatMap((page) => page.results || []) || [],
+    [queryData?.pages]
+  );
 
   // 검색 결과가 있으면 드롭다운 열기
   useEffect(() => {
