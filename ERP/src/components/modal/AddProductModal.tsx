@@ -14,8 +14,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { ProductFormData, ProductOption, CreatedProductData } from '../../types/product';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
-import type { operations } from '../../types/api';
-import type { ApiProductVariant } from '../../hooks/queries/useInventories';
+import type { operations, components } from '../../types/api';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -47,9 +46,14 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
   });
 
   // 기존 데이터에서 카테고리 목록 추출 및 중복 체크용
-  const { data: allInventoriesData } = useQuery({
+  type ProductVariant = components['schemas']['ProductVariant'];
+  const { data: allInventoriesData } = useQuery<ProductVariant[]>({
     queryKey: ['allInventories'],
-    queryFn: fetchAllInventoriesForMerge,
+    queryFn: async () => {
+      const result = await fetchAllInventoriesForMerge();
+      // api.d.ts의 ProductVariant 타입으로 변환
+      return result as unknown as ProductVariant[];
+    },
     enabled: isOpen,
   });
 
@@ -142,8 +146,8 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     if (productType === 'existing' && selectedProductId && allInventoriesData) {
       // 해당 product_id의 첫 번째 variant 찾기
       const existingVariant = allInventoriesData.find(
-        (item: ApiProductVariant) => item.product_id === selectedProductId
-      ) as ApiProductVariant | undefined;
+        (item: ProductVariant) => item.product_id === selectedProductId
+      ) as ProductVariant | undefined;
 
       if (existingVariant && existingVariant.variant_code) {
         // 온라인 상품명, 대분류, 중분류는 읽기 전용으로 저장 (form에서 제외)
@@ -156,7 +160,7 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
         // GET 요청으로 variant 상세 정보 가져오기
         fetchVariantDetail(existingVariant.variant_code)
           .then((response) => {
-            const variantDetail = response.data as ApiProductVariant;
+            const variantDetail = response.data as ProductVariant;
             // 판매가, 최소재고수량을 form에 채움
             setForm((prev) => ({
               ...prev,
@@ -231,8 +235,8 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     if (!allInventoriesData || !name?.trim()) return false;
     const activeProductNames = new Set(
       allInventoriesData
-        .map((v: ApiProductVariant) => {
-          // ApiProductVariant에는 offline_name 또는 online_name 사용
+        .map((v: ProductVariant) => {
+          // ProductVariant에는 offline_name 또는 online_name 사용
           const productName = v.offline_name || v.online_name || '';
           return productName.trim().toLowerCase();
         })
@@ -311,8 +315,8 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
 
         // 기존 상품의 카테고리를 가져오기 위해 전체 재고 데이터에서 찾기
         const existingVariant = allInventoriesData?.find(
-          (item: ApiProductVariant) => item.product_id === selectedProductId
-        ) as ApiProductVariant | undefined;
+          (item: ProductVariant) => item.product_id === selectedProductId
+        ) as ProductVariant | undefined;
 
         variantPayload = {
           product_id: selectedProductId,

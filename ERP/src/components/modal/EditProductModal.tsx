@@ -13,6 +13,7 @@ type ExtendedProduct = Product & {
   online_name?: string;
   big_category?: string;
   middle_category?: string;
+  detail_option?: string;
 };
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { useQuery } from '@tanstack/react-query';
@@ -35,6 +36,7 @@ interface EditForm {
   variant_id?: number | string;
   variant_code?: string;
   option?: string;
+  detail_option?: string;
   min_stock?: number;
   price?: number | string;
   description?: string;
@@ -93,6 +95,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
     category: product.category || '',
     variant_code: product.variant_code || '',
     option: product.option || '',
+    detail_option: product.detail_option || '',
     min_stock: product.min_stock || 0,
     price: product.price || 0,
     description: product.description || '',
@@ -166,6 +169,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
       middle_category: form.middle_category,
       category: form.category,
       option: form.option || '기본',
+      detail_option: form.detail_option,
       price: Number(form.price),
       min_stock: Number(form.min_stock) || 0,
       description: form.description || '',
@@ -191,6 +195,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
         category: variantDataTyped.category || product.category || '',
         variant_code: product.variant_code || '',
         option: variantDataTyped.option || product.option || '',
+        detail_option: variantDataTyped.detail_option || product.detail_option || '',
         min_stock: variantDataTyped.min_stock || product.min_stock || 0,
         price: variantDataTyped.price || product.price || 0,
         description: variantDataTyped.description || product.description || '',
@@ -300,6 +305,11 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModal
                   label='옵션'
                   value={form.option || ''}
                   onChange={(val) => handleChange('option', val)}
+                />
+                <TextInput
+                  label='상세 옵션'
+                  value={form.detail_option || ''}
+                  onChange={(val) => handleChange('detail_option', val)}
                 />
               </div>
 
