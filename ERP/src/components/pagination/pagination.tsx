@@ -28,7 +28,7 @@ const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage === 1}
-          className='h-9 w-10 rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50'>
+          className='h-9 w-10 rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center'>
           <ArrowLeftIcon className='h-5 w-5' />
         </button>
         {[...Array(totalPages)].map((_, index) => (
@@ -39,14 +39,14 @@ const Pagination: React.FC<PaginationProps> = ({
               currentPage === index + 1
                 ? 'border-blue-700 bg-blue-100 text-blue-700'
                 : 'border-gray-300 bg-white text-gray-700'
-            } border hover:bg-gray-50`}>
+            } border hover:bg-gray-50 flex items-center justify-center hover:cursor-pointer`}>
             {index + 1}
           </button>
         ))}
         <button
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages}
-          className='h-9 w-10 rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50'>
+          className='h-9 w-10 rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 cursor-pointer hover:cursor-default flex items-center justify-center'>
           <ArrowRightIcon className='h-5 w-5' />
         </button>
       </nav>
