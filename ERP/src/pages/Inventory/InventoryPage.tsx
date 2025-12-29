@@ -8,6 +8,7 @@ import InputField from '../../components/inputfield/InputField';
 import CategorySelect from '../../components/input/CategorySelect';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
 import VariantStatusTable from '../../components/table/VariantStatusTable';
+import Pagination from '../../components/pagination/pagination';
 import { useInventories, type ApiProductVariant } from '../../hooks/queries/useInventories';
 import { useVariantStatus } from '../../hooks/queries/useVariantStatus';
 import {
@@ -26,6 +27,7 @@ import StockAdjustmentModal from '../../components/modal/StockAdjustmentModal';
 import { Product, ProductVariantStatus } from '../../types/product';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import * as XLSX from 'xlsx';
 import { getErrorMessage } from '../../utils/errorHandling';
 
@@ -38,12 +40,23 @@ const InventoryPage = () => {
   const [isStockAdjustModalOpen, setStockAdjustModalOpen] = useState(false);
   const [isStatusExcelUploading, setIsStatusExcelUploading] = useState(false);
   const [isStatusExcelDownloading, setIsStatusExcelDownloading] = useState(false);
+  const [isUploadDateModalOpen, setIsUploadDateModalOpen] = useState(false);
+  const [uploadYear, setUploadYear] = useState(new Date().getFullYear());
+  const [uploadMonth, setUploadMonth] = useState(new Date().getMonth() + 1);
+
+  // ESC 키로 업로드 모달 닫기
+  useEscapeKey(() => {
+    if (isUploadDateModalOpen) {
+      setIsUploadDateModalOpen(false);
+    }
+  });
 
   // 월별 재고 현황 관련 state
   const [viewMode, setViewMode] = useState<'variant' | 'status'>('variant'); // 'variant': 기존 뷰, 'status': 월별 현황
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [statusSelectedVariantCode, setStatusSelectedVariantCode] = useState<string | null>(null);
+  const [currentStatusPage, setCurrentStatusPage] = useState(1); // 월별 재고 현황 페이지 번호
 
   const [selectedVariantForStock, setSelectedVariantForStock] = useState<{
     variant_code: string;
@@ -114,8 +127,15 @@ const InventoryPage = () => {
   const { data: variantStatusData, isLoading: isStatusLoading } = useVariantStatus({
     year: selectedYear,
     month: selectedMonth,
-    page: 1,
+    page: currentStatusPage,
   });
+
+  // 년/월 변경 시 페이지를 1로 리셋
+  useEffect(() => {
+    if (viewMode === 'status') {
+      setCurrentStatusPage(1);
+    }
+  }, [selectedYear, selectedMonth, viewMode]);
 
   // 월별 재고 현황에서 선택된 variant 상세 정보 조회
   const { data: statusSelectedVariantDetail } = useQuery({
@@ -338,7 +358,19 @@ const InventoryPage = () => {
 
   // 월별 재고 현황 엑셀 업로드 핸들러
   const handleStatusExcelButtonClick = () => {
-    statusExcelInputRef.current?.click();
+    // 업로드할 년/월을 현재 선택된 값으로 초기화
+    setUploadYear(selectedYear);
+    setUploadMonth(selectedMonth);
+    setIsUploadDateModalOpen(true);
+  };
+
+  // 년/월 선택 모달에서 확인 버튼 클릭 시 파일 선택 다이얼로그 열기
+  const handleUploadDateConfirm = () => {
+    setIsUploadDateModalOpen(false);
+    // 모달이 닫힌 후 파일 선택 다이얼로그 열기
+    setTimeout(() => {
+      statusExcelInputRef.current?.click();
+    }, 100);
   };
 
   const handleStatusExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -348,16 +380,23 @@ const InventoryPage = () => {
     const fileName = file.name.toLowerCase();
     if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
       alert('Excel 파일(.xlsx 또는 .xls)만 업로드 가능합니다.');
+      e.target.value = '';
       return;
     }
 
     setIsStatusExcelUploading(true);
     try {
-      await uploadVariantStatusExcel(file, selectedYear, selectedMonth);
-      alert(`${selectedYear}년 ${selectedMonth}월 재고 데이터가 성공적으로 업로드되었습니다.`);
+      // 모달에서 선택한 년/월 사용
+      await uploadVariantStatusExcel(file, uploadYear, uploadMonth);
+      alert(`${uploadYear}년 ${uploadMonth}월 재고 데이터가 성공적으로 업로드되었습니다.`);
 
-      // 월별 재고 현황 데이터 캐시 무효화
-      queryClient.invalidateQueries({ queryKey: ['variantStatus', selectedYear, selectedMonth] });
+      // 업로드한 년/월의 재고 현황 데이터 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['variantStatus', uploadYear, uploadMonth] });
+      
+      // 업로드한 년/월이 현재 조회 중인 년/월과 다르면 현재 조회 년/월도 새로고침
+      if (uploadYear !== selectedYear || uploadMonth !== selectedMonth) {
+        queryClient.invalidateQueries({ queryKey: ['variantStatus', selectedYear, selectedMonth] });
+      }
     } catch (err) {
       alert('월별 재고 현황 엑셀 업로드 중 오류 발생: ' + getErrorMessage(err));
     } finally {
@@ -776,14 +815,27 @@ const InventoryPage = () => {
           infiniteScroll={infiniteScroll}
         />
       ) : (
-        <VariantStatusTable
-          data={variantStatusData?.results || []}
-          isLoading={isStatusLoading}
-          year={selectedYear}
-          month={selectedMonth}
-          onRowClick={handleStatusRowClick}
-          onStockAdjust={handleStatusStockAdjust}
-        />
+        <>
+          <VariantStatusTable
+            data={variantStatusData?.results || []}
+            isLoading={isStatusLoading}
+            year={selectedYear}
+            month={selectedMonth}
+            onRowClick={handleStatusRowClick}
+            onStockAdjust={handleStatusStockAdjust}
+          />
+          {/* 페이지네이션 - 월별 재고 현황 모드일 때만 표시 */}
+          {variantStatusData && variantStatusData.count > 0 && (
+            <div className='mt-4'>
+              <Pagination
+                currentPage={currentStatusPage}
+                totalItems={variantStatusData.count}
+                itemsPerPage={10} // API 기본값
+                onPageChange={(page) => setCurrentStatusPage(page)}
+              />
+            </div>
+          )}
+        </>
       )}
       {selectedProduct && (
         <EditProductModal
@@ -812,6 +864,62 @@ const InventoryPage = () => {
           year={viewMode === 'status' ? selectedYear : undefined}
           month={viewMode === 'status' ? selectedMonth : undefined}
         />
+      )}
+
+      {/* 엑셀 업로드 년/월 선택 모달 */}
+      {isUploadDateModalOpen && (
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm'>
+          <div className='w-full max-w-md rounded-lg bg-white p-6 shadow-xl'>
+            <div className='mb-4 flex items-center justify-between'>
+              <h2 className='text-xl font-semibold text-gray-900'>엑셀 업로드 기간 선택</h2>
+              <button
+                onClick={() => setIsUploadDateModalOpen(false)}
+                className='text-gray-400 hover:text-gray-600'>
+                <svg className='h-6 w-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+                </svg>
+              </button>
+            </div>
+            <div className='space-y-4'>
+              <div>
+                <label className='mb-2 block text-sm font-medium text-gray-700'>연도</label>
+                <CategorySelect
+                  value={`${uploadYear}년`}
+                  onChange={(value) => {
+                    const year = Number(value.replace('년', ''));
+                    setUploadYear(year);
+                  }}
+                  options={Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(
+                    (year) => `${year}년`
+                  )}
+                  placeholder='연도 선택'
+                />
+              </div>
+              <div>
+                <label className='mb-2 block text-sm font-medium text-gray-700'>월</label>
+                <CategorySelect
+                  value={`${uploadMonth}월`}
+                  onChange={(value) => {
+                    const month = Number(value.replace('월', ''));
+                    setUploadMonth(month);
+                  }}
+                  options={Array.from({ length: 12 }, (_, i) => i + 1).map((month) => `${month}월`)}
+                  placeholder='월 선택'
+                />
+              </div>
+            </div>
+            <div className='mt-6 flex justify-end space-x-3'>
+              <SecondaryButton
+                text='취소'
+                onClick={() => setIsUploadDateModalOpen(false)}
+              />
+              <PrimaryButton
+                text='확인'
+                onClick={handleUploadDateConfirm}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

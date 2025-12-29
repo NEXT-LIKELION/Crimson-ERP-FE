@@ -152,7 +152,7 @@ export const fetchFilteredInventoriesForExport = async (
     // 상품명 필터
     if (
       appliedFilters?.name &&
-      !item.name.toLowerCase().includes(appliedFilters.name.toLowerCase())
+      !item.offline_name.toLowerCase().includes(appliedFilters.name.toLowerCase())
     ) {
       return false;
     }
@@ -300,6 +300,7 @@ export const updateVariantStatus = (
   data: {
     warehouse_stock_start?: number;
     store_stock_start?: number;
+    initial_stock?: number;
     inbound_quantity?: number;
     store_sales?: number;
     online_sales?: number;
