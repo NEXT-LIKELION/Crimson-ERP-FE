@@ -15,7 +15,6 @@ interface VariantStatusTableProps {
 type EditableField =
   | 'warehouse_stock_start'
   | 'store_stock_start'
-  | 'initial_stock'
   | 'inbound_quantity'
   | 'store_sales'
   | 'online_sales';
@@ -390,14 +389,11 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                   'px-1 sm:px-2 py-2 text-right text-xs text-gray-900',
                   { width: '5%', minWidth: '80px' }
                 )}
-                {renderEditableCell(
-                  index,
-                  'initial_stock',
-                  item.initial_stock ? Number(item.initial_stock) : undefined,
-                  item.variant_code || '',
-                  'px-1 sm:px-2 py-2 text-right text-xs text-gray-900',
-                  { width: '5%', minWidth: '80px' }
-                )}
+                <td
+                  className='px-1 py-2 text-right text-xs whitespace-nowrap text-gray-900 sm:px-2'
+                  style={{ width: '5%', minWidth: '80px' }}>
+                  {item.initial_stock ? Number(item.initial_stock).toLocaleString() : 0}
+                </td>
                 {renderEditableCell(
                   index,
                   'inbound_quantity',
