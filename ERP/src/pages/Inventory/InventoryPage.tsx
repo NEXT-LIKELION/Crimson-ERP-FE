@@ -730,9 +730,10 @@ const InventoryPage = () => {
                 const year = Number(value.replace('년', ''));
                 setSelectedYear(year);
               }}
-              options={Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(
-                (year) => `${year}년`
-              )}
+              options={Array.from(
+                { length: 300 }, // 1900년 ~ 2199년 (총 300년)
+                (_, i) => 1900 + i
+              ).map((year) => `${year}년`)}
               placeholder='연도 선택'
             />
             <CategorySelect
@@ -889,9 +890,10 @@ const InventoryPage = () => {
                     const year = Number(value.replace('년', ''));
                     setUploadYear(year);
                   }}
-                  options={Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(
-                    (year) => `${year}년`
-                  )}
+                  options={Array.from(
+                    { length: 300 }, // 1900년 ~ 2199년 (총 300년)
+                    (_, i) => 1900 + i
+                  ).map((year) => `${year}년`)}
                   placeholder='연도 선택'
                 />
               </div>

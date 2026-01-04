@@ -297,10 +297,24 @@ const OrdersPage: React.FC = () => {
     setCurrentPage(1);
   }, [itemsPerPage]);
 
-  const handleOpenOrderDetail = useCallback((orderId: number) => {
-    setSelectedOrderId(orderId);
-    setIsOrderDetailModalOpen(true);
-  }, []);
+  const handleOpenOrderDetail = useCallback(
+    (orderId: number) => {
+      // 같은 order를 다시 열 때도 정상 작동하도록 먼저 닫았다가 다시 열기
+      if (selectedOrderId === orderId && isOrderDetailModalOpen) {
+        setIsOrderDetailModalOpen(false);
+        setSelectedOrderId(null);
+        // 다음 렌더 사이클에서 다시 열기
+        setTimeout(() => {
+          setSelectedOrderId(orderId);
+          setIsOrderDetailModalOpen(true);
+        }, 0);
+      } else {
+        setSelectedOrderId(orderId);
+        setIsOrderDetailModalOpen(true);
+      }
+    },
+    [selectedOrderId, isOrderDetailModalOpen]
+  );
 
   const handleDownloadOrderExcel = async (order: Order) => {
     try {
@@ -885,11 +899,15 @@ const OrdersPage: React.FC = () => {
         <OrderDetailModal
           orderId={selectedOrderId}
           isOpen={isOrderDetailModalOpen}
-          onClose={() => setIsOrderDetailModalOpen(false)}
+          onClose={() => {
+            setIsOrderDetailModalOpen(false);
+            setSelectedOrderId(null);
+          }}
           isManager={permissions.hasPermission('ORDER')}
           onReorder={(data) => {
             setReorderData(data);
             setIsOrderDetailModalOpen(false);
+            setSelectedOrderId(null);
             setIsNewOrderModalOpen(true);
           }}
         />

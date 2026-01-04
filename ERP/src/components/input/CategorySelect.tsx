@@ -31,6 +31,7 @@ const CategorySelect: React.FC<CategorySelectProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [filteredOptions, setFilteredOptions] = useState<CategoryOption[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const optionsListRef = useRef<HTMLDivElement>(null);
 
   // 옵션 변환
   useEffect(() => {
@@ -71,6 +72,30 @@ const CategorySelect: React.FC<CategorySelectProps> = ({
     };
   }, [isOpen]);
 
+  // 드롭다운이 열릴 때 선택된 옵션으로 즉시 스크롤 (애니메이션 없음)
+  useEffect(() => {
+    if (isOpen && optionsListRef.current && value) {
+      // 선택된 옵션 찾기
+      const selectedIndex = filteredOptions.findIndex((option) => option.value === value);
+      if (selectedIndex !== -1) {
+        const selectedElement = optionsListRef.current.children[selectedIndex] as HTMLElement;
+        if (selectedElement && optionsListRef.current) {
+          // 선택된 요소의 위치 계산
+          const container = optionsListRef.current;
+          const elementTop = selectedElement.offsetTop;
+          const elementHeight = selectedElement.offsetHeight;
+          const containerHeight = container.clientHeight;
+          
+          // 선택된 요소가 중앙에 오도록 스크롤 위치 계산
+          const scrollPosition = elementTop - (containerHeight / 2) + (elementHeight / 2);
+          
+          // 애니메이션 없이 즉시 스크롤
+          container.scrollTop = scrollPosition;
+        }
+      }
+    }
+  }, [isOpen, value, filteredOptions]);
+
   const handleOptionSelect = (optionValue: string) => {
     onChange(optionValue);
     setIsOpen(false);
@@ -105,7 +130,7 @@ const CategorySelect: React.FC<CategorySelectProps> = ({
       {isOpen && !disabled && (
         <div className='absolute top-full left-0 z-50 mt-1 max-h-64 w-full overflow-hidden rounded-md border border-gray-300 bg-white shadow-lg'>
           {/* 옵션 리스트 */}
-          <div className='max-h-48 overflow-y-auto'>
+          <div className='max-h-48 overflow-y-auto' ref={optionsListRef}>
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option, index) => (
                 <button
