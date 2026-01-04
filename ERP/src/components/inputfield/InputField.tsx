@@ -1,6 +1,5 @@
 import React from 'react';
 import TextInput from '../input/TextInput';
-import SelectInput from '../input/SelectInput';
 import CategorySelect from '../input/CategorySelect';
 import PrimaryButton from '../button/PrimaryButton';
 import { MdSearch, MdRefresh } from 'react-icons/md';
@@ -89,11 +88,12 @@ const InputField: React.FC<InputFieldProps> = ({
         </div>
         <div className='flex flex-col'>
           <p className='text-sm font-semibold text-gray-700'>상태</p>
-          <SelectInput
-            defaultText='모든 상태'
-            options={['모든 상태', '정상', '재고부족', '품절']}
+          <CategorySelect
             value={status}
             onChange={onStatusChange}
+            options={['모든 상태', '정상', '재고부족', '품절']}
+            placeholder='모든 상태'
+            showCount={false}
           />
         </div>
       </div>
