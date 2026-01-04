@@ -150,6 +150,9 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   useEffect(() => {
     if (isOpen && orderId) {
       fetchOrderDetails();
+    } else if (!isOpen) {
+      // 모달이 닫힐 때 orderDetail 초기화하여 다음에 열 때 다시 로드되도록 함
+      setOrderDetail(null);
     }
   }, [isOpen, orderId, fetchOrderDetails]);
 
