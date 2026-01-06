@@ -27,6 +27,17 @@ interface EditingCell {
   field: EditableField;
 }
 
+// 편집 가능한 필드 목록 (노란색 배경 표시용)
+const EDITABLE_FIELDS: string[] = [
+  'warehouse_stock_start',
+  'store_stock_start',
+  'inbound_quantity',
+  'store_sales',
+  'online_sales',
+  'adjustment_quantity',
+  'adjustment_status',
+];
+
 interface AdjustmentStatusItem {
   created_by?: string;
   quantity?: number;
@@ -70,6 +81,11 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
   const [editValue, setEditValue] = useState<string>('');
   const [savingCell, setSavingCell] = useState<EditingCell | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 편집 가능한 필드인지 확인하는 헬퍼 함수
+  const isEditableField = (fieldId: string): boolean => {
+    return EDITABLE_FIELDS.includes(fieldId);
+  };
 
   // 컬럼 표시/숨김 관리
   const { columnVisibility, toggleColumn, showAllColumns, resetToDefault, isColumnVisible } =
@@ -199,11 +215,12 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
       );
     }
 
+    const isEditable = isEditableField(field);
     return (
       <td
-        className={`${className} whitespace-nowrap ${isSaving ? 'opacity-50' : 'cursor-pointer hover:bg-blue-50'} transition-colors`}
-        onDoubleClick={() => handleCellDoubleClick(rowIndex, field, value)}
-        title='더블클릭하여 수정'
+        className={`${className} ${isEditable ? 'bg-yellow-50' : ''} whitespace-nowrap ${isSaving ? 'opacity-50' : isEditable ? 'cursor-pointer hover:bg-yellow-100' : ''} transition-colors`}
+        onDoubleClick={isEditable ? () => handleCellDoubleClick(rowIndex, field, value) : undefined}
+        title={isEditable ? '더블클릭하여 수정' : ''}
         style={style}>
         {isSaving ? '저장 중...' : displayValue}
       </td>
@@ -314,63 +331,63 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
               )}
               {isColumnVisible('warehouse_stock_start') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('warehouse_stock_start') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
                   월초창고재고
                 </th>
               )}
               {isColumnVisible('store_stock_start') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('store_stock_start') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
                   월초매장재고
                 </th>
               )}
               {isColumnVisible('initial_stock') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('initial_stock') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
                   기초재고
                 </th>
               )}
               {isColumnVisible('inbound_quantity') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('inbound_quantity') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
                   당월입고
                 </th>
               )}
               {isColumnVisible('store_sales') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('store_sales') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
                   매장판매
                 </th>
               )}
               {isColumnVisible('online_sales') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('online_sales') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
                   온라인판매
                 </th>
               )}
               {isColumnVisible('total_sales') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('total_sales') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
                   판매합계
                 </th>
               )}
               {isColumnVisible('adjustment_quantity') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('adjustment_quantity') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
                   재고조정수량
                 </th>
               )}
               {isColumnVisible('adjustment_status') && (
                 <th
-                  className='px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase'
+                  className={`${isEditableField('adjustment_status') ? 'bg-yellow-50' : ''} px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase`}
                   style={{ width: '8%', minWidth: '120px' }}>
                   재고조정상태
                 </th>
@@ -538,16 +555,18 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                 )}
                 {isColumnVisible('adjustment_quantity') && (
                   <td
-                    className='cursor-pointer px-1 py-2 text-right text-xs whitespace-nowrap text-gray-900 transition-colors hover:bg-blue-50 sm:px-2'
+                    className={`${isEditableField('adjustment_quantity') ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-blue-50'} cursor-pointer px-1 py-2 text-right text-xs whitespace-nowrap text-gray-900 transition-colors sm:px-2`}
                     style={{ width: '5%', minWidth: '80px' }}
                     onClick={() => onStockAdjust?.(item)}
                     title='클릭하여 재고 조정'>
-                    {item.adjustment_quantity ? Number(item.adjustment_quantity).toLocaleString() : 0}
+                    {item.adjustment_quantity
+                      ? Number(item.adjustment_quantity).toLocaleString()
+                      : 0}
                   </td>
                 )}
                 {isColumnVisible('adjustment_status') && (
                   <td
-                    className='cursor-pointer px-1 py-2 text-xs text-gray-900 transition-colors hover:bg-blue-50 sm:px-2'
+                    className={`${isEditableField('adjustment_status') ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-blue-50'} cursor-pointer px-1 py-2 text-xs text-gray-900 transition-colors sm:px-2`}
                     style={{ width: '8%' }}
                     onClick={() => onStockAdjust?.(item)}
                     title='클릭하여 재고 조정'>
