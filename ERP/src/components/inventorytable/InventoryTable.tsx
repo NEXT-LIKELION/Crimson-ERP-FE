@@ -6,6 +6,9 @@ import { HiArrowUp } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 import type { ApiProductVariant } from '../../hooks/queries/useInventories';
 import type { components } from '../../types/api';
+import { useColumnVisibility } from '../../hooks/useColumnVisibility';
+import ColumnSettingsModal from '../common/ColumnSettingsModal';
+import type { TableColumn } from '../../types/tableColumns';
 
 // ProductVariant 타입 별칭
 type ProductVariant = components['schemas']['ProductVariant'];
@@ -67,6 +70,23 @@ const getStatusStyle = (status: string): string => {
   }
 };
 
+// 컬럼 정의
+const INVENTORY_COLUMNS: TableColumn[] = [
+  { id: 'product_id', label: '상품코드', defaultVisible: false },
+  { id: 'variant_code', label: '품목코드', required: true },
+  { id: 'offline_name', label: '오프라인명', defaultVisible: true },
+  { id: 'online_name', label: '온라인명', defaultVisible: false },
+  { id: 'big_category', label: '대분류', defaultVisible: false },
+  { id: 'middle_category', label: '중분류', defaultVisible: false },
+  { id: 'category', label: '카테고리', defaultVisible: false },
+  { id: 'option', label: '옵션', defaultVisible: false },
+  { id: 'detail_option', label: '상세 옵션', defaultVisible: false },
+  { id: 'price', label: '판매가', defaultVisible: true },
+  { id: 'stock', label: '재고(최소재고)', defaultVisible: true },
+  { id: 'status', label: '상태', defaultVisible: true },
+  { id: 'actions', label: '관리', required: true },
+];
+
 const InventoryTable = ({
   inventories,
   onDelete,
@@ -87,6 +107,13 @@ const InventoryTable = ({
     key: 'product_id',
     order: null,
   });
+
+  // 컬럼 표시/숨김 관리
+  const { columnVisibility, toggleColumn, showAllColumns, resetToDefault, isColumnVisible } =
+    useColumnVisibility({
+      columns: INVENTORY_COLUMNS,
+      tableType: 'inventory',
+    });
 
   useEffect(() => {
     if (!Array.isArray(inventories)) return;
@@ -295,6 +322,13 @@ const InventoryTable = ({
           <span className='text-sm'>
             총 {infiniteScroll.totalCount}개 상품 ({infiniteScroll.totalLoaded}개 로딩됨)
           </span>
+          <ColumnSettingsModal
+            columns={INVENTORY_COLUMNS}
+            columnVisibility={columnVisibility}
+            onToggleColumn={toggleColumn}
+            onShowAll={showAllColumns}
+            onReset={resetToDefault}
+          />
           <MdOutlineDownload
             className='cursor-pointer hover:text-gray-700'
             size={20}
@@ -304,75 +338,99 @@ const InventoryTable = ({
       </div>
 
       {/* 테이블 */}
-      <div className='relative w-full overflow-x-auto sm:rounded-lg' style={{ maxWidth: '100%' }}>
-        <table
-          className='w-full border-collapse text-sm text-gray-700'
-          style={{ minWidth: '2000px' }}>
+      <div className='relative w-full overflow-x-auto sm:rounded-lg'>
+        <table className='w-full border-collapse text-sm text-gray-700'>
           <thead className='border-b border-gray-300 bg-gray-50 text-xs uppercase'>
             <tr>
-              <SortableHeader
-                label='상품코드'
-                sortKey='product_id'
-                sortOrder={sortConfig.key === 'product_id' ? sortConfig.order : null}
-                onSort={handleSort}
-              />
-              <SortableHeader
-                label='품목코드'
-                sortKey='variant_code'
-                sortOrder={sortConfig.key === 'variant_code' ? sortConfig.order : null}
-                onSort={handleSort}
-              />
-              <SortableHeader
-                label='오프라인명'
-                sortKey='offline_name'
-                sortOrder={sortConfig.key === 'offline_name' ? sortConfig.order : null}
-                onSort={handleSort}
-              />
-              <SortableHeader
-                label='온라인명'
-                sortKey='online_name'
-                sortOrder={sortConfig.key === 'online_name' ? sortConfig.order : null}
-                onSort={handleSort}
-              />
-              <SortableHeader
-                label='대분류'
-                sortKey='big_category'
-                sortOrder={sortConfig.key === 'big_category' ? sortConfig.order : null}
-                onSort={handleSort}
-              />
-              <SortableHeader
-                label='중분류'
-                sortKey='middle_category'
-                sortOrder={sortConfig.key === 'middle_category' ? sortConfig.order : null}
-                onSort={handleSort}
-              />
-              <SortableHeader
-                label='카테고리'
-                sortKey='category'
-                sortOrder={sortConfig.key === 'category' ? sortConfig.order : null}
-                onSort={handleSort}
-              />
-              <th className='border-b border-gray-300 px-4 py-3'>옵션</th>
-              <th className='border-b border-gray-300 px-4 py-3'>상세 옵션</th>
-              <SortableHeader
-                label='판매가'
-                sortKey='price'
-                sortOrder={sortConfig.key === 'price' ? sortConfig.order : null}
-                onSort={handleSort}
-              />
-              <SortableHeader
-                label='재고(최소재고)'
-                sortKey='stock'
-                sortOrder={sortConfig.key === 'stock' ? sortConfig.order : null}
-                onSort={handleSort}
-              />
-              <SortableHeader
-                label='상태'
-                sortKey='status'
-                sortOrder={sortConfig.key === 'status' ? sortConfig.order : null}
-                onSort={handleSort}
-              />
-              <th className='border-b border-gray-300 px-4 py-3'>관리</th>
+              {isColumnVisible('product_id') && (
+                <SortableHeader
+                  label='상품코드'
+                  sortKey='product_id'
+                  sortOrder={sortConfig.key === 'product_id' ? sortConfig.order : null}
+                  onSort={handleSort}
+                />
+              )}
+              {isColumnVisible('variant_code') && (
+                <SortableHeader
+                  label='품목코드'
+                  sortKey='variant_code'
+                  sortOrder={sortConfig.key === 'variant_code' ? sortConfig.order : null}
+                  onSort={handleSort}
+                />
+              )}
+              {isColumnVisible('offline_name') && (
+                <SortableHeader
+                  label='오프라인명'
+                  sortKey='offline_name'
+                  sortOrder={sortConfig.key === 'offline_name' ? sortConfig.order : null}
+                  onSort={handleSort}
+                />
+              )}
+              {isColumnVisible('online_name') && (
+                <SortableHeader
+                  label='온라인명'
+                  sortKey='online_name'
+                  sortOrder={sortConfig.key === 'online_name' ? sortConfig.order : null}
+                  onSort={handleSort}
+                />
+              )}
+              {isColumnVisible('big_category') && (
+                <SortableHeader
+                  label='대분류'
+                  sortKey='big_category'
+                  sortOrder={sortConfig.key === 'big_category' ? sortConfig.order : null}
+                  onSort={handleSort}
+                />
+              )}
+              {isColumnVisible('middle_category') && (
+                <SortableHeader
+                  label='중분류'
+                  sortKey='middle_category'
+                  sortOrder={sortConfig.key === 'middle_category' ? sortConfig.order : null}
+                  onSort={handleSort}
+                />
+              )}
+              {isColumnVisible('category') && (
+                <SortableHeader
+                  label='카테고리'
+                  sortKey='category'
+                  sortOrder={sortConfig.key === 'category' ? sortConfig.order : null}
+                  onSort={handleSort}
+                />
+              )}
+              {isColumnVisible('option') && (
+                <th className='border-b border-gray-300 px-4 py-3'>옵션</th>
+              )}
+              {isColumnVisible('detail_option') && (
+                <th className='border-b border-gray-300 px-4 py-3'>상세 옵션</th>
+              )}
+              {isColumnVisible('price') && (
+                <SortableHeader
+                  label='판매가'
+                  sortKey='price'
+                  sortOrder={sortConfig.key === 'price' ? sortConfig.order : null}
+                  onSort={handleSort}
+                />
+              )}
+              {isColumnVisible('stock') && (
+                <SortableHeader
+                  label='재고(최소재고)'
+                  sortKey='stock'
+                  sortOrder={sortConfig.key === 'stock' ? sortConfig.order : null}
+                  onSort={handleSort}
+                />
+              )}
+              {isColumnVisible('status') && (
+                <SortableHeader
+                  label='상태'
+                  sortKey='status'
+                  sortOrder={sortConfig.key === 'status' ? sortConfig.order : null}
+                  onSort={handleSort}
+                />
+              )}
+              {isColumnVisible('actions') && (
+                <th className='border-b border-gray-300 px-4 py-3'>관리</th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -382,41 +440,67 @@ const InventoryTable = ({
                 className={`border-b border-gray-200 ${
                   Number(product.stock) < Number(product.min_stock) ? 'bg-red-50' : 'bg-white'
                 }`}>
-                <td className='px-4 py-2 whitespace-nowrap'>{product.product_id}</td>
-                <td className='px-4 py-2 whitespace-nowrap'>{product.variant_code}</td>
-                <td className='px-4 py-2 whitespace-nowrap'>{product.offline_name}</td>
-                <td className='px-4 py-2 whitespace-nowrap'>{product.online_name}</td>
-                <td className='px-4 py-2 whitespace-nowrap'>{product.big_category}</td>
-                <td className='px-4 py-2 whitespace-nowrap'>{product.middle_category}</td>
-                <td className='px-4 py-2 whitespace-nowrap'>{product.category}</td>
-                <td className='px-4 py-2 whitespace-nowrap'>{product.option}</td>
-                <td className='px-4 py-2 whitespace-nowrap'>{product.detail_option}</td>
-                <td className='px-4 py-2 whitespace-nowrap'>
-                  {Number(product.price).toLocaleString()}원
-                </td>
-                <td className='px-4 py-2 whitespace-nowrap'>
-                  {product.stock}EA ({product.min_stock !== undefined ? product.min_stock : '-'})
-                </td>
-                <td className='px-4 py-2 whitespace-nowrap'>
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${getStatusStyle(product.status)}`}>
-                    {product.status}
-                  </span>
-                </td>
-                <td className='px-4 py-2 text-center align-middle whitespace-nowrap'>
-                  <div className='inline-flex items-center justify-center gap-2'>
-                    <MdOutlineEdit
-                      className='cursor-pointer text-indigo-500'
-                      onClick={() => {
-                        navigate(`?edit=${product.variant_id}`);
-                      }}
-                    />
-                    <MdOutlineDelete
-                      className='cursor-pointer text-red-500'
-                      onClick={() => onDelete(product.variant_id)}
-                    />
-                  </div>
-                </td>
+                {isColumnVisible('product_id') && (
+                  <td className='px-4 py-2 whitespace-nowrap'>{product.product_id}</td>
+                )}
+                {isColumnVisible('variant_code') && (
+                  <td className='px-4 py-2 whitespace-nowrap'>{product.variant_code}</td>
+                )}
+                {isColumnVisible('offline_name') && (
+                  <td className='px-4 py-2 whitespace-nowrap'>{product.offline_name}</td>
+                )}
+                {isColumnVisible('online_name') && (
+                  <td className='px-4 py-2 whitespace-nowrap'>{product.online_name}</td>
+                )}
+                {isColumnVisible('big_category') && (
+                  <td className='px-4 py-2 whitespace-nowrap'>{product.big_category}</td>
+                )}
+                {isColumnVisible('middle_category') && (
+                  <td className='px-4 py-2 whitespace-nowrap'>{product.middle_category}</td>
+                )}
+                {isColumnVisible('category') && (
+                  <td className='px-4 py-2 whitespace-nowrap'>{product.category}</td>
+                )}
+                {isColumnVisible('option') && (
+                  <td className='px-4 py-2 whitespace-nowrap'>{product.option}</td>
+                )}
+                {isColumnVisible('detail_option') && (
+                  <td className='px-4 py-2 whitespace-nowrap'>{product.detail_option}</td>
+                )}
+                {isColumnVisible('price') && (
+                  <td className='px-4 py-2 whitespace-nowrap'>
+                    {Number(product.price).toLocaleString()}원
+                  </td>
+                )}
+                {isColumnVisible('stock') && (
+                  <td className='px-4 py-2 whitespace-nowrap'>
+                    {product.stock}EA ({product.min_stock !== undefined ? product.min_stock : '-'})
+                  </td>
+                )}
+                {isColumnVisible('status') && (
+                  <td className='px-4 py-2 whitespace-nowrap'>
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${getStatusStyle(product.status)}`}>
+                      {product.status}
+                    </span>
+                  </td>
+                )}
+                {isColumnVisible('actions') && (
+                  <td className='px-4 py-2 text-center align-middle whitespace-nowrap'>
+                    <div className='inline-flex items-center justify-center gap-2'>
+                      <MdOutlineEdit
+                        className='cursor-pointer text-indigo-500'
+                        onClick={() => {
+                          navigate(`?edit=${product.variant_id}`);
+                        }}
+                      />
+                      <MdOutlineDelete
+                        className='cursor-pointer text-red-500'
+                        onClick={() => onDelete(product.variant_id)}
+                      />
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
