@@ -11,6 +11,7 @@ import {
 } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import StatusBadge from '../common/StatusBadge';
 
 interface OrganizationVacationCalendarProps {
@@ -34,6 +35,9 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
   const { data: vacationsData, isLoading: vacationsLoading } = useVacations();
   const { data: employeesData, isLoading: employeesLoading } = useEmployees();
   const reviewVacationMutation = useReviewVacation();
+
+  // ESC 키로 모달 닫기
+  useEscapeKey(onClose);
 
   // 재직중인 직원별 고유 색상 생성
   const employeeColors = useMemo(() => {
