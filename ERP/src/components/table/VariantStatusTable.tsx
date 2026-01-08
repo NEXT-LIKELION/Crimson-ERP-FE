@@ -12,7 +12,7 @@ interface VariantStatusTableProps {
   year: number;
   month: number;
   onRowClick?: (variantCode: string) => void;
-  onStockAdjust?: (item: ProductVariantStatus) => void;
+  onStockAdjust?: (item: ProductVariantStatus, year: number, month: number) => void;
 }
 
 type EditableField =
@@ -563,7 +563,7 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                   <td
                     className={`${isEditableField('adjustment_quantity') ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-blue-50'} cursor-pointer px-1 py-2 text-right text-xs whitespace-nowrap text-gray-900 transition-colors sm:px-2`}
                     style={{ width: '5%', minWidth: '80px' }}
-                    onClick={() => onStockAdjust?.(item)}
+                    onClick={() => onStockAdjust?.(item, year, month)}
                     title='클릭하여 재고 조정'>
                     {item.adjustment_quantity
                       ? Number(item.adjustment_quantity).toLocaleString()
@@ -574,7 +574,7 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                   <td
                     className={`${isEditableField('adjustment_status') ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-blue-50'} cursor-pointer px-1 py-2 text-xs text-gray-900 transition-colors sm:px-2`}
                     style={{ width: '8%' }}
-                    onClick={() => onStockAdjust?.(item)}
+                    onClick={() => onStockAdjust?.(item, year, month)}
                     title='클릭하여 재고 조정'>
                     <div className='whitespace-pre-line'>
                       {(() => {

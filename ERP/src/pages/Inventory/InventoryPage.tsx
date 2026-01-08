@@ -601,7 +601,7 @@ const InventoryPage = () => {
   };
 
   // 월별 재고 현황에서 재고조정 클릭 핸들러
-  const handleStatusStockAdjust = (item: ProductVariantStatus) => {
+  const handleStatusStockAdjust = (item: ProductVariantStatus, year: number, month: number) => {
     // ProductVariantStatus를 StockAdjustmentModal에 필요한 형식으로 변환
     // variant_detail을 먼저 조회하여 최신 재고 정보 가져오기
     fetchVariantDetail(item.variant_code || '')
@@ -616,6 +616,7 @@ const InventoryPage = () => {
           min_stock: 0, // ProductVariantStatus에는 min_stock이 없으므로 0으로 설정
         });
         setStockAdjustModalOpen(true);
+        // year, month는 StockAdjustmentModal에 props로 전달됨
       })
       .catch((error) => {
         console.error('상품 상세 정보 조회 실패:', error);
@@ -629,6 +630,7 @@ const InventoryPage = () => {
           min_stock: 0,
         });
         setStockAdjustModalOpen(true);
+        // year, month는 StockAdjustmentModal에 props로 전달됨
       });
   };
 

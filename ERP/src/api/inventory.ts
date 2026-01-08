@@ -210,14 +210,24 @@ export const adjustStock = (
     month?: number;
   }
 ) => {
+  // 쿼리 파라미터로 year, month 전달
+  const params = new URLSearchParams();
+  if (data.year !== undefined) {
+    params.append('year', data.year.toString());
+  }
+  if (data.month !== undefined) {
+    params.append('month', data.month.toString());
+  }
+
+  const queryString = params.toString();
+  const url = `/inventory/adjustments/${queryString ? `?${queryString}` : ''}`;
+
   return api
-    .post('/inventory/adjustments/', {
+    .post(url, {
       variant_code: variantCode,
       delta: data.delta,
       reason: data.reason,
       created_by: data.created_by,
-      year: data.year,
-      month: data.month,
     })
     .then((response) => {
       return response;
