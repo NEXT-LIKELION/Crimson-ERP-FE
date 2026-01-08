@@ -57,6 +57,7 @@ const InventoryPage = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [statusSelectedVariantCode, setStatusSelectedVariantCode] = useState<string | null>(null);
   const [currentStatusPage, setCurrentStatusPage] = useState(1); // 월별 재고 현황 페이지 번호
+  const [statusPageSize, setStatusPageSize] = useState(10); // 월별 재고 현황 페이지당 항목 수
 
   const [selectedVariantForStock, setSelectedVariantForStock] = useState<{
     variant_code: string;
@@ -128,6 +129,7 @@ const InventoryPage = () => {
     year: selectedYear,
     month: selectedMonth,
     page: currentStatusPage,
+    page_size: statusPageSize,
   });
 
   // 년/월 변경 시 페이지를 1로 리셋
@@ -392,7 +394,7 @@ const InventoryPage = () => {
 
       // 업로드한 년/월의 재고 현황 데이터 캐시 무효화
       queryClient.invalidateQueries({ queryKey: ['variantStatus', uploadYear, uploadMonth] });
-      
+
       // 업로드한 년/월이 현재 조회 중인 년/월과 다르면 현재 조회 년/월도 새로고침
       if (uploadYear !== selectedYear || uploadMonth !== selectedMonth) {
         queryClient.invalidateQueries({ queryKey: ['variantStatus', selectedYear, selectedMonth] });
@@ -616,7 +618,7 @@ const InventoryPage = () => {
           min_stock: 0, // ProductVariantStatus에는 min_stock이 없으므로 0으로 설정
         });
         setStockAdjustModalOpen(true);
-        // year, month는 StockAdjustmentModal에 props로 전달됨
+        // year, month는 StockAdjustmentModal에 props로 전달됨 (selectedYear, selectedMonth 사용)
       })
       .catch((error) => {
         console.error('상품 상세 정보 조회 실패:', error);
@@ -630,8 +632,12 @@ const InventoryPage = () => {
           min_stock: 0,
         });
         setStockAdjustModalOpen(true);
-        // year, month는 StockAdjustmentModal에 props로 전달됨
+        // year, month는 StockAdjustmentModal에 props로 전달됨 (selectedYear, selectedMonth 사용)
       });
+    // year, month 파라미터는 VariantStatusTable에서 전달되지만,
+    // 실제로는 selectedYear, selectedMonth를 사용하므로 여기서는 사용하지 않음
+    void year;
+    void month;
   };
 
   // 월별 재고 현황 테이블에서 상품 클릭 핸들러
@@ -833,8 +839,12 @@ const InventoryPage = () => {
               <Pagination
                 currentPage={currentStatusPage}
                 totalItems={variantStatusData.count}
-                itemsPerPage={10} // API 기본값
+                itemsPerPage={statusPageSize}
                 onPageChange={(page) => setCurrentStatusPage(page)}
+                onItemsPerPageChange={(newPageSize) => {
+                  setStatusPageSize(newPageSize);
+                  setCurrentStatusPage(1); // 페이지 크기 변경 시 첫 페이지로 리셋
+                }}
               />
             </div>
           )}
@@ -879,7 +889,12 @@ const InventoryPage = () => {
                 onClick={() => setIsUploadDateModalOpen(false)}
                 className='text-gray-400 hover:text-gray-600'>
                 <svg className='h-6 w-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M6 18L18 6M6 6l12 12'
+                  />
                 </svg>
               </button>
             </div>
@@ -913,14 +928,8 @@ const InventoryPage = () => {
               </div>
             </div>
             <div className='mt-6 flex justify-end space-x-3'>
-              <SecondaryButton
-                text='취소'
-                onClick={() => setIsUploadDateModalOpen(false)}
-              />
-              <PrimaryButton
-                text='확인'
-                onClick={handleUploadDateConfirm}
-              />
+              <SecondaryButton text='취소' onClick={() => setIsUploadDateModalOpen(false)} />
+              <PrimaryButton text='확인' onClick={handleUploadDateConfirm} />
             </div>
           </div>
         </div>

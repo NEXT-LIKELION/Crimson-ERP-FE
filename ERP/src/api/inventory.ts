@@ -297,6 +297,7 @@ export const fetchVariantStatus = (params: {
   year: number;
   month: number;
   page?: number;
+  page_size?: number;
   ordering?: string;
 }) => {
   return api.get('/inventory/variant-status/', { params });
