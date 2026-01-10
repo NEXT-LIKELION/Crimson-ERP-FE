@@ -11,4 +11,3 @@ export type ColumnVisibility = Record<string, boolean>;
 
 // 테이블 타입
 export type TableType = 'inventory' | 'variantStatus';
-

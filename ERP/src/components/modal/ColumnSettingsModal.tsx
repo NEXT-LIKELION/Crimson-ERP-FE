@@ -75,8 +75,8 @@ const ColumnSettingsModal = ({
                       key={column.id}
                       className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
                         isRequired
-                          ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
-                          : 'border-gray-200 bg-white cursor-pointer hover:bg-gray-50'
+                          ? 'cursor-not-allowed border-gray-200 bg-gray-50'
+                          : 'cursor-pointer border-gray-200 bg-white hover:bg-gray-50'
                       }`}>
                       <input
                         type='checkbox'
@@ -85,11 +85,10 @@ const ColumnSettingsModal = ({
                         disabled={isRequired}
                         className='h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed'
                       />
-                      <span className={`flex-1 text-sm ${isRequired ? 'text-gray-500' : 'text-gray-900'}`}>
+                      <span
+                        className={`flex-1 text-sm ${isRequired ? 'text-gray-500' : 'text-gray-900'}`}>
                         {column.label}
-                        {isRequired && (
-                          <span className='ml-2 text-xs text-gray-400'>(필수)</span>
-                        )}
+                        {isRequired && <span className='ml-2 text-xs text-gray-400'>(필수)</span>}
                       </span>
                     </label>
                   );
@@ -115,7 +114,7 @@ const ColumnSettingsModal = ({
                 onClick={() => setIsOpen(false)}
                 className='rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700'>
                 닫기
-                </button>
+              </button>
             </div>
           </div>
         </div>
@@ -125,4 +124,3 @@ const ColumnSettingsModal = ({
 };
 
 export default ColumnSettingsModal;
-
