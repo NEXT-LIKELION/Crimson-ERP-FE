@@ -424,11 +424,9 @@ const InventoryPage = () => {
         return;
       }
 
-      // 엑셀에 표시할 데이터 변환
-      const excelData = data.map((item: ProductVariantStatus, index: number) => ({
-        번호: index + 1,
-        연도: item.year,
-        월: item.month,
+      // 엑셀에 표시할 데이터 변환 (이미지 기준으로 컬럼 순서 조정)
+      // 이미지: A=대분류, B=중분류, C=카테고리, D=설명, E=온라인명, F=오프라인명, G=옵션, H=상세옵션, I=상품코드
+      const excelData = data.map((item: ProductVariantStatus) => ({
         대분류: item.big_category,
         중분류: item.middle_category,
         카테고리: item.category,
@@ -447,36 +445,82 @@ const InventoryPage = () => {
         쇼핑몰판매: item.online_sales || 0,
         판매합계: item.total_sales || 0,
         재고조정: item.adjustment_quantity || 0,
+        재고조정사유: item.adjustment_status || '',
         기말재고: item.ending_stock || 0,
       }));
 
       // 워크시트 생성
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const tempWorksheet = XLSX.utils.json_to_sheet(excelData);
 
-      // 컬럼 너비 설정
+      // 워크시트의 모든 셀을 3행 아래로 이동
+      const range = XLSX.utils.decode_range(tempWorksheet['!ref'] || 'A1');
+
+      // 기존 셀 데이터를 새 위치로 복사
+      const worksheet: XLSX.WorkSheet = {};
+      for (let R = range.s.r; R <= range.e.r; R++) {
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          const newCellAddress = XLSX.utils.encode_cell({ r: R + 3, c: C });
+          if (tempWorksheet[cellAddress]) {
+            worksheet[newCellAddress] = tempWorksheet[cellAddress];
+          }
+        }
+      }
+
+      // 병합 정보도 이동
+      if (tempWorksheet['!merges']) {
+        worksheet['!merges'] = tempWorksheet['!merges'].map((merge: XLSX.Range) => ({
+          s: { r: merge.s.r + 3, c: merge.s.c },
+          e: { r: merge.e.r + 3, c: merge.e.c },
+        }));
+      }
+
+      // 1행: 제목 추가
+      const title = `크림슨스토어재고표(${selectedYear}년 ${selectedMonth}월말 현재)`;
+      worksheet['A1'] = { t: 's', v: title };
+
+      // I열(9번째 컬럼, 인덱스 8) 1행에 '자동계산셀' 추가
+      worksheet['I1'] = { t: 's', v: '자동계산셀' };
+
+      // 제목 셀 병합 (A1부터 H1까지만 병합, I1은 제외)
+      if (!worksheet['!merges']) worksheet['!merges'] = [];
+      // A~H는 0~7 인덱스 (8개 컬럼)
+      worksheet['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }); // A1~H1 병합
+
+      // 2행: 빈 행 (공간 확보)
+
+      // 3행: 헤더 행은 json_to_sheet가 자동으로 생성한 것이 4행에 있음
+
+      // 새 범위 설정 (1행부터 마지막 행까지 포함하도록, 제목과 자동계산셀 포함)
+      const finalRange = {
+        s: { r: 0, c: 0 }, // 1행부터 시작
+        e: { r: range.e.r + 3, c: range.e.c }, // 마지막 데이터 행
+      };
+      worksheet['!ref'] = XLSX.utils.encode_range(finalRange);
+      worksheet['!cols'] = tempWorksheet['!cols'];
+
+      // 컬럼 너비 설정 (이미지 기준: A=대분류, B=중분류, ..., I=상품코드)
       const columnWidths = [
-        { wch: 5 }, // 번호
-        { wch: 6 }, // 연도
-        { wch: 4 }, // 월
-        { wch: 8 }, // 대분류
-        { wch: 8 }, // 중분류
-        { wch: 10 }, // 카테고리
-        { wch: 20 }, // 설명
-        { wch: 25 }, // 온라인명
-        { wch: 25 }, // 오프라인명
-        { wch: 15 }, // 옵션
-        { wch: 10 }, // 상세옵션
-        { wch: 12 }, // 상품코드
-        { wch: 15 }, // 품목코드
-        { wch: 12 }, // 월초창고재고
-        { wch: 12 }, // 월초매장재고
-        { wch: 10 }, // 기초재고
-        { wch: 10 }, // 당월입고
-        { wch: 10 }, // 매장판매
-        { wch: 12 }, // 쇼핑몰판매
-        { wch: 10 }, // 판매합계
-        { wch: 10 }, // 재고조정
-        { wch: 10 }, // 기말재고
+        { wch: 8 }, // A: 대분류
+        { wch: 8 }, // B: 중분류
+        { wch: 10 }, // C: 카테고리
+        { wch: 20 }, // D: 설명
+        { wch: 25 }, // E: 온라인명
+        { wch: 25 }, // F: 오프라인명
+        { wch: 15 }, // G: 옵션
+        { wch: 10 }, // H: 상세옵션
+        { wch: 12 }, // I: 상품코드
+        { wch: 15 }, // J: 품목코드
+        { wch: 12 }, // K: 월초창고재고
+        { wch: 12 }, // L: 월초매장재고
+        { wch: 10 }, // M: 기초재고
+        { wch: 10 }, // N: 당월입고
+        { wch: 10 }, // O: 매장판매
+        { wch: 12 }, // P: 쇼핑몰판매
+        { wch: 10 }, // Q: 판매합계
+        { wch: 10 }, // R: 재고조정
+        { wch: 15 }, // S: 재고조정사유
+        { wch: 10 }, // T: 기말재고
       ];
       worksheet['!cols'] = columnWidths;
 
