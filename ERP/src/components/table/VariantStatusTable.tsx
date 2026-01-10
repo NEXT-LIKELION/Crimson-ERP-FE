@@ -3,7 +3,7 @@ import { ProductVariantStatus } from '../../types/product';
 import { updateVariantStatus } from '../../api/inventory';
 import { useQueryClient } from '@tanstack/react-query';
 import { useColumnVisibility } from '../../hooks/useColumnVisibility';
-import ColumnSettingsModal from '../common/ColumnSettingsModal';
+import ColumnSettingsModal from '../modal/ColumnSettingsModal';
 import type { TableColumn } from '../../types/tableColumns';
 
 interface VariantStatusTableProps {
@@ -12,7 +12,7 @@ interface VariantStatusTableProps {
   year: number;
   month: number;
   onRowClick?: (variantCode: string) => void;
-  onStockAdjust?: (item: ProductVariantStatus) => void;
+  onStockAdjust?: (item: ProductVariantStatus, year: number, month: number) => void;
 }
 
 type EditableField =
@@ -26,6 +26,17 @@ interface EditingCell {
   rowIndex: number;
   field: EditableField;
 }
+
+// 편집 가능한 필드 목록 (노란색 배경 표시용)
+const EDITABLE_FIELDS: string[] = [
+  'warehouse_stock_start',
+  'store_stock_start',
+  'inbound_quantity',
+  'store_sales',
+  'online_sales',
+  'adjustment_quantity',
+  'adjustment_status',
+];
 
 interface AdjustmentStatusItem {
   created_by?: string;
@@ -53,7 +64,7 @@ const VARIANT_STATUS_COLUMNS: TableColumn[] = [
   { id: 'online_sales', label: '온라인판매', defaultVisible: true },
   { id: 'total_sales', label: '판매합계', defaultVisible: true },
   { id: 'adjustment_quantity', label: '재고조정수량', defaultVisible: false },
-  { id: 'adjustment_status', label: '재고조정상태', defaultVisible: false },
+  { id: 'adjustment_status', label: '재고조정사유', defaultVisible: false },
   { id: 'ending_stock', label: '기말재고', defaultVisible: true },
 ];
 
@@ -70,6 +81,17 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
   const [editValue, setEditValue] = useState<string>('');
   const [savingCell, setSavingCell] = useState<EditingCell | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 편집 가능한 필드인지 확인하는 헬퍼 함수
+  const isEditableField = (fieldId: string): boolean => {
+    return EDITABLE_FIELDS.includes(fieldId);
+  };
+
+  // 컬럼 ID로 label을 가져오는 헬퍼 함수
+  const getColumnLabel = (columnId: string): string => {
+    const column = VARIANT_STATUS_COLUMNS.find((col) => col.id === columnId);
+    return column?.label || columnId;
+  };
 
   // 컬럼 표시/숨김 관리
   const { columnVisibility, toggleColumn, showAllColumns, resetToDefault, isColumnVisible } =
@@ -199,11 +221,12 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
       );
     }
 
+    const isEditable = isEditableField(field);
     return (
       <td
-        className={`${className} whitespace-nowrap ${isSaving ? 'opacity-50' : 'cursor-pointer hover:bg-blue-50'} transition-colors`}
-        onDoubleClick={() => handleCellDoubleClick(rowIndex, field, value)}
-        title='더블클릭하여 수정'
+        className={`${className} ${isEditable ? 'bg-yellow-50' : ''} whitespace-nowrap ${isSaving ? 'opacity-50' : isEditable ? 'cursor-pointer hover:bg-yellow-100' : ''} transition-colors`}
+        onDoubleClick={isEditable ? () => handleCellDoubleClick(rowIndex, field, value) : undefined}
+        title={isEditable ? '더블클릭하여 수정' : ''}
         style={style}>
         {isSaving ? '저장 중...' : displayValue}
       </td>
@@ -226,7 +249,7 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
   }
 
   return (
-    <div className='w-full overflow-x-auto'>
+    <div>
       {/* 헤더 */}
       <div className='mb-4 flex items-center justify-end'>
         <ColumnSettingsModal
@@ -238,148 +261,148 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
         />
       </div>
       {/* 테이블 */}
-      <div className='rounded-lg border border-gray-200'>
-        <table className='w-full table-auto border-collapse text-xs text-gray-700'>
+      <div className='overflow-x-auto'>
+        <table className='table-auto border border-gray-200 text-xs text-gray-700'>
           <thead className='bg-gray-50'>
             <tr>
               {isColumnVisible('big_category') && (
                 <th
                   className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
                   style={{ width: '4%', minWidth: '60px' }}>
-                  대분류
+                  {getColumnLabel('big_category')}
                 </th>
               )}
               {isColumnVisible('middle_category') && (
                 <th
                   className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
                   style={{ width: '4%', minWidth: '60px' }}>
-                  중분류
+                  {getColumnLabel('middle_category')}
                 </th>
               )}
               {isColumnVisible('category') && (
                 <th
                   className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
                   style={{ width: '5%', minWidth: '80px' }}>
-                  카테고리
+                  {getColumnLabel('category')}
                 </th>
               )}
               {isColumnVisible('description') && (
                 <th
                   className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
                   style={{ width: '8%', minWidth: '120px' }}>
-                  설명
+                  {getColumnLabel('description')}
                 </th>
               )}
               {isColumnVisible('online_name') && (
                 <th
                   className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
                   style={{ width: '12%', minWidth: '180px' }}>
-                  온라인 품목명
+                  {getColumnLabel('online_name')}
                 </th>
               )}
               {isColumnVisible('offline_name') && (
                 <th
                   className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
                   style={{ width: '12%', minWidth: '180px' }}>
-                  오프라인 품목명
+                  {getColumnLabel('offline_name')}
                 </th>
               )}
               {isColumnVisible('option') && (
                 <th
                   className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
                   style={{ width: '4%', minWidth: '60px' }}>
-                  옵션
+                  {getColumnLabel('option')}
                 </th>
               )}
               {isColumnVisible('detail_option') && (
                 <th
                   className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
                   style={{ width: '5%', minWidth: '80px' }}>
-                  상세옵션
+                  {getColumnLabel('detail_option')}
                 </th>
               )}
               {isColumnVisible('product_code') && (
                 <th
                   className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
                   style={{ width: '6%', minWidth: '100px' }}>
-                  상품코드
+                  {getColumnLabel('product_code')}
                 </th>
               )}
               {isColumnVisible('variant_code') && (
                 <th
                   className='px-1 py-1 text-left text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
                   style={{ width: '6%', minWidth: '100px' }}>
-                  품목코드
+                  {getColumnLabel('variant_code')}
                 </th>
               )}
               {isColumnVisible('warehouse_stock_start') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('warehouse_stock_start') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
-                  월초창고재고
+                  {getColumnLabel('warehouse_stock_start')}
                 </th>
               )}
               {isColumnVisible('store_stock_start') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('store_stock_start') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
-                  월초매장재고
+                  {getColumnLabel('store_stock_start')}
                 </th>
               )}
               {isColumnVisible('initial_stock') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('initial_stock') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
-                  기초재고
+                  {getColumnLabel('initial_stock')}
                 </th>
               )}
               {isColumnVisible('inbound_quantity') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('inbound_quantity') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
-                  당월입고
+                  {getColumnLabel('inbound_quantity')}
                 </th>
               )}
               {isColumnVisible('store_sales') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('store_sales') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
-                  매장판매
+                  {getColumnLabel('store_sales')}
                 </th>
               )}
               {isColumnVisible('online_sales') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('online_sales') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
-                  온라인판매
+                  {getColumnLabel('online_sales')}
                 </th>
               )}
               {isColumnVisible('total_sales') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('total_sales') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
-                  판매합계
+                  {getColumnLabel('total_sales')}
                 </th>
               )}
               {isColumnVisible('adjustment_quantity') && (
                 <th
-                  className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                  className={`${isEditableField('adjustment_quantity') ? 'bg-yellow-50' : ''} px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase`}
                   style={{ width: '5%', minWidth: '80px' }}>
-                  재고조정수량
+                  {getColumnLabel('adjustment_quantity')}
                 </th>
               )}
               {isColumnVisible('adjustment_status') && (
                 <th
-                  className='px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase'
+                  className={`${isEditableField('adjustment_status') ? 'bg-yellow-50' : ''} px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase`}
                   style={{ width: '8%', minWidth: '120px' }}>
-                  재고조정상태
+                  {getColumnLabel('adjustment_status')}
                 </th>
               )}
               {isColumnVisible('ending_stock') && (
                 <th
                   className='px-1 py-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
                   style={{ width: '5%', minWidth: '80px' }}>
-                  기말재고
+                  {getColumnLabel('ending_stock')}
                 </th>
               )}
             </tr>
@@ -538,18 +561,20 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                 )}
                 {isColumnVisible('adjustment_quantity') && (
                   <td
-                    className='cursor-pointer px-1 py-2 text-right text-xs whitespace-nowrap text-gray-900 transition-colors hover:bg-blue-50 sm:px-2'
+                    className={`${isEditableField('adjustment_quantity') ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-blue-50'} cursor-pointer px-1 py-2 text-right text-xs whitespace-nowrap text-gray-900 transition-colors sm:px-2`}
                     style={{ width: '5%', minWidth: '80px' }}
-                    onClick={() => onStockAdjust?.(item)}
+                    onClick={() => onStockAdjust?.(item, year, month)}
                     title='클릭하여 재고 조정'>
-                    {item.adjustment_quantity ? Number(item.adjustment_quantity).toLocaleString() : 0}
+                    {item.adjustment_quantity
+                      ? Number(item.adjustment_quantity).toLocaleString()
+                      : 0}
                   </td>
                 )}
                 {isColumnVisible('adjustment_status') && (
                   <td
-                    className='cursor-pointer px-1 py-2 text-xs text-gray-900 transition-colors hover:bg-blue-50 sm:px-2'
+                    className={`${isEditableField('adjustment_status') ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-blue-50'} cursor-pointer px-1 py-2 text-xs text-gray-900 transition-colors sm:px-2`}
                     style={{ width: '8%' }}
-                    onClick={() => onStockAdjust?.(item)}
+                    onClick={() => onStockAdjust?.(item, year, month)}
                     title='클릭하여 재고 조정'>
                     <div className='whitespace-pre-line'>
                       {(() => {

@@ -85,10 +85,10 @@ const CategorySelect: React.FC<CategorySelectProps> = ({
           const elementTop = selectedElement.offsetTop;
           const elementHeight = selectedElement.offsetHeight;
           const containerHeight = container.clientHeight;
-          
+
           // 선택된 요소가 중앙에 오도록 스크롤 위치 계산
-          const scrollPosition = elementTop - (containerHeight / 2) + (elementHeight / 2);
-          
+          const scrollPosition = elementTop - containerHeight / 2 + elementHeight / 2;
+
           // 애니메이션 없이 즉시 스크롤
           container.scrollTop = scrollPosition;
         }

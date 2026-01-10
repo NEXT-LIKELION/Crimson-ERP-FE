@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { FiChevronLeft, FiChevronRight, FiX, FiUsers, FiFilter } from 'react-icons/fi';
 import { useVacations, useReviewVacation } from '../../hooks/queries/useVacations';
 import { useEmployees } from '../../hooks/queries/useEmployees';
@@ -11,6 +11,7 @@ import {
 } from '../../api/hr';
 import { useAuthStore } from '../../store/authStore';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import StatusBadge from '../common/StatusBadge';
 
 interface OrganizationVacationCalendarProps {
@@ -34,6 +35,16 @@ const OrganizationVacationCalendar: React.FC<OrganizationVacationCalendarProps> 
   const { data: vacationsData, isLoading: vacationsLoading } = useVacations();
   const { data: employeesData, isLoading: employeesLoading } = useEmployees();
   const reviewVacationMutation = useReviewVacation();
+
+  // ESC 키로 모달 닫기
+  useEscapeKey(onClose);
+
+  // 관리자일 경우 '휴가/근무 관리' 패널을 기본으로 표시
+  useEffect(() => {
+    if (isAdmin) {
+      setShowManagementPanel(true);
+    }
+  }, [isAdmin]);
 
   // 재직중인 직원별 고유 색상 생성
   const employeeColors = useMemo(() => {

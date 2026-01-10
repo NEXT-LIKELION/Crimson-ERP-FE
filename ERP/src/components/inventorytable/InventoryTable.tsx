@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import type { ApiProductVariant } from '../../hooks/queries/useInventories';
 import type { components } from '../../types/api';
 import { useColumnVisibility } from '../../hooks/useColumnVisibility';
-import ColumnSettingsModal from '../common/ColumnSettingsModal';
+import ColumnSettingsModal from '../modal/ColumnSettingsModal';
 import type { TableColumn } from '../../types/tableColumns';
 
 // ProductVariant 타입 별칭

@@ -65,9 +65,13 @@ const INVENTORY_TABLE_COLUMNS_KEY = 'inventoryTableColumns';
 const VARIANT_STATUS_TABLE_COLUMNS_KEY = 'variantStatusTableColumns';
 
 // 컬럼 설정 저장
-export const saveColumnVisibility = (tableType: 'inventory' | 'variantStatus', visibility: Record<string, boolean>) => {
+export const saveColumnVisibility = (
+  tableType: 'inventory' | 'variantStatus',
+  visibility: Record<string, boolean>
+) => {
   try {
-    const key = tableType === 'inventory' ? INVENTORY_TABLE_COLUMNS_KEY : VARIANT_STATUS_TABLE_COLUMNS_KEY;
+    const key =
+      tableType === 'inventory' ? INVENTORY_TABLE_COLUMNS_KEY : VARIANT_STATUS_TABLE_COLUMNS_KEY;
     localStorage.setItem(key, JSON.stringify(visibility));
   } catch (error) {
     console.error('컬럼 설정 저장 실패:', error);
@@ -75,9 +79,12 @@ export const saveColumnVisibility = (tableType: 'inventory' | 'variantStatus', v
 };
 
 // 컬럼 설정 로드
-export const loadColumnVisibility = (tableType: 'inventory' | 'variantStatus'): Record<string, boolean> | null => {
+export const loadColumnVisibility = (
+  tableType: 'inventory' | 'variantStatus'
+): Record<string, boolean> | null => {
   try {
-    const key = tableType === 'inventory' ? INVENTORY_TABLE_COLUMNS_KEY : VARIANT_STATUS_TABLE_COLUMNS_KEY;
+    const key =
+      tableType === 'inventory' ? INVENTORY_TABLE_COLUMNS_KEY : VARIANT_STATUS_TABLE_COLUMNS_KEY;
     const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : null;
   } catch (error) {
@@ -89,7 +96,8 @@ export const loadColumnVisibility = (tableType: 'inventory' | 'variantStatus'): 
 // 컬럼 설정 초기화 (삭제)
 export const clearColumnVisibility = (tableType: 'inventory' | 'variantStatus') => {
   try {
-    const key = tableType === 'inventory' ? INVENTORY_TABLE_COLUMNS_KEY : VARIANT_STATUS_TABLE_COLUMNS_KEY;
+    const key =
+      tableType === 'inventory' ? INVENTORY_TABLE_COLUMNS_KEY : VARIANT_STATUS_TABLE_COLUMNS_KEY;
     localStorage.removeItem(key);
   } catch (error) {
     console.error('컬럼 설정 삭제 실패:', error);

@@ -37,7 +37,7 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
 }) => {
   const user = useAuthStore((state) => state.user);
   const adjustStockMutation = useAdjustStock();
-  const [actualStock, setActualStock] = useState<string>('');
+  const [delta, setDelta] = useState<string>('');
   const [reason, setReason] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -66,32 +66,24 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
   // 모달이 열릴 때마다 초기화
   useEffect(() => {
     if (isOpen && variant) {
-      // 최신 variant 데이터가 있으면 사용, 없으면 기존 variant 데이터 사용
-      const currentStock = latestVariantData?.data?.stock ?? variant.current_stock;
-      setActualStock(currentStock.toString());
+      setDelta('');
       setReason('');
       setErrors([]);
     }
-  }, [isOpen, variant, latestVariantData]);
-
-  // 숫자 입력에서 음수/지수 입력 차단
-  const handleNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const blockedKeys = ['-', '+', 'e', 'E'];
-    if (blockedKeys.includes(e.key)) {
-      e.preventDefault();
-    }
-  };
+  }, [isOpen, variant]);
 
   const handleSubmit = async () => {
     if (!variant) return;
 
     const errs = [];
-    const actualStockNum = Math.max(0, parseInt(actualStock));
+    const deltaNum = parseInt(delta);
 
-    if (!actualStock.trim() || isNaN(actualStockNum)) {
-      errs.push('실제 재고수량을 올바르게 입력해주세요.');
+    if (!delta.trim() || isNaN(deltaNum)) {
+      errs.push('변경량을 올바르게 입력해주세요.');
     }
-    // 음수 입력은 0으로 자동 보정
+    if (deltaNum === 0) {
+      errs.push('변경량은 0이 아닌 값이어야 합니다.');
+    }
     if (!reason.trim()) {
       errs.push('조정 사유를 입력해주세요.');
     }
@@ -103,14 +95,9 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
 
     // 최신 재고 데이터 사용
     const currentStockFromLatest = latestVariantData?.data?.stock ?? variant.current_stock;
-    const delta = actualStockNum - currentStockFromLatest;
+    const newStock = currentStockFromLatest + deltaNum;
 
-    if (delta === 0) {
-      alert('현재 재고와 동일한 수량입니다. 조정이 필요하지 않습니다.');
-      return;
-    }
-
-    const confirmMessage = `재고를 조정하시겠습니까?\n\n현재 재고: ${currentStockFromLatest}EA\n실제 재고: ${actualStockNum}EA\n변경량: ${delta > 0 ? '+' : ''}${delta}EA\n\n사유: ${reason}`;
+    const confirmMessage = `재고를 조정하시겠습니까?\n\n현재 재고: ${currentStockFromLatest}EA\n변경량: ${deltaNum > 0 ? '+' : ''}${deltaNum}EA\n조정 후 재고: ${newStock}EA\n\n사유: ${reason}`;
 
     if (!window.confirm(confirmMessage)) {
       return;
@@ -120,7 +107,7 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       {
         variantCode: variant.variant_code,
         data: {
-          delta: delta,
+          delta: deltaNum,
           reason: reason.trim(),
           created_by: user?.username || 'unknown',
           year: currentYear,
@@ -151,7 +138,7 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
 
   // 최신 재고 데이터 사용
   const currentStockFromLatest = latestVariantData?.data?.stock ?? variant.current_stock;
-  const delta = parseInt(actualStock) - currentStockFromLatest;
+  const deltaNum = delta.trim() ? parseInt(delta) : 0;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -263,46 +250,40 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
             {/* 조정 입력 */}
             <div className='space-y-3'>
               <TextInput
-                label='실제 재고수량'
+                label='변경량'
                 type='number'
-                value={actualStock}
+                value={delta}
                 onChange={(val) => {
-                  // 빈 값은 허용, 음수는 무시
+                  // 빈 값은 허용
                   if (val === '') {
-                    setActualStock('');
+                    setDelta('');
                     return;
                   }
+                  // 숫자만 허용 (음수 포함)
                   const n = Number(val);
-                  if (!Number.isNaN(n) && n >= 0) {
-                    setActualStock(val);
+                  if (!Number.isNaN(n)) {
+                    setDelta(val);
                   }
                 }}
-                onKeyDown={handleNumberKeyDown}
                 noSpinner
-                placeholder='실제 확인한 재고수량을 입력하세요'
+                placeholder='변경량을 입력하세요 (예: +10, -5)'
               />
 
-              {actualStock && !isNaN(parseInt(actualStock)) && (
-                <div
-                  className={`rounded-md border p-2.5 ${
-                    delta > 0
-                      ? 'border-green-200 bg-green-50'
-                      : delta < 0
-                        ? 'border-red-200 bg-red-50'
-                        : 'border-gray-200 bg-gray-50'
-                  }`}>
-                  <div className='flex items-center justify-between text-sm'>
-                    <span className='text-gray-600'>변경량</span>
-                    <span
-                      className={`font-semibold ${
-                        delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                      {delta > 0 ? '+' : ''}
-                      {delta}EA
-                    </span>
-                  </div>
+              <div
+                className={`rounded-md border p-2.5 ${
+                  deltaNum > 0
+                    ? 'border-green-200 bg-green-50'
+                    : deltaNum < 0
+                      ? 'border-red-200 bg-red-50'
+                      : 'border-gray-200 bg-gray-50'
+                }`}>
+                <div className='flex items-center justify-between text-sm'>
+                  <span className='text-gray-600'>조정 후 재고</span>
+                  <span className='font-semibold text-gray-900'>
+                    {currentStockFromLatest + deltaNum}EA
+                  </span>
                 </div>
-              )}
+              </div>
 
               <div>
                 <label className='mb-1.5 block text-sm font-medium text-gray-700'>

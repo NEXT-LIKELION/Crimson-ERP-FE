@@ -107,4 +107,3 @@ export const useColumnVisibility = ({ columns, tableType }: UseColumnVisibilityO
     isColumnVisible,
   };
 };
-
