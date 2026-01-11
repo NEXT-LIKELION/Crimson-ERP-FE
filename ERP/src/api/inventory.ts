@@ -351,3 +351,15 @@ export const downloadVariantStatusExcel = (params: {
     // responseType 제거 - JSON 데이터이므로 기본 처리
   });
 };
+
+// 상품 목록 조회 (product_id, name, online_name 반환)
+// 엔드포인트: GET /inventory/products/
+export const fetchProductList = () => {
+  return api.get('/inventory/products/');
+};
+
+// 상품 카테고리 조회 (product_id로 big_category, middle_category, category 반환)
+// 엔드포인트: GET /inventory/products/{product_id}/categories/
+export const fetchProductCategories = (product_id: string) => {
+  return api.get(`/inventory/products/${product_id}/categories/`);
+};
