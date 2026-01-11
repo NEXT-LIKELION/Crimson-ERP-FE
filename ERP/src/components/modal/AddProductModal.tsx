@@ -4,17 +4,13 @@ import TextInput from '../input/TextInput';
 import CategorySelect from '../input/CategorySelect';
 import { FaBoxArchive, FaClipboardList } from 'react-icons/fa6';
 import { BsCoin } from 'react-icons/bs';
-import {
-  fetchProductOptions,
-  createProductWithVariant,
-  fetchAllInventoriesForMerge,
-  fetchCategories,
-  fetchVariantDetail,
-} from '../../api/inventory';
+import { createProductWithVariant, fetchCategories } from '../../api/inventory';
 import { useQuery } from '@tanstack/react-query';
 import { ProductFormData, CreatedProductData } from '../../types/product';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
-import type { operations, components } from '../../types/api';
+import { useProductList } from '../../hooks/queries/useProductList';
+import { useProductCategories } from '../../hooks/queries/useProductCategories';
+import type { operations } from '../../types/api';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -25,18 +21,14 @@ interface AddProductModalProps {
 const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
   // 상태 선언
   const [productType, setProductType] = useState<'new' | 'existing'>('new');
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
 
-  // 기존 상품 목록 조회
-  const { data: productsData } = useQuery({
-    queryKey: ['productOptions'],
-    queryFn: fetchProductOptions,
-    enabled: isOpen,
-  });
-  // API 응답은 InventoryItemSummary[] 타입 (variant_code, name만 포함)
+  // 기존 상품 목록 조회 (product_id, name, online_name)
+  const { data: productListData } = useProductList(isOpen);
   const productOptions =
-    productsData?.data?.map((p: { variant_code?: string; name?: string }) => ({
-      value: p.variant_code || '',
-      label: p.name || p.variant_code || '',
+    productListData?.data?.map((p) => ({
+      value: p.product_id,
+      label: p.online_name || p.name || p.product_id,
     })) || [];
 
   // 카테고리 목록 조회
@@ -46,17 +38,10 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     enabled: isOpen,
   });
 
-  // 기존 데이터에서 카테고리 목록 추출 및 중복 체크용
-  type ProductVariant = components['schemas']['ProductVariant'];
-  const { data: allInventoriesData } = useQuery<ProductVariant[]>({
-    queryKey: ['allInventories'],
-    queryFn: async () => {
-      const result = await fetchAllInventoriesForMerge();
-      // api.d.ts의 ProductVariant 타입으로 변환
-      return result as unknown as ProductVariant[];
-    },
-    enabled: isOpen,
-  });
+  // 선택된 상품의 카테고리 정보 조회
+  const selectedProductIdForCategories =
+    productType === 'existing' && selectedProductId ? selectedProductId : null;
+  const { data: productCategoriesData } = useProductCategories(selectedProductIdForCategories);
 
   // 동적 카테고리 옵션 생성 + 새 카테고리 추가 옵션
   // categoriesData?.data는 { big_categories: [], middle_categories: [], categories: [] } 형태
@@ -84,7 +69,6 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [isCustomBigCategory, setIsCustomBigCategory] = useState(false);
   const [isCustomMiddleCategory, setIsCustomMiddleCategory] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [selectedProductInfo, setSelectedProductInfo] = useState<{
     online_name?: string;
     big_category?: string;
@@ -142,60 +126,49 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
 
   useEscapeKey(onClose, isOpen);
 
-  // 기존 상품 선택 시 해당 상품의 variant 정보 가져오기 (GET 요청)
+  // 기존 상품 선택 시 카테고리 정보를 form에 자동 채우기
   useEffect(() => {
-    if (productType === 'existing' && selectedProductId && allInventoriesData) {
-      // selectedProductId는 variant_code이므로 variant_code로 찾기
-      const existingVariant = allInventoriesData.find(
-        (item: ProductVariant) => item.variant_code === selectedProductId
-      ) as ProductVariant | undefined;
+    if (productType === 'existing' && productCategoriesData?.data) {
+      const categories = productCategoriesData.data;
 
-      if (existingVariant && existingVariant.variant_code) {
-        // 온라인 상품명, 대분류, 중분류는 읽기 전용으로 저장 (form에서 제외)
-        setSelectedProductInfo({
-          online_name: existingVariant.online_name,
-          big_category: existingVariant.big_category,
-          middle_category: existingVariant.middle_category,
-        });
+      // 온라인 상품명은 productList에서 가져오기
+      const selectedProduct = productListData?.data?.find(
+        (p) => p.product_id === selectedProductId
+      );
 
-        // GET 요청으로 variant 상세 정보 가져오기
-        fetchVariantDetail(existingVariant.variant_code)
-          .then((response) => {
-            const variantDetail = response.data as ProductVariant;
-            // 판매가, 최소재고수량을 form에 채움
-            setForm((prev) => ({
-              ...prev,
-              price: variantDetail.price || 0,
-              min_stock: variantDetail.min_stock || 0,
-              // 옵션과 상세옵션은 비워둠 (사용자가 입력)
-              option: '',
-              detail_option: '',
-            }));
-          })
-          .catch((error) => {
-            console.error('Variant 상세 정보 조회 실패:', error);
-            // 실패 시 기존 데이터 사용
-            setForm((prev) => ({
-              ...prev,
-              price: existingVariant.price || 0,
-              min_stock: existingVariant.min_stock || 0,
-              option: '',
-              detail_option: '',
-            }));
-          });
-      }
+      // 읽기 전용 정보 저장
+      setSelectedProductInfo({
+        online_name: selectedProduct?.online_name,
+        big_category: categories.big_category,
+        middle_category: categories.middle_category,
+      });
+
+      // 카테고리 정보를 form에 자동 채우기
+      setForm((prev) => ({
+        ...prev,
+        big_category: categories.big_category || '',
+        middle_category: categories.middle_category || '',
+        category: categories.category || '',
+        // 옵션과 상세옵션은 비워둠 (사용자가 입력)
+        option: '',
+        detail_option: '',
+        // 판매가와 최소재고수량은 기본값 유지 (사용자가 입력)
+      }));
     } else if (productType === 'existing' && !selectedProductId) {
       // 상품 선택이 해제되면 초기화
       setSelectedProductInfo(null);
       setForm((prev) => ({
         ...prev,
-        price: 0,
-        min_stock: 0,
+        big_category: '',
+        middle_category: '',
+        category: '',
         option: '',
         detail_option: '',
+        price: 0,
+        min_stock: 0,
       }));
     }
-  }, [selectedProductId, allInventoriesData, productType]);
+  }, [productType, selectedProductId, productCategoriesData, productListData]);
 
   const handleChange = (field: keyof ProductFormData, value: string | number | string[]) => {
     setForm((prev: ProductFormData) => ({ ...prev, [field]: value }));
@@ -231,14 +204,14 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
     }
   };
 
-  // 활성 상품 중복 체크 (variants 데이터 기반)
+  // 활성 상품 중복 체크 (productList 데이터 기반)
   const checkDuplicateInActiveProducts = (name: string): boolean => {
-    if (!allInventoriesData || !name?.trim()) return false;
+    if (!productListData?.data || !name?.trim()) return false;
     const activeProductNames = new Set(
-      allInventoriesData
-        .map((v: ProductVariant) => {
-          // ProductVariant에는 offline_name 또는 online_name 사용
-          const productName = v.offline_name || v.online_name || '';
+      productListData.data
+        .map((p) => {
+          // name 또는 online_name 사용
+          const productName = p.online_name || p.name || '';
           return productName.trim().toLowerCase();
         })
         .filter((n) => n) // 빈 문자열 제거
@@ -310,36 +283,34 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
         };
       } else {
         // 기존 상품에 옵션 추가
-        // selectedProductId는 variant_code이므로 fetchVariantDetail로 상세 정보 가져오기
-        try {
-          const variantDetailRes = await fetchVariantDetail(selectedProductId);
-          const existingVariant = variantDetailRes.data as ProductVariant;
+        // selectedProductId는 product_id
+        const selectedProduct = productListData?.data?.find(
+          (p) => p.product_id === selectedProductId
+        );
 
-          variantPayload = {
-            product_id: existingVariant.product_id || '',
-            name: existingVariant.offline_name || existingVariant.online_name || '',
-            // selectedProductInfo에서 온라인명, 대분류, 중분류 가져오기
-            online_name:
-              selectedProductInfo?.online_name || existingVariant.online_name || undefined,
-            category: existingVariant.category || form.category || undefined,
-            big_category:
-              selectedProductInfo?.big_category || existingVariant.big_category || undefined,
-            middle_category:
-              selectedProductInfo?.middle_category || existingVariant.middle_category || undefined,
-            // 수정 가능한 필드들
-            option: form.option || undefined,
-            detail_option: form.detail_option || undefined,
-            price: form.price || undefined,
-            min_stock: form.min_stock || undefined,
-            description: form.description || undefined,
-            memo: form.memo || undefined,
-            channels: form.channels || undefined,
-          };
-        } catch (error) {
-          console.error('Variant 상세 정보 조회 실패:', error);
+        if (!selectedProduct) {
           alert('선택한 상품을 찾을 수 없습니다.');
           return;
         }
+
+        variantPayload = {
+          product_id: selectedProductId,
+          name: selectedProduct.name,
+          // selectedProductInfo와 form에서 정보 가져오기
+          online_name: selectedProductInfo?.online_name || selectedProduct.online_name || undefined,
+          category: form.category || undefined,
+          big_category: selectedProductInfo?.big_category || form.big_category || undefined,
+          middle_category:
+            selectedProductInfo?.middle_category || form.middle_category || undefined,
+          // 수정 가능한 필드들
+          option: form.option || undefined,
+          detail_option: form.detail_option || undefined,
+          price: form.price || undefined,
+          min_stock: form.min_stock || undefined,
+          description: form.description || undefined,
+          memo: form.memo || undefined,
+          channels: form.channels || undefined,
+        };
       }
 
       const variantRes = await createProductWithVariant(variantPayload);
@@ -427,17 +398,11 @@ const AddProductModal = ({ isOpen, onClose, onSave }: AddProductModalProps) => {
                 {productType === 'existing' && (
                   <CategorySelect
                     label='기존 상품 선택'
-                    value={
-                      productOptions.find(
-                        (p: { value: string; label: string }) => p.value === selectedProductId
-                      )?.label || ''
-                    }
-                    options={productOptions.map((p: { value: string; label: string }) => p.label)}
+                    value={productOptions.find((p) => p.value === selectedProductId)?.label || ''}
+                    options={productOptions.map((p) => p.label)}
                     onChange={(value) => {
-                      // label로 선택된 경우 해당 value 찾기
-                      const selectedOption = productOptions.find(
-                        (p: { value: string; label: string }) => p.label === value
-                      );
+                      // label로 선택된 경우 해당 value(product_id) 찾기
+                      const selectedOption = productOptions.find((p) => p.label === value);
                       setSelectedProductId(selectedOption?.value || '');
                     }}
                     placeholder='기존 상품을 선택하세요'
