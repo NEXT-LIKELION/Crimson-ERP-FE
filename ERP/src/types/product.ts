@@ -1,9 +1,13 @@
 // src/types/product.ts
+import type { components } from './api';
 
 // ProductVariant (API 응답용 - 읽기 전용 필드들)
 export interface ProductVariant {
   product_id: string; // readOnly
-  name: string; // readOnly
+  offline_name: string; // readOnly
+  online_name: string; // readOnly
+  big_category: string; // readOnly
+  middle_category: string; // readOnly
   category: string; // readOnly
   variant_code: string;
   option: string;
@@ -18,22 +22,6 @@ export interface ProductVariant {
   sales: string; // readOnly, 계산된 값 (string 타입)
   suppliers: string; // readOnly, 표시용 텍스트 (string 타입)
   channels: string[]; // 판매 채널 목록
-}
-
-// 스냅샷 관련 타입 정의
-export interface InventorySnapshot {
-  id: number;
-  created_at: string;
-  reason: string;
-  actor?: string;
-  meta?: {
-    upload_channel?: 'online' | 'offline';
-    upload_type?: string;
-    upload_reason?: string;
-    filename?: string;
-    filesize?: number;
-    [key: string]: any;
-  };
 }
 
 // ProductVariant 생성용
@@ -56,11 +44,13 @@ export interface Product {
   id?: number;
   product_id: string;
   name: string;
+  offline_name?: string; // API의 offline_name 필드
   variants?: ProductVariant[];
   category?: string;
 
   // 프론트에서만 사용하는 임시 필드들 (테이블 렌더링용)
   option?: string;
+  detail_option?: string;
   price?: number | string;
   stock?: number;
   cost_price?: number | string; // API: number, 프론트: number/string 허용
@@ -171,17 +161,21 @@ export interface SupplierOption {
   address: string;
 }
 
-// 제품 생성 폼 타입
+// 제품 생성 폼 타입 (API 요청 타입과 일치)
 export interface ProductFormData {
-  name: string;
-  category: string;
-  option: string;
-  stock: number;
-  price: number;
-  min_stock: number;
-  description: string;
-  memo: string;
-  channels: string[];
+  name: string; // 오프라인 상품명 (required)
+  online_name?: string; // 온라인 상품명
+  category?: string;
+  big_category?: string;
+  middle_category?: string;
+  option?: string;
+  detail_option?: string; // 상세 옵션
+  stock?: number;
+  price?: number;
+  min_stock?: number;
+  description?: string;
+  memo?: string;
+  channels?: string[];
 }
 
 // 제품에 연결된 공급업체 데이터 (기존 호환성)
@@ -204,3 +198,9 @@ export interface CreatedProductData extends ProductFormData {
   variant_id: string;
   product_id: string;
 }
+
+// 월별 재고 현황 타입 (백엔드 OpenAPI 스키마 재사용)
+export type ProductVariantStatus = components['schemas']['ProductVariantStatus'];
+
+// 월별 재고 현황 API 응답
+export type ProductVariantStatusResponse = PaginatedResponse<ProductVariantStatus>;

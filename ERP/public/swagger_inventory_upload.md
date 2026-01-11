@@ -30,6 +30,8 @@ batch_id string example: 20250911-abc123 업로드 배치 ID
 
 type string example: variant_detail 처리된 시트 타입
 
+channel string example: online 업로드 시 지정한 채널
+
 created_count integer example: 50 신규 생성된 상품 수
 
 updated_count integer example: 100 업데이트된 상품 수
@@ -39,5 +41,3 @@ errors [ 처리 오류 목록
 string]
 
 } 400 파일 오류 또는 유효성 검증 실패
-
-Example Value

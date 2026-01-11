@@ -6,25 +6,17 @@ import SelectInput from '../input/SelectInput';
 import RadioButton from '../common/RadioButton';
 import AddProductModal from './AddProductModal';
 import AddSupplierModal from './AddSupplierModal';
-import ProductSearchInput from '../input/ProductSearchInput';
+import VariantSearchInput from '../input/VariantSearchInput';
+import type { components } from '../../types/api';
 import { Order } from '../../store/ordersStore';
 import { useAuthStore } from '../../store/authStore';
 import { fetchSuppliers, createSupplier } from '../../api/supplier';
-import {
-  fetchProductOptions,
-  fetchVariantDetail,
-  fetchVariantsByProductId,
-} from '../../api/inventory';
+import { fetchVariantDetail } from '../../api/inventory';
 import { createOrder } from '../../api/orders';
 import { useEmployees } from '../../hooks/queries/useEmployees';
 import { useQueryClient } from '@tanstack/react-query';
-import { Supplier, ProductOption, CreatedProductData } from '../../types/product';
-import {
-  calculateTotalAmount,
-  extractVariantCode,
-  validateOrderForm,
-  calculateVATPrice,
-} from '../../utils/orderUtils';
+import { Supplier, CreatedProductData } from '../../types/product';
+import { calculateTotalAmount, validateOrderForm, calculateVATPrice } from '../../utils/orderUtils';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface ReorderData {
@@ -65,7 +57,6 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [products, setProducts] = useState<ProductOption[]>([]);
   const [supplier, setSupplier] = useState<number>(0);
   const [supplierName, setSupplierName] = useState<string>('');
   const [orderDate, setOrderDate] = useState<Date | null>(null); // 초기값 null
@@ -89,9 +80,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
   const [hasPackaging, setHasPackaging] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
-  const [variantsByProduct, setVariantsByProduct] = useState<{
-    [productId: string]: Array<{ variant_code: string; option: string }>;
-  }>({});
+  type ProductVariant = components['schemas']['ProductVariant'];
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState<boolean>(false);
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState<boolean>(false);
   const [selectedManager, setSelectedManager] = useState<string>('');
@@ -152,91 +141,42 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
           setFormErrors((prev) => [...prev, '공급업체 목록을 불러오는데 실패했습니다.']);
         });
 
-      fetchProductOptions()
-        .then((res) => {
-          const productData = Array.isArray(res.data) ? res.data : [];
-          setProducts(productData);
-
-          // initialData가 있고 items에 variant_code만 있는 경우, 상품 정보 조회
-          if (initialData?.items && initialData.items.length > 0) {
-            const itemsWithProductInfo = initialData.items.map((item) => {
-              // product_id와 variant가 이미 있으면 그대로 사용
-              if (item.product_id && item.variant) {
-                return item;
-              }
-              // variant_code만 있으면 null로 설정 (나중에 조회)
-              return item;
-            });
-
-            // variant_code로 상품 정보 조회
-            Promise.all(
-              itemsWithProductInfo.map(async (item) => {
-                if (item.variant_code && !item.product_id) {
-                  try {
-                    const variantDetailRes = await fetchVariantDetail(item.variant_code);
-                    const variantDetail = variantDetailRes.data;
-
-                    // product_id와 variant 정보 추출 (ProductVariant 타입 기준)
-                    return {
-                      ...item,
-                      product_id: variantDetail.product_id || null,
-                      variant: variantDetail.option || null,
-                    };
-                  } catch (error) {
-                    console.error(
-                      `Failed to fetch variant detail for ${item.variant_code}:`,
-                      error
-                    );
-                    return item; // 에러 발생 시 원본 유지
-                  }
-                }
-                return item;
-              })
-            ).then((updatedItems) => {
-              setItems(updatedItems);
-
-              // variantsByProduct도 업데이트 (드롭다운 작동을 위해)
-              const productIds = new Set(
-                updatedItems
-                  .map((item) => item.product_id)
-                  .filter((id): id is string => id !== null)
-              );
-
-              // 각 product_id에 대해 variants 조회
-              Promise.all(
-                Array.from(productIds).map(async (productId) => {
-                  try {
-                    const variantsRes = await fetchVariantsByProductId(productId);
-                    const variants = variantsRes.data?.variants || [];
-                    return {
-                      productId,
-                      variants: variants.map((v: { variant_code: string; option: string }) => ({
-                        variant_code: v.variant_code,
-                        option: v.option,
-                      })),
-                    };
-                  } catch (error) {
-                    console.error(`Failed to fetch variants for product ${productId}:`, error);
-                    return { productId, variants: [] };
-                  }
-                })
-              ).then((variantsData) => {
-                const variantsMap: {
-                  [productId: string]: Array<{ variant_code: string; option: string }>;
-                } = {};
-                variantsData.forEach(({ productId, variants }) => {
-                  variantsMap[productId] = variants;
-                });
-                setVariantsByProduct(variantsMap);
-              });
-            });
+      // initialData가 있고 items에 variant_code만 있는 경우, 상품 정보 조회
+      if (initialData?.items && initialData.items.length > 0) {
+        const itemsWithProductInfo = initialData.items.map((item) => {
+          // product_id와 variant가 이미 있으면 그대로 사용
+          if (item.product_id && item.variant) {
+            return item;
           }
-        })
-        .catch((error) => {
-          console.error('Failed to fetch product options:', error);
-          setProducts([]);
-          setFormErrors((prev) => [...prev, '상품 목록을 불러오는데 실패했습니다.']);
+          // variant_code만 있으면 null로 설정 (나중에 조회)
+          return item;
         });
+
+        // variant_code로 상품 정보 조회
+        Promise.all(
+          itemsWithProductInfo.map(async (item) => {
+            if (item.variant_code && !item.product_id) {
+              try {
+                const variantDetailRes = await fetchVariantDetail(item.variant_code);
+                const variantDetail = variantDetailRes.data;
+
+                // product_id와 variant 정보 추출 (ProductVariant 타입 기준)
+                return {
+                  ...item,
+                  product_id: variantDetail.product_id || null,
+                  variant: variantDetail.option || null,
+                };
+              } catch (error) {
+                console.error(`Failed to fetch variant detail for ${item.variant_code}:`, error);
+                return item; // 에러 발생 시 원본 유지
+              }
+            }
+            return item;
+          })
+        ).then((updatedItems) => {
+          setItems(updatedItems);
+        });
+      }
     }
   }, [isOpen, initialData]);
 
@@ -342,7 +282,7 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
         manager_name: selectedManager || user?.first_name || user?.username || '',
         items: items
           .map((item) => {
-            const variant_code = extractVariantCode(item, variantsByProduct);
+            const variant_code = item.variant_code || '';
 
             return {
               variant_code,
@@ -382,98 +322,43 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
     // 공급업체 변경 시에도 기존 선택사항 모두 유지
   };
 
-  // 검색을 통한 상품 선택 핸들러 (기존 방식으로 복원)
-  const handleProductSearchSelect = async (idx: number, product: ProductOption) => {
-    await handleProductChangeByProductId(idx, product.product_id);
-  };
+  // variant 검색을 통한 선택 핸들러
+  const handleVariantSearchSelect = async (idx: number, variant: ProductVariant) => {
+    try {
+      // variant 상세 정보 조회하여 자동 입력
+      const variantDetailRes = await fetchVariantDetail(variant.variant_code);
+      const variantDetail = variantDetailRes.data;
 
-  // 상품 변경 공통 로직 (복원)
-  const handleProductChangeByProductId = async (idx: number, product_id: string | null) => {
-    // 품목 캐시 없으면 fetch
-    if (product_id && !variantsByProduct[product_id]) {
-      try {
-        const res = await fetchVariantsByProductId(product_id);
-        // API 응답 구조 확인: res.data.variants 또는 res.data가 배열인지 확인
-        const variantsData = res.data.variants || res.data || [];
-        const variants = Array.isArray(variantsData) ? variantsData : [];
-
-        // 모든 variants를 표시 (공급업체 필터링 제거됨)
-        setVariantsByProduct((prev) => ({ ...prev, [product_id]: variants }));
-      } catch (e) {
-        console.error('Failed to fetch variants:', e);
-        setVariantsByProduct((prev) => ({ ...prev, [product_id]: [] }));
-      }
-    }
-    // 상품 바뀌면 품목, 단가, 규격 초기화 (규격은 빈 문자열로)
-    setItems(
-      items.map((item, i) =>
-        i === idx
-          ? {
-              ...item,
-              product_id,
-              variant: null,
-              variant_code: '',
-              unit_price: 0,
-              spec: '', // 규격은 빈 문자열로 초기화
-            }
-          : item
-      )
-    );
-  };
-
-  // 5. 행별 품목 선택 핸들러 (자동 입력 포함)
-  const handleVariantChange = async (idx: number, option: string) => {
-    // 기본 variant 설정
-    handleItemChange(idx, 'variant', option);
-
-    // variant_code 찾기
-    const item = items[idx];
-    if (!item.product_id) return;
-
-    const variants = variantsByProduct[item.product_id] || [];
-    const selectedVariant = variants.find(
-      (v: { option: string; variant_code: string }) => v.option === option
-    );
-
-    if (selectedVariant) {
-      // variant_code 설정
-      handleItemChange(idx, 'variant_code', selectedVariant.variant_code);
-
-      try {
-        // variant 상세 정보 조회하여 자동 입력
-        const variantDetailRes = await fetchVariantDetail(selectedVariant.variant_code);
-        const variantDetail = variantDetailRes.data;
-
-        // 자동 입력: 가격과 규격
-        setItems(
-          items.map((currentItem, i) =>
-            i === idx
-              ? {
-                  ...currentItem,
-                  variant: option,
-                  variant_code: selectedVariant.variant_code,
-                  cost_price: variantDetail.cost_price || 0,
-                  unit_price: variantDetail.price || 0,
-                  // spec은 사용자가 직접 입력하도록 자동 입력 제거
-                }
-              : currentItem
-          )
-        );
-      } catch (error) {
-        console.error('Failed to fetch variant detail:', error);
-        // 에러 발생 시 기본값만 설정
-        setItems(
-          items.map((currentItem, i) =>
-            i === idx
-              ? {
-                  ...currentItem,
-                  variant: option,
-                  variant_code: selectedVariant.variant_code,
-                }
-              : currentItem
-          )
-        );
-      }
+      // variant_code와 상품 정보 설정
+      setItems(
+        items.map((currentItem, i) =>
+          i === idx
+            ? {
+                ...currentItem,
+                product_id: variant.product_id || null,
+                variant_code: variant.variant_code,
+                cost_price: variantDetail.cost_price || 0,
+                unit_price: variantDetail.price || 0,
+                variant: variant.option || null,
+              }
+            : currentItem
+        )
+      );
+    } catch (error) {
+      console.error('Failed to fetch variant detail:', error);
+      // 에러 발생 시 기본값만 설정
+      setItems(
+        items.map((currentItem, i) =>
+          i === idx
+            ? {
+                ...currentItem,
+                product_id: variant.product_id || null,
+                variant_code: variant.variant_code,
+                variant: variant.option || null,
+              }
+            : currentItem
+        )
+      );
     }
   };
 
@@ -485,18 +370,11 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
 
-      // 상품 목록 다시 불러오기
-      const res = await fetchProductOptions();
-      const productData = Array.isArray(res.data) ? res.data : [];
-
-      // 최신 상품 목록으로 교체 (신상품 포함)
-      setProducts(productData);
-
       // 발주 품목에 신상품 자동 추가
       const newItem: OrderItemPayload = {
-        product_id: newProduct.product_id,
-        variant: newProduct.option,
-        variant_code: newProduct.variant_id,
+        product_id: newProduct.product_id || null,
+        variant: newProduct.option || null,
+        variant_code: newProduct.variant_id || '',
         quantity: 1,
         cost_price: 0, // 초기값 0, 사용자가 직접 입력
         unit_price: newProduct.price || 0,
@@ -504,26 +382,6 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
         remark: '',
         spec: '',
       };
-
-      // 신상품의 variants 정보도 캐시에 추가
-      const newVariant = {
-        variant_code: newProduct.variant_id,
-        option: newProduct.option,
-        price: newProduct.price || 0,
-        stock: newProduct.stock || 0,
-      };
-      setVariantsByProduct((prev) => {
-        const prevVariants = prev[newProduct.product_id] || [];
-        const duplicate = prevVariants.some(
-          (variant) => variant.variant_code === newVariant.variant_code
-        );
-        const mergedVariants = duplicate ? prevVariants : [...prevVariants, newVariant];
-
-        return {
-          ...prev,
-          [newProduct.product_id]: mergedVariants,
-        };
-      });
 
       setItems([newItem, ...items]);
       setIsAddProductModalOpen(false);
@@ -762,20 +620,16 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
               </div>
             </div>
             <div className='overflow-visible rounded-md border border-gray-200'>
-              <div className='min-w-[1100px] table-fixed'>
+              <div className='w-full table-fixed'>
                 {/* Table Header */}
                 <div className='h-12 border-b border-gray-200 bg-gray-50'>
                   <div className='flex h-12 items-center'>
-                    <div className='flex w-36 flex-shrink-0 items-center justify-start px-3 py-2'>
+                    <div className='flex flex-1 items-center justify-start px-3 py-2'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>
                         상품 <span className='text-red-500'>*</span>
                       </span>
                     </div>
-                    <div className='flex w-36 flex-shrink-0 items-center justify-start px-3 py-2'>
-                      <span className='text-xs font-medium text-gray-500 uppercase'>
-                        옵션 <span className='text-red-500'>*</span>
-                      </span>
-                    </div>
+
                     <div className='flex w-32 flex-shrink-0 items-center justify-start px-3 py-2'>
                       <span className='text-xs font-medium text-gray-500 uppercase'>규격</span>
                     </div>
@@ -811,16 +665,13 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
                   {items.map((item, idx) => (
                     <div key={idx} className='flex h-24 items-center border-t border-gray-200'>
                       {/* 상품 검색 및 드롭다운 */}
-                      <div className='flex w-36 flex-shrink-0 items-center px-3 py-2'>
+                      <div className='flex-1 items-center px-3 py-2'>
                         <div className='flex w-full flex-col gap-2'>
                           {/* 상품 검색 */}
-                          <ProductSearchInput
-                            placeholder='기존 상품 검색...'
-                            value={(() => {
-                              const found = products.find((p) => p.product_id === item.product_id);
-                              return found ? found.name : '';
-                            })()}
-                            onSelect={(product) => handleProductSearchSelect(idx, product)}
+                          <VariantSearchInput
+                            placeholder='코드 혹은 상품명 검색...'
+                            value={item.variant_code || ''}
+                            onSelect={(variant) => handleVariantSearchSelect(idx, variant)}
                             disabled={isSubmitting}
                           />
 
@@ -832,22 +683,6 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
                             신상품
                           </button>
                         </div>
-                      </div>
-                      {/* 품목 드롭다운 */}
-                      <div className='flex w-36 flex-shrink-0 items-center px-3 py-2'>
-                        <SelectInput
-                          defaultText='품목 선택'
-                          options={
-                            item.product_id && variantsByProduct[item.product_id]
-                              ? variantsByProduct[item.product_id].map((v) => v.option)
-                              : []
-                          }
-                          onChange={(option: string) => {
-                            handleVariantChange(idx, option);
-                          }}
-                          value={item.variant ?? ''}
-                          disabled={isSubmitting || !item.product_id}
-                        />
                       </div>
                       <div className='flex w-32 flex-shrink-0 items-center px-3 py-2'>
                         <input
@@ -946,12 +781,11 @@ const NewOrderModal: React.FC<NewOrderModalProps> = ({
                     <div className='flex w-[624px] items-center justify-end px-3 py-2'>
                       <span className='text-sm font-semibold text-gray-900'>합계</span>
                     </div>
-                    <div className='flex w-24 items-center justify-center px-3 py-2'>
+                    <div className='flex items-center justify-center px-3 py-2'>
                       <span className='text-sm font-bold text-gray-900'>
                         {calculateTotal().toLocaleString()}원
                       </span>
                     </div>
-                    <div className='flex w-[452px] items-center px-3 py-2'></div>
                   </div>
                 </div>
               </div>

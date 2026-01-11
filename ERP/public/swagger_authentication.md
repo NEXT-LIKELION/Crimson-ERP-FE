@@ -1,8 +1,9 @@
 authentication
 
-POST /authentication/approve/ 직원 계정 상태 전환 (STAFF/INTERN) authentication_approve_create
+POST /authentication/approve/ 직원 계정 상태 전환 (STAFF/INTERN/MANAGER)
+authentication_approve_create
 
-MANAGER가 STAFF 또는 INTERN 계정을 승인(APPROVED)하거나 거절(DENIED)할 수 있습니다.
+MANAGER가 STAFF, INTERN 또는 MANAGER 계정을 승인(APPROVED)하거나 거절(DENIED)할 수 있습니다.
 
 Parameters Try it out Name Description data _ object (body) Example Value Model { username_ string
 example: staff1 STAFF 사용자 아이디

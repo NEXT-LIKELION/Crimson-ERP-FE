@@ -194,7 +194,8 @@ const HRPage: React.FC = () => {
   const [showEmployeeRegistrationModal, setShowEmployeeRegistrationModal] = useState(false);
   const [showVacationRequestModal, setShowVacationRequestModal] = useState(false);
   const [showWorkAssignmentModal, setShowWorkAssignmentModal] = useState(false);
-  const [showOrganizationVacationCalendar, setShowOrganizationVacationCalendar] = useState(false);
+  // 관리자일 경우 캘린더 모달을 자동으로 열기
+  const [showOrganizationVacationCalendar, setShowOrganizationVacationCalendar] = useState(isAdmin);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [changePasswordEmployee, setChangePasswordEmployee] = useState<MappedEmployee | null>(null);
 

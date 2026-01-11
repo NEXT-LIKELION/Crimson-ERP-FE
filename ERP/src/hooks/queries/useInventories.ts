@@ -1,14 +1,40 @@
 import { useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { fetchInventories } from '../../api/inventory';
-import { Product, ProductVariant } from '../../types/product';
+import { components } from '../../types/api';
+
+// API 응답 타입 (api.d.ts의 ProductVariant 사용)
+export type ApiProductVariant = components['schemas']['ProductVariant'];
 
 // API 응답 타입 정의
 interface InventoryPageData {
-  results: ProductVariant[];
+  results: ApiProductVariant[];
   count: number;
   next: string | null;
   previous: string | null;
+}
+
+// useInventories 훅의 반환 타입 정의
+export interface UseInventoriesReturn {
+  data: ApiProductVariant[];
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => void;
+  fetchNextPage: () => Promise<void>;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  infiniteScroll: {
+    totalLoaded: number;
+    totalFiltered: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    isLoadingMore: boolean;
+  };
+  pagination: {
+    count: number;
+    next: string | null;
+    previous: string | null;
+  };
 }
 
 export const useInventories = (filters?: {
@@ -19,7 +45,7 @@ export const useInventories = (filters?: {
   max_stock?: number;
   min_sales?: number;
   max_sales?: number;
-}) => {
+}): UseInventoriesReturn => {
   const queryClient = useQueryClient();
 
   // API 파라미터명 변환
@@ -59,7 +85,7 @@ export const useInventories = (filters?: {
       const finalParams = {
         ...apiFilters,
         page: pageParam,
-        page_size: 20, // 항상 page_size 포함
+        // page_size는 API 기본값 10 사용
       };
       const response = await fetchInventories(finalParams);
       return response.data;
@@ -88,27 +114,29 @@ export const useInventories = (filters?: {
   }, [query.data?.pages]);
 
   // 프론트엔드 상태 필터링 적용 (점진적으로 서버로 이동 예정)
-  const filteredData = useMemo(() => {
-    return allData.filter((item: Product) => {
-      // 상태 필터 확인 (나머지 필터는 이미 서버에서 처리됨)
-      if (frontendStatus && frontendStatus !== '모든 상태') {
-        const stock = item.stock;
-        const minStock = item.min_stock || 0;
+  const filteredData = useMemo(
+    () =>
+      allData.filter((item: ApiProductVariant) => {
+        // 상태 필터 확인 (나머지 필터는 이미 서버에서 처리됨)
+        if (frontendStatus && frontendStatus !== '모든 상태') {
+          const stock = item.stock;
+          const minStock = item.min_stock || 0;
 
-        let status = '정상';
-        if (stock === 0) {
-          status = '품절';
-        } else if ((stock ?? 0) < minStock) {
-          status = '재고부족';
-        }
+          let status = '정상';
+          if (Number(stock) === 0) {
+            status = '품절';
+          } else if ((Number(stock) || 0) < minStock) {
+            status = '재고부족';
+          }
 
-        if (status !== frontendStatus) {
-          return false;
+          if (status !== frontendStatus) {
+            return false;
+          }
         }
-      }
-      return true;
-    });
-  }, [allData, frontendStatus]);
+        return true;
+      }),
+    [allData, frontendStatus]
+  );
 
   // 전체 개수 계산
   const totalCount = query.data?.pages?.[0]?.count ?? 0;
@@ -129,7 +157,7 @@ export const useInventories = (filters?: {
       const finalParams = {
         ...apiFilters,
         page: nextPageParam,
-        page_size: 20,
+        // page_size는 API 기본값 10 사용
       };
       const response = await fetchInventories(finalParams);
 

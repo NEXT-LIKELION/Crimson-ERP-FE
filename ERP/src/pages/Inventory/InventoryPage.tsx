@@ -3,38 +3,32 @@ import GreenButton from '../../components/button/GreenButton';
 import PrimaryButton from '../../components/button/PrimaryButton';
 import SecondaryButton from '../../components/button/SecondaryButton';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { FaPlus, FaFileArrowUp, FaCodePullRequest } from 'react-icons/fa6';
-import { FaHistory, FaUndo } from 'react-icons/fa';
-import { FiInfo } from 'react-icons/fi';
+import { FaPlus, FaFileArrowUp, FaFileArrowDown } from 'react-icons/fa6';
 import InputField from '../../components/inputfield/InputField';
+import CategorySelect from '../../components/input/CategorySelect';
 import InventoryTable from '../../components/inventorytable/InventoryTable';
-import { useInventories } from '../../hooks/queries/useInventories';
+import VariantStatusTable from '../../components/table/VariantStatusTable';
+import Pagination from '../../components/pagination/pagination';
+import { useInventories, type ApiProductVariant } from '../../hooks/queries/useInventories';
+import { useVariantStatus } from '../../hooks/queries/useVariantStatus';
 import {
   deleteProductVariant,
   updateInventoryVariant,
-  mergeVariants,
-  fetchAllInventoriesForMerge,
   fetchFilteredInventoriesForExport,
   fetchCategories,
+  uploadVariantStatusExcel,
+  downloadVariantStatusExcel,
+  fetchVariantDetail,
 } from '../../api/inventory';
 import { useSearchParams } from 'react-router-dom';
 import EditProductModal from '../../components/modal/EditProductModal';
 import AddProductModal from '../../components/modal/AddProductModal';
-import MergeVariantsModal from '../../components/modal/MergeVariantsModal';
 import StockAdjustmentModal from '../../components/modal/StockAdjustmentModal';
-import StockHistoryModal from '../../components/modal/StockHistoryModal';
-import InventoryRollbackModal from '../../components/modal/InventoryRollbackModal';
-import InventoryTabs from '../../components/tabs/InventoryTabs';
-import { Product, InventorySnapshot } from '../../types/product';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import { useQueryClient } from '@tanstack/react-query';
-import { uploadInventoryExcel } from '../../api/upload';
+import { Product, ProductVariantStatus } from '../../types/product';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import * as XLSX from 'xlsx';
-import { useAdjustStock } from '../../hooks/queries/useStockAdjustment';
-import { useInventorySnapshots } from '../../hooks/queries/useInventorySnapshots';
-import { getAllChannelUpdateDates, detectUploadChannel } from '../../utils/snapshotAnalyzer';
 import { getErrorMessage } from '../../utils/errorHandling';
 
 const InventoryPage = () => {
@@ -43,86 +37,28 @@ const InventoryPage = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [isAddModalOpen, setAddModalOpen] = useState(false);
-  const [isMergeModalOpen, setMergeModalOpen] = useState(false);
   const [isStockAdjustModalOpen, setStockAdjustModalOpen] = useState(false);
-  const [isStockHistoryModalOpen, setStockHistoryModalOpen] = useState(false);
-  const [isRollbackModalOpen, setRollbackModalOpen] = useState(false);
-  const [isPOSUploading, setIsPOSUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'offline' | 'online'>('all');
+  const [isStatusExcelUploading, setIsStatusExcelUploading] = useState(false);
+  const [isStatusExcelDownloading, setIsStatusExcelDownloading] = useState(false);
+  const [isUploadDateModalOpen, setIsUploadDateModalOpen] = useState(false);
+  const [uploadYear, setUploadYear] = useState(new Date().getFullYear());
+  const [uploadMonth, setUploadMonth] = useState(new Date().getMonth() + 1);
 
-  // POS 마지막 업데이트 날짜 조회 (기존 방식 유지)
-  const { data: snapshotsData } = useInventorySnapshots({ page: 1 });
-
-  // 스냅샷에 채널 정보 추가 (기존 데이터 활용)
-  const snapshotsWithChannel = useMemo(() => {
-    if (!snapshotsData?.results || snapshotsData.results.length === 0) {
-      return [];
+  // ESC 키로 업로드 모달 닫기
+  useEscapeKey(() => {
+    if (isUploadDateModalOpen) {
+      setIsUploadDateModalOpen(false);
     }
+  });
 
-    const snapshots = snapshotsData.results;
+  // 월별 재고 현황 관련 state
+  const [viewMode, setViewMode] = useState<'variant' | 'status'>('variant'); // 'variant': 기존 뷰, 'status': 월별 현황
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [statusSelectedVariantCode, setStatusSelectedVariantCode] = useState<string | null>(null);
+  const [currentStatusPage, setCurrentStatusPage] = useState(1); // 월별 재고 현황 페이지 번호
+  const [statusPageSize, setStatusPageSize] = useState(10); // 월별 재고 현황 페이지당 항목 수
 
-    return snapshots.map((snapshot: InventorySnapshot) => {
-      const detectedChannel = detectUploadChannel(snapshot);
-
-      return {
-        ...snapshot,
-        detectedChannel,
-      };
-    });
-  }, [snapshotsData]);
-
-  const channelUpdateDates = useMemo(() => {
-    return getAllChannelUpdateDates(snapshotsWithChannel);
-  }, [snapshotsWithChannel]);
-
-  const lastUpdateDates = useMemo(() => {
-    const formatDate = (dateString: string | null) => {
-      if (!dateString) return null;
-      const date = new Date(dateString);
-      return isNaN(date.getTime()) ? null : format(date, 'yyyy-MM-dd', { locale: ko });
-    };
-
-    const result = {
-      onlineDate: formatDate(channelUpdateDates.onlineDate),
-      offlineDate: formatDate(channelUpdateDates.offlineDate),
-      allDate: formatDate(channelUpdateDates.allDate),
-    };
-
-    return result;
-  }, [channelUpdateDates]);
-
-  // 현재 탭에 따른 업데이트 날짜 결정
-  const currentUpdateDate = useMemo(() => {
-    if (activeTab === 'all') {
-      // 전체 탭인 경우 온라인/오프라인 날짜 객체 반환
-      const result: { onlineDate?: string; offlineDate?: string } = {};
-      if (lastUpdateDates.onlineDate) result.onlineDate = lastUpdateDates.onlineDate;
-      if (lastUpdateDates.offlineDate) result.offlineDate = lastUpdateDates.offlineDate;
-      return Object.keys(result).length > 0 ? result : undefined;
-    } else if (activeTab === 'online') {
-      return lastUpdateDates.onlineDate || undefined;
-    } else if (activeTab === 'offline') {
-      return lastUpdateDates.offlineDate || undefined;
-    }
-    return undefined;
-  }, [activeTab, lastUpdateDates]);
-
-  const handleTabChange = (tab: 'all' | 'offline' | 'online') => {
-    setActiveTab(tab);
-
-    // 탭 변경 시 현재 필터에 채널 정보 추가/제거
-    const newFilters = { ...appliedFilters };
-    if (tab === 'all') {
-      // 전체 탭이면 채널 필터 제거
-      delete newFilters.channel;
-    } else {
-      // 채널 필터링 활성화
-      newFilters.channel = tab;
-    }
-
-    setAppliedFilters(newFilters);
-    updateURL(newFilters);
-  };
   const [selectedVariantForStock, setSelectedVariantForStock] = useState<{
     variant_code: string;
     product_id: string;
@@ -132,20 +68,16 @@ const InventoryPage = () => {
     min_stock: number;
   } | null>(null);
   const [productName, setProductName] = useState('');
+  const [bigCategory, setBigCategory] = useState('');
+  const [middleCategory, setMiddleCategory] = useState('');
   const [category, setCategory] = useState('');
   const [status, setStatus] = useState('');
-  const [minStock, setMinStock] = useState('0');
-  const [maxStock, setMaxStock] = useState('1000');
-  const [minSales, setMinSales] = useState('0');
-  const [maxSales, setMaxSales] = useState('5000000');
   const [appliedFilters, setAppliedFilters] = useState<{
     product_name?: string;
+    big_category?: string;
+    middle_category?: string;
     category?: string;
     status?: string;
-    min_stock?: number;
-    max_stock?: number;
-    min_sales?: number;
-    max_sales?: number;
     channel?: string;
   }>({});
 
@@ -156,40 +88,30 @@ const InventoryPage = () => {
     if (isInitialized) return; // 이미 초기화되었으면 실행하지 않음
 
     const urlName = searchParams.get('product_name') || '';
+    const urlBigCategory = searchParams.get('big_category') || '';
+    const urlMiddleCategory = searchParams.get('middle_category') || '';
     const urlCategory = searchParams.get('category') || '';
     const urlStatus = searchParams.get('status') || '';
-    const urlMinStock = searchParams.get('min_stock') || '0';
-    const urlMaxStock = searchParams.get('max_stock') || '1000';
-    const urlMinSales = searchParams.get('min_sales') || '0';
-    const urlMaxSales = searchParams.get('max_sales') || '5000000';
 
     setProductName(urlName);
-    setCategory(urlCategory === '모든 카테고리' ? '' : urlCategory);
+    setBigCategory(urlBigCategory);
+    setMiddleCategory(urlMiddleCategory);
+    setCategory(urlCategory);
     setStatus(urlStatus === '모든 상태' ? '' : urlStatus);
-    setMinStock(urlMinStock);
-    setMaxStock(urlMaxStock);
-    setMinSales(urlMinSales);
-    setMaxSales(urlMaxSales);
 
     const filters: Record<string, string | number> = {};
     if (urlName) filters.product_name = urlName;
-    if (urlCategory && urlCategory !== '모든 카테고리') filters.category = urlCategory;
+    if (urlBigCategory) filters.big_category = urlBigCategory;
+    if (urlMiddleCategory) filters.middle_category = urlMiddleCategory;
+    if (urlCategory) filters.category = urlCategory;
     if (urlStatus && urlStatus !== '모든 상태') filters.status = urlStatus;
-    if (urlMinStock !== '0' || urlMaxStock !== '1000') {
-      filters.min_stock = parseInt(urlMinStock);
-      filters.max_stock = parseInt(urlMaxStock);
-    }
-    if (urlMinSales !== '0' || urlMaxSales !== '5000000') {
-      filters.min_sales = parseInt(urlMinSales);
-      filters.max_sales = parseInt(urlMaxSales);
-    }
 
     setAppliedFilters(filters);
     setIsInitialized(true);
   }, [searchParams, isInitialized]);
 
   const {
-    data,
+    data: rawData,
     isLoading,
     error,
     refetch,
@@ -199,46 +121,67 @@ const InventoryPage = () => {
     infiniteScroll,
   } = useInventories(appliedFilters);
 
-  const adjustStockMutation = useAdjustStock();
+  // data 타입을 명시적으로 보장 (ApiProductVariant[])
+  const data: ApiProductVariant[] = useMemo(() => rawData ?? [], [rawData]);
 
-  // 병합 모달용 전체 데이터 (모든 페이지 데이터 합치기)
-  const [allMergeData, setAllMergeData] = useState<unknown[]>([]);
-  const [isMergeDataLoading, setIsMergeDataLoading] = useState(false);
+  // 월별 재고 현황 데이터 조회
+  const { data: variantStatusData, isLoading: isStatusLoading } = useVariantStatus({
+    year: selectedYear,
+    month: selectedMonth,
+    page: currentStatusPage,
+    page_size: statusPageSize,
+  });
 
-  // 카테고리 목록 상태 관리
-  const [categoryOptions, setCategoryOptions] = useState<string[]>(['모든 카테고리']);
-
-  // 카테고리 목록 불러오기
-  const loadCategories = async () => {
-    try {
-      const response = await fetchCategories();
-      const categories = response.data || [];
-      setCategoryOptions(['모든 카테고리', ...categories.sort()]);
-    } catch (error) {
-      console.error('카테고리 목록 로드 실패:', error);
-      setCategoryOptions(['모든 카테고리']);
-    }
-  };
-
-  // 컴포넌트 마운트 시 카테고리 목록 로드
+  // 년/월 변경 시 페이지를 1로 리셋
   useEffect(() => {
-    loadCategories();
-  }, []);
-
-  // 병합 모달이 열릴 때만 데이터 로드 (lazy loading)
-  const loadMergeData = async () => {
-    if (allMergeData.length === 0) {
-      setIsMergeDataLoading(true);
-      try {
-        const allData = await fetchAllInventoriesForMerge();
-        setAllMergeData(allData);
-      } catch (error) {
-        alert('전체 데이터를 불러오는 중 오류가 발생했습니다: ' + getErrorMessage(error));
-      } finally {
-        setIsMergeDataLoading(false);
-      }
+    if (viewMode === 'status') {
+      setCurrentStatusPage(1);
     }
-  };
+  }, [selectedYear, selectedMonth, viewMode]);
+
+  // 월별 재고 현황에서 선택된 variant 상세 정보 조회
+  const { data: statusSelectedVariantDetail } = useQuery({
+    queryKey: ['variantDetail', statusSelectedVariantCode],
+    queryFn: () => fetchVariantDetail(statusSelectedVariantCode!),
+    enabled: !!statusSelectedVariantCode,
+    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
+  });
+
+  // 카테고리 목록 조회 (React Query 사용)
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
+    gcTime: 1000 * 60 * 10, // 10분간 가비지 컬렉션 방지
+  });
+
+  // 카테고리 옵션 처리
+  const bigCategoryOptions = useMemo(() => {
+    const data =
+      (categoriesData?.data as
+        | { big_categories?: string[]; middle_categories?: string[]; categories?: string[] }
+        | undefined) || {};
+    const bigCategories = data.big_categories || [];
+    return Array.isArray(bigCategories) ? [...new Set(bigCategories)].sort() : [];
+  }, [categoriesData]);
+
+  const middleCategoryOptions = useMemo(() => {
+    const data =
+      (categoriesData?.data as
+        | { big_categories?: string[]; middle_categories?: string[]; categories?: string[] }
+        | undefined) || {};
+    const middleCategories = data.middle_categories || [];
+    return Array.isArray(middleCategories) ? [...new Set(middleCategories)].sort() : [];
+  }, [categoriesData]);
+
+  const categoryOptions = useMemo(() => {
+    const data =
+      (categoriesData?.data as
+        | { big_categories?: string[]; middle_categories?: string[]; categories?: string[] }
+        | undefined) || {};
+    const categories = data.categories || [];
+    return Array.isArray(categories) ? [...new Set(categories)].sort() : [];
+  }, [categoriesData]);
 
   // URL 업데이트 함수 (페이지 파라미터 제거)
   const updateURL = useCallback(
@@ -246,16 +189,11 @@ const InventoryPage = () => {
       const params = new URLSearchParams();
 
       if (newFilters.product_name) params.set('product_name', String(newFilters.product_name));
+      if (newFilters.big_category) params.set('big_category', String(newFilters.big_category));
+      if (newFilters.middle_category)
+        params.set('middle_category', String(newFilters.middle_category));
       if (newFilters.category) params.set('category', String(newFilters.category));
       if (newFilters.status) params.set('status', String(newFilters.status));
-      if (newFilters.min_stock !== undefined)
-        params.set('min_stock', newFilters.min_stock.toString());
-      if (newFilters.max_stock !== undefined)
-        params.set('max_stock', newFilters.max_stock.toString());
-      if (newFilters.min_sales !== undefined)
-        params.set('min_sales', newFilters.min_sales.toString());
-      if (newFilters.max_sales !== undefined)
-        params.set('max_sales', newFilters.max_sales.toString());
 
       // edit 파라미터는 유지
       const editId = searchParams.get('edit');
@@ -267,33 +205,55 @@ const InventoryPage = () => {
   );
 
   const editId = searchParams.get('edit');
-  const selectedProduct = useMemo(() => {
+  const selectedProduct = useMemo(():
+    | (ApiProductVariant & {
+        variant_id: string;
+      })
+    | null => {
+    // 월별 재고 현황에서 선택된 variant가 있는 경우
+    if (statusSelectedVariantDetail?.data) {
+      const result = statusSelectedVariantDetail.data;
+      return {
+        ...result,
+        name: result.offline_name || result.name || '',
+        cost_price: result.cost_price || 0,
+        min_stock: result.min_stock || 0,
+        variant_id: result.variant_code || '',
+        description: result.description || '',
+        memo: result.memo || '',
+        suppliers: result.suppliers || '',
+      };
+    }
+
+    // 기존 상품 관리에서 선택된 variant가 있는 경우
     if (!data || !editId) return null;
     // 백엔드에서 이미 평면화된 데이터를 직접 사용
-    const result = data.find(
-      (item: { variant_code: string }) => item.variant_code === String(editId)
-    );
+    const result = data.find((item) => item.variant_code === String(editId));
     if (!result) return null;
 
     const processedResult = {
       ...result,
-      cost_price: result.cost_price || 0,
+      name: result.offline_name || '',
+      price: result.price || 0,
       min_stock: result.min_stock || 0,
-      variant_id: result.variant_code,
-      orderCount: result.order_count ?? 0,
-      returnCount: result.return_count ?? 0,
-      totalSales: result.sales ? `${result.sales.toLocaleString()}원` : '0원',
+      variant_id: result.variant_code || '',
       description: result.description || '',
       memo: result.memo || '',
-      suppliers: result.suppliers || [],
     };
 
     return processedResult;
-  }, [data, editId]);
+  }, [data, editId, statusSelectedVariantDetail]);
 
   const handleCloseModal = () => {
-    searchParams.delete('edit');
-    setSearchParams(searchParams);
+    // 기존 상품 관리에서 열린 모달인 경우
+    if (editId) {
+      searchParams.delete('edit');
+      setSearchParams(searchParams);
+    }
+    // 월별 재고 현황에서 열린 모달인 경우
+    if (statusSelectedVariantCode) {
+      setStatusSelectedVariantCode(null);
+    }
   };
 
   const handleAddSave = async () => {
@@ -303,6 +263,7 @@ const InventoryPage = () => {
       await queryClient.invalidateQueries({ queryKey: ['productOptions'] });
       await queryClient.invalidateQueries({ queryKey: ['products'] });
       await queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      await queryClient.invalidateQueries({ queryKey: ['categories'] }); // 카테고리 목록도 새로고침
 
       // 데이터 새로고침
       await refetch();
@@ -312,23 +273,20 @@ const InventoryPage = () => {
     }
   };
 
-  const handleUpdateSave = async (updatedProduct: Product) => {
+  const handleUpdateSave = async (updatedProduct: Product | ApiProductVariant) => {
     try {
-      // variant_code를 우선 사용하고, 없으면 variant_id 사용
-      const variantIdentifier = updatedProduct.variant_code || updatedProduct.variant_id;
+      // variant_code를 우선 사용하고, 없으면 variant_id 사용 (Product 타입 호환성)
+      const variantIdentifier =
+        updatedProduct.variant_code ||
+        ('variant_id' in updatedProduct ? updatedProduct.product_id : undefined);
       if (!variantIdentifier) {
         throw new Error('variant 식별자를 찾을 수 없습니다.');
       }
 
       // readOnly 필드들만 제외
-      const { sales, cost_price, order_count, return_count, stock, ...editableFields } =
-        updatedProduct;
+      const { stock, ...editableFields } = updatedProduct;
 
       // readOnly 필드들은 사용되지 않지만 구조분해할당으로 제외하기 위해 필요
-      void sales;
-      void cost_price;
-      void order_count;
-      void return_count;
       void stock;
 
       // API에 전송할 수정 가능한 필드들 (suppliers 포함)
@@ -349,6 +307,16 @@ const InventoryPage = () => {
       alert('상품이 성공적으로 수정되었습니다.');
       handleCloseModal();
       await queryClient.invalidateQueries({ queryKey: ['inventories'] });
+      await queryClient.invalidateQueries({ queryKey: ['categories'] }); // 카테고리 목록도 새로고침
+      await queryClient.invalidateQueries({
+        queryKey: ['variantDetail', statusSelectedVariantCode],
+      }); // 상세 정보도 새로고침
+      if (statusSelectedVariantCode) {
+        // 월별 재고 현황도 새로고침
+        await queryClient.invalidateQueries({
+          queryKey: ['variantStatus', selectedYear, selectedMonth],
+        });
+      }
       await refetch();
     } catch (err) {
       alert('상품 수정 중 오류가 발생했습니다: ' + getErrorMessage(err));
@@ -388,65 +356,206 @@ const InventoryPage = () => {
     }
   };
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const statusExcelInputRef = useRef<HTMLInputElement>(null);
 
-  const handlePOSButtonClick = () => {
-    fileInputRef.current?.click();
+  // 월별 재고 현황 엑셀 업로드 핸들러
+  const handleStatusExcelButtonClick = () => {
+    // 업로드할 년/월을 현재 선택된 값으로 초기화
+    setUploadYear(selectedYear);
+    setUploadMonth(selectedMonth);
+    setIsUploadDateModalOpen(true);
   };
 
-  const handlePOSUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 년/월 선택 모달에서 확인 버튼 클릭 시 파일 선택 다이얼로그 열기
+  const handleUploadDateConfirm = () => {
+    setIsUploadDateModalOpen(false);
+    // 모달이 닫힌 후 파일 선택 다이얼로그 열기
+    setTimeout(() => {
+      statusExcelInputRef.current?.click();
+    }, 100);
+  };
+
+  const handleStatusExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsPOSUploading(true);
-    try {
-      await uploadInventoryExcel(file);
-      alert('POS 데이터가 성공적으로 업로드되었습니다.');
-      // 재고 데이터와 스냅샷 캐시 무효화
-      queryClient.invalidateQueries({ queryKey: ['inventories'] });
-      queryClient.invalidateQueries({ queryKey: ['inventorySnapshots'] });
-      await refetch();
-    } catch (err) {
-      alert('POS 데이터 업로드 중 오류 발생: ' + getErrorMessage(err));
-    } finally {
-      setIsPOSUploading(false);
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+      alert('Excel 파일(.xlsx 또는 .xls)만 업로드 가능합니다.');
       e.target.value = '';
+      return;
+    }
+
+    setIsStatusExcelUploading(true);
+    try {
+      // 모달에서 선택한 년/월 사용
+      await uploadVariantStatusExcel(file, uploadYear, uploadMonth);
+      alert(`${uploadYear}년 ${uploadMonth}월 재고 데이터가 성공적으로 업로드되었습니다.`);
+
+      // 업로드한 년/월의 재고 현황 데이터 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['variantStatus', uploadYear, uploadMonth] });
+
+      // 업로드한 년/월이 현재 조회 중인 년/월과 다르면 현재 조회 년/월도 새로고침
+      if (uploadYear !== selectedYear || uploadMonth !== selectedMonth) {
+        queryClient.invalidateQueries({ queryKey: ['variantStatus', selectedYear, selectedMonth] });
+      }
+    } catch (err) {
+      alert('월별 재고 현황 엑셀 업로드 중 오류 발생: ' + getErrorMessage(err));
+    } finally {
+      setIsStatusExcelUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  // 월별 재고 현황 엑셀 다운로드 핸들러
+  const handleStatusExcelDownload = async () => {
+    setIsStatusExcelDownloading(true);
+    try {
+      const response = await downloadVariantStatusExcel({
+        year: selectedYear,
+        month: selectedMonth,
+      });
+
+      // JSON 데이터를 엑셀로 변환
+      const data = response.data;
+
+      if (!data || data.length === 0) {
+        alert('다운로드할 데이터가 없습니다.');
+        return;
+      }
+
+      // 엑셀에 표시할 데이터 변환 (이미지 기준으로 컬럼 순서 조정)
+      // 이미지: A=대분류, B=중분류, C=카테고리, D=설명, E=온라인명, F=오프라인명, G=옵션, H=상세옵션, I=상품코드
+      const excelData = data.map((item: ProductVariantStatus) => ({
+        대분류: item.big_category,
+        중분류: item.middle_category,
+        카테고리: item.category,
+        설명: item.description,
+        온라인명: item.online_name,
+        오프라인명: item.offline_name,
+        옵션: item.option,
+        상세옵션: item.detail_option,
+        상품코드: item.product_code,
+        품목코드: item.variant_code,
+        월초창고재고: item.warehouse_stock_start || 0,
+        월초매장재고: item.store_stock_start || 0,
+        기초재고: item.initial_stock || 0,
+        당월입고: item.inbound_quantity || 0,
+        매장판매: item.store_sales || 0,
+        쇼핑몰판매: item.online_sales || 0,
+        판매합계: item.total_sales || 0,
+        재고조정: item.adjustment_quantity || 0,
+        재고조정사유: item.adjustment_status || '',
+        기말재고: item.ending_stock || 0,
+      }));
+
+      // 워크시트 생성
+      const tempWorksheet = XLSX.utils.json_to_sheet(excelData);
+
+      // 워크시트의 모든 셀을 3행 아래로 이동
+      const range = XLSX.utils.decode_range(tempWorksheet['!ref'] || 'A1');
+
+      // 기존 셀 데이터를 새 위치로 복사
+      const worksheet: XLSX.WorkSheet = {};
+      for (let R = range.s.r; R <= range.e.r; R++) {
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          const newCellAddress = XLSX.utils.encode_cell({ r: R + 3, c: C });
+          if (tempWorksheet[cellAddress]) {
+            worksheet[newCellAddress] = tempWorksheet[cellAddress];
+          }
+        }
+      }
+
+      // 병합 정보도 이동
+      if (tempWorksheet['!merges']) {
+        worksheet['!merges'] = tempWorksheet['!merges'].map((merge: XLSX.Range) => ({
+          s: { r: merge.s.r + 3, c: merge.s.c },
+          e: { r: merge.e.r + 3, c: merge.e.c },
+        }));
+      }
+
+      // 1행: 제목 추가
+      const title = `크림슨스토어재고표(${selectedYear}년 ${selectedMonth}월말 현재)`;
+      worksheet['A1'] = { t: 's', v: title };
+
+      // I열(9번째 컬럼, 인덱스 8) 1행에 '자동계산셀' 추가
+      worksheet['I1'] = { t: 's', v: '자동계산셀' };
+
+      // 제목 셀 병합 (A1부터 H1까지만 병합, I1은 제외)
+      if (!worksheet['!merges']) worksheet['!merges'] = [];
+      // A~H는 0~7 인덱스 (8개 컬럼)
+      worksheet['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }); // A1~H1 병합
+
+      // 2행: 빈 행 (공간 확보)
+
+      // 3행: 헤더 행은 json_to_sheet가 자동으로 생성한 것이 4행에 있음
+
+      // 새 범위 설정 (1행부터 마지막 행까지 포함하도록, 제목과 자동계산셀 포함)
+      const finalRange = {
+        s: { r: 0, c: 0 }, // 1행부터 시작
+        e: { r: range.e.r + 3, c: range.e.c }, // 마지막 데이터 행
+      };
+      worksheet['!ref'] = XLSX.utils.encode_range(finalRange);
+      worksheet['!cols'] = tempWorksheet['!cols'];
+
+      // 컬럼 너비 설정 (이미지 기준: A=대분류, B=중분류, ..., I=상품코드)
+      const columnWidths = [
+        { wch: 8 }, // A: 대분류
+        { wch: 8 }, // B: 중분류
+        { wch: 10 }, // C: 카테고리
+        { wch: 20 }, // D: 설명
+        { wch: 25 }, // E: 온라인명
+        { wch: 25 }, // F: 오프라인명
+        { wch: 15 }, // G: 옵션
+        { wch: 10 }, // H: 상세옵션
+        { wch: 12 }, // I: 상품코드
+        { wch: 15 }, // J: 품목코드
+        { wch: 12 }, // K: 월초창고재고
+        { wch: 12 }, // L: 월초매장재고
+        { wch: 10 }, // M: 기초재고
+        { wch: 10 }, // N: 당월입고
+        { wch: 10 }, // O: 매장판매
+        { wch: 12 }, // P: 쇼핑몰판매
+        { wch: 10 }, // Q: 판매합계
+        { wch: 10 }, // R: 재고조정
+        { wch: 15 }, // S: 재고조정사유
+        { wch: 10 }, // T: 기말재고
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // 워크북 생성
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, `${selectedMonth}월 재고현황`);
+
+      // 파일명 생성
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const filename = `재고현황_${selectedYear}년${selectedMonth}월_${dateStr}.xlsx`;
+
+      // 파일 다운로드
+      XLSX.writeFile(workbook, filename);
+
+      alert('월별 재고 현황 엑셀 파일이 다운로드되었습니다.');
+    } catch (err) {
+      alert('월별 재고 현황 엑셀 다운로드 중 오류 발생: ' + getErrorMessage(err));
+    } finally {
+      setIsStatusExcelDownloading(false);
     }
   };
 
   const handleReset = () => {
     setProductName('');
+    setBigCategory('');
+    setMiddleCategory('');
     setCategory('');
     setStatus('');
-    setMinStock('0');
-    setMaxStock('1000');
-    setMinSales('0');
-    setMaxSales('5000000');
 
-    // 현재 탭이 전체가 아닌 경우 채널 필터는 유지
+    // 전체 탭만 사용하므로 채널 필터 없이 초기화
     const baseFilters: Record<string, string | number> = {};
-    if (activeTab !== 'all') {
-      // TODO: 백엔드 구현 후 실제 채널 필터링 추가
-      // baseFilters.channel = activeTab;
-    }
 
     setAppliedFilters(baseFilters);
     updateURL(baseFilters);
     // 필터 초기화로 자동 refetch됨
-  };
-
-  const handleMerge = async (targetCode: string, sourceCodes: string[]) => {
-    await mergeVariants({
-      target_variant_code: targetCode,
-      source_variant_codes: sourceCodes,
-    });
-    // 병합 후 모든 캐시 클리어하고 강제 새로고침
-    await queryClient.clear(); // 모든 캐시 클리어
-    await queryClient.invalidateQueries({ queryKey: ['inventories'] });
-    await refetch();
-
-    // 필터 초기화해서 최신 데이터 확인
-    setAppliedFilters({});
   };
 
   const handleExportToExcel = async () => {
@@ -454,32 +563,10 @@ const InventoryPage = () => {
       // 현재 필터링된 전체 데이터 가져오기 (페이지네이션 무시)
       let exportData: unknown[] = [];
 
-      if (Object.keys(appliedFilters).length === 0) {
-        // 필터가 없는 경우 → 전체 데이터 가져오기
-        exportData = allMergeData; // 이미 로드된 전체 데이터 사용
-      } else {
-        // 필터가 있는 경우 → api에서 처리
-        // API 파라미터명 변환
-        const exportFilters: Record<string, unknown> = { ...appliedFilters };
-        if (appliedFilters.min_stock !== undefined) {
-          exportFilters.stock_gt = appliedFilters.min_stock - 1;
-          delete exportFilters.min_stock;
-        }
-        if (appliedFilters.max_stock !== undefined) {
-          exportFilters.stock_lt = appliedFilters.max_stock + 1;
-          delete exportFilters.max_stock;
-        }
-        if (appliedFilters.min_sales !== undefined) {
-          exportFilters.sales_min = appliedFilters.min_sales;
-          delete exportFilters.min_sales;
-        }
-        if (appliedFilters.max_sales !== undefined) {
-          exportFilters.sales_max = appliedFilters.max_sales;
-          delete exportFilters.max_sales;
-        }
+      // API 파라미터명 변환
+      const exportFilters: Record<string, unknown> = { ...appliedFilters };
 
-        exportData = await fetchFilteredInventoriesForExport(exportFilters);
-      }
+      exportData = await fetchFilteredInventoriesForExport(exportFilters);
 
       if (!exportData || exportData.length === 0) {
         alert('내보낼 데이터가 없습니다.');
@@ -495,7 +582,6 @@ const InventoryPage = () => {
         카테고리: item.category,
         옵션: item.option,
         판매가: item.price,
-        매입가: item.cost_price,
         재고수량: Math.max(0, Number(item.stock) || 0),
         최소재고: Math.max(0, Number(item.min_stock) || 0),
         상태:
@@ -504,9 +590,6 @@ const InventoryPage = () => {
             : (item.stock || 0) < (item.min_stock || 0)
               ? '재고부족'
               : '정상',
-        결제수량: item.order_count,
-        환불수량: item.return_count,
-        판매합계: item.sales,
         설명: item.description,
         메모: item.memo,
         '주요 공급업체': (() => {
@@ -527,13 +610,9 @@ const InventoryPage = () => {
         { wch: 10 }, // 카테고리
         { wch: 15 }, // 옵션
         { wch: 10 }, // 판매가
-        { wch: 10 }, // 매입가
         { wch: 8 }, // 재고수량
         { wch: 8 }, // 최소재고
         { wch: 8 }, // 상태
-        { wch: 8 }, // 결제수량
-        { wch: 8 }, // 환불수량
-        { wch: 12 }, // 판매합계
         { wch: 30 }, // 설명
         { wch: 20 }, // 메모
         { wch: 15 }, // 주요 공급업체
@@ -557,224 +636,270 @@ const InventoryPage = () => {
     }
   };
 
-  // 재고 조정 핸들러
-  const handleStockClick = (variant: {
-    variant_code: string;
-    product_id: string;
-    name: string;
-    option: string;
-    current_stock: number;
-    min_stock: number;
-  }) => {
-    setSelectedVariantForStock(variant);
-    setStockAdjustModalOpen(true);
-  };
-
-  const handleStockAdjust = async (
-    variantCode: string,
-    data: {
-      actual_stock: number;
-      reason: string;
-      updated_by: string;
-    }
-  ) => {
-    await adjustStockMutation.mutateAsync({ variantCode, data });
-  };
-
   const handleStockAdjustSuccess = () => {
     refetch();
     // EditProductModal이 열려있는 경우 해당 product 데이터도 업데이트
     if (editId && selectedVariantForStock) {
       queryClient.invalidateQueries({ queryKey: ['inventories'] });
     }
+    // 월별 재고 현황 데이터도 새로고침
+    queryClient.invalidateQueries({ queryKey: ['variantStatus', selectedYear, selectedMonth] });
+  };
+
+  // 월별 재고 현황에서 재고조정 클릭 핸들러
+  const handleStatusStockAdjust = (item: ProductVariantStatus, year: number, month: number) => {
+    // ProductVariantStatus를 StockAdjustmentModal에 필요한 형식으로 변환
+    // variant_detail을 먼저 조회하여 최신 재고 정보 가져오기
+    fetchVariantDetail(item.variant_code || '')
+      .then((response) => {
+        const variantDetail = response.data;
+        setSelectedVariantForStock({
+          variant_code: item.variant_code || '',
+          product_id: item.product_code || '',
+          name: item.offline_name || item.online_name || '',
+          option: item.option || '',
+          current_stock: variantDetail?.stock ?? 0,
+          min_stock: 0, // ProductVariantStatus에는 min_stock이 없으므로 0으로 설정
+        });
+        setStockAdjustModalOpen(true);
+        // year, month는 StockAdjustmentModal에 props로 전달됨 (selectedYear, selectedMonth 사용)
+      })
+      .catch((error) => {
+        console.error('상품 상세 정보 조회 실패:', error);
+        // 조회 실패 시에도 기본 정보로 모달 열기
+        setSelectedVariantForStock({
+          variant_code: item.variant_code || '',
+          product_id: item.product_code || '',
+          name: item.offline_name || item.online_name || '',
+          option: item.option || '',
+          current_stock: 0,
+          min_stock: 0,
+        });
+        setStockAdjustModalOpen(true);
+        // year, month는 StockAdjustmentModal에 props로 전달됨 (selectedYear, selectedMonth 사용)
+      });
+    // year, month 파라미터는 VariantStatusTable에서 전달되지만,
+    // 실제로는 selectedYear, selectedMonth를 사용하므로 여기서는 사용하지 않음
+    void year;
+    void month;
+  };
+
+  // 월별 재고 현황 테이블에서 상품 클릭 핸들러
+  const handleStatusRowClick = (variantCode: string) => {
+    if (!variantCode) return;
+    setStatusSelectedVariantCode(variantCode);
   };
 
   // 모든 탭에서 동일한 API 기반 데이터 사용
   const tabData = data ?? [];
+  console.log('tabData', tabData);
 
   if (error) return <p>에러가 발생했습니다!</p>;
 
   return (
-    <div className='relative p-6'>
+    <div className='min-h-[calc(100vh+10px)] w-full max-w-full overflow-hidden'>
       {isLoading && <LoadingSpinner overlay text='재고 데이터를 불러오는 중...' />}
-      {isPOSUploading && <LoadingSpinner overlay text='POS 데이터를 업로드하는 중...' />}
-      <div className='mb-4 flex items-center justify-between'>
-        <h1 className='text-2xl font-bold'>재고 관리</h1>
-        <div className='flex space-x-2'>
-          {permissions.canCreate('INVENTORY') && (
+      {isStatusExcelUploading && (
+        <LoadingSpinner overlay text='월별 재고 현황을 업로드하는 중...' />
+      )}
+      {isStatusExcelDownloading && (
+        <LoadingSpinner overlay text='월별 재고 현황을 다운로드하는 중...' />
+      )}
+      <div className='mb-4 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+        <div className='flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4'>
+          <h1 className='truncate text-xl font-bold sm:text-2xl'>재고 관리</h1>
+          {/* 뷰 모드 전환 버튼 */}
+          <div className='flex w-fit flex-shrink-0 rounded-lg border border-gray-300 bg-white'>
+            <button
+              onClick={() => setViewMode('variant')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                viewMode === 'variant'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-50'
+              } rounded-l-lg`}>
+              상품 관리
+            </button>
+            <button
+              onClick={() => setViewMode('status')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                viewMode === 'status'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-50'
+              } rounded-r-lg border-l border-gray-300`}>
+              월별 재고 현황
+            </button>
+          </div>
+        </div>
+        <div className='flex flex-shrink-0 flex-wrap gap-2'>
+          {viewMode === 'variant' && permissions.canCreate('INVENTORY') && (
             <>
               <GreenButton
                 text='상품 추가'
                 icon={<FaPlus size={16} />}
                 onClick={() => setAddModalOpen(true)}
               />
-              <SecondaryButton
-                text='상품 병합'
-                icon={<FaCodePullRequest size={16} />}
-                onClick={async () => {
-                  await loadMergeData(); // 병합 데이터 로드
-                  setMergeModalOpen(true);
-                }}
-              />
-              <SecondaryButton
-                text='재고 변경 이력'
-                icon={<FaHistory size={16} />}
-                onClick={() => setStockHistoryModalOpen(true)}
-              />
-              <SecondaryButton
-                text='POS 롤백'
-                icon={<FaUndo size={16} />}
-                onClick={() => setRollbackModalOpen(true)}
-              />
-              <div className='flex flex-col items-end gap-1'>
-                <div className='flex items-center gap-2'>
-                  <PrimaryButton
-                    text='POS 데이터 업로드'
-                    icon={<FaFileArrowUp size={16} />}
-                    onClick={handlePOSButtonClick}
-                    disabled={isPOSUploading}
-                  />
-                  <div className='group relative flex items-center'>
-                    <FiInfo
-                      className='h-4 w-4 cursor-help text-gray-500 hover:text-gray-700'
-                      aria-label='파일명 규칙 안내'
-                    />
-                    <div className='invisible absolute top-6 right-0 z-50 w-72 rounded-lg bg-gray-900 p-3 text-xs text-white shadow-lg group-hover:visible'>
-                      <div className='mb-2 font-semibold'>파일명 규칙</div>
-                      <div className='space-y-1'>
-                        <p>
-                          • 파일명에{' '}
-                          <span className='rounded bg-gray-800 px-1 font-mono'>_online</span> 또는{' '}
-                          <span className='rounded bg-gray-800 px-1 font-mono'>_offline</span>을
-                          반드시 포함해주세요
-                        </p>
-                        <p className='text-gray-300'>예시:</p>
-                        <p className='rounded bg-gray-800 px-2 py-1 font-mono text-xs'>
-                          재고_online_20250115.xlsx
-                        </p>
-                        <p className='rounded bg-gray-800 px-2 py-1 font-mono text-xs'>
-                          POS데이터_offline_0115.xlsx
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <span className='text-xs text-gray-500'>
-                  파일명: *_online.xlsx 또는 *_offline.xlsx
-                </span>
-              </div>
             </>
           )}
+
+          {/* 월별 재고 현황 모드일 때 엑셀 업로드/다운로드 버튼 */}
+          {viewMode === 'status' && permissions.canCreate('INVENTORY') && (
+            <>
+              <PrimaryButton
+                text='엑셀 업로드'
+                icon={<FaFileArrowUp size={16} />}
+                onClick={handleStatusExcelButtonClick}
+                disabled={isStatusExcelUploading || isStatusExcelDownloading}
+              />
+              <SecondaryButton
+                text='엑셀 다운로드'
+                icon={<FaFileArrowDown size={16} />}
+                onClick={handleStatusExcelDownload}
+                disabled={isStatusExcelUploading || isStatusExcelDownloading}
+              />
+            </>
+          )}
+
+          {/* 파일 입력 필드 */}
           <input
-            ref={fileInputRef}
-            id='posUploadInput'
+            ref={statusExcelInputRef}
+            id='statusExcelUploadInput'
             type='file'
             accept='.xlsx,.xls'
             className='hidden'
-            onChange={handlePOSUpload}
+            onChange={handleStatusExcelUpload}
           />
         </div>
       </div>
 
-      {/* 탭 메뉴 */}
-      <InventoryTabs activeTab={activeTab} onTabChange={handleTabChange} />
+      {/* 월별 재고 현황 모드일 때 년/월 선택 필터 */}
+      {viewMode === 'status' && (
+        <div className='mb-4 w-full min-w-0 rounded-lg border border-gray-200 bg-white p-3 sm:p-4'>
+          <div className='flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:space-x-3'>
+            <label className='text-sm font-medium text-gray-700'>조회 기간:</label>
+            <CategorySelect
+              value={`${selectedYear}년`}
+              onChange={(value) => {
+                const year = Number(value.replace('년', ''));
+                setSelectedYear(year);
+              }}
+              options={Array.from(
+                { length: 300 }, // 1900년 ~ 2199년 (총 300년)
+                (_, i) => 1900 + i
+              ).map((year) => `${year}년`)}
+              placeholder='연도 선택'
+            />
+            <CategorySelect
+              value={`${selectedMonth}월`}
+              onChange={(value) => {
+                const month = Number(value.replace('월', ''));
+                setSelectedMonth(month);
+              }}
+              options={Array.from({ length: 12 }, (_, i) => i + 1).map((month) => `${month}월`)}
+              placeholder='월 선택'
+            />
+            <span className='text-sm text-gray-500'>
+              {selectedYear}년 {selectedMonth}월 재고 현황
+            </span>
+          </div>
+        </div>
+      )}
 
-      <div className='mb-6'>
-        <InputField
-          productName={productName}
-          onProductNameChange={setProductName}
-          category={category}
-          onCategoryChange={setCategory}
-          categoryOptions={categoryOptions}
-          status={status}
-          onStatusChange={setStatus}
-          minStock={minStock}
-          onMinStockChange={setMinStock}
-          maxStock={maxStock}
-          onMaxStockChange={setMaxStock}
-          minSales={minSales}
-          onMinSalesChange={setMinSales}
-          maxSales={maxSales}
-          onMaxSalesChange={setMaxSales}
-          onSearch={() => {
-            // 유효성 검사
-            const minSalesValue = parseInt(minSales) || 0;
-            const maxSalesValue = parseInt(maxSales) || 5000000;
-            const minStockValue = parseInt(minStock) || 0;
-            const maxStockValue = maxStock ? parseInt(maxStock) : 1000;
+      {/* 검색 필터 - 상품 관리 모드일 때만 표시 */}
+      {viewMode === 'variant' && (
+        <div className='mb-6'>
+          {/* TODO: 이 부분 작동 한번 더 확인. 현재 엉망임 */}
+          <InputField
+            productName={productName}
+            onProductNameChange={setProductName}
+            bigCategory={bigCategory}
+            onBigCategoryChange={setBigCategory}
+            middleCategory={middleCategory}
+            onMiddleCategoryChange={setMiddleCategory}
+            category={category}
+            onCategoryChange={setCategory}
+            bigCategoryOptions={bigCategoryOptions}
+            middleCategoryOptions={middleCategoryOptions}
+            categoryOptions={categoryOptions}
+            status={status}
+            onStatusChange={setStatus}
+            onSearch={() => {
+              // 검색 실행
+              const newFilters: Record<string, string | number> = {};
 
-            if (minSalesValue > maxSalesValue) {
-              alert('판매합계 최소값이 최대값보다 클 수 없습니다.');
-              return;
-            }
+              // 상품명 필터
+              if (productName.trim()) {
+                newFilters.product_name = productName.trim();
+              }
 
-            if (minStockValue > maxStockValue) {
-              alert('재고수량 최소값이 최대값보다 클 수 없습니다.');
-              return;
-            }
+              // 카테고리 필터
+              if (bigCategory) {
+                newFilters.big_category = bigCategory;
+              }
+              if (middleCategory) {
+                newFilters.middle_category = middleCategory;
+              }
+              if (category) {
+                newFilters.category = category;
+              }
 
-            // 검색 실행
-            const newFilters: Record<string, string | number> = {};
+              // 상태 필터
+              if (status && status !== '모든 상태') {
+                newFilters.status = status;
+              }
 
-            // 채널 필터 (탭에 따라)
-            if (activeTab !== 'all') {
-              newFilters.channel = activeTab;
-            }
+              setAppliedFilters(newFilters);
+              updateURL(newFilters);
+            }}
+            onReset={handleReset}
+          />
+        </div>
+      )}
 
-            // 상품명 필터
-            if (productName.trim()) {
-              newFilters.product_name = productName.trim();
-            }
-
-            // 카테고리 필터
-            if (category && category !== '모든 카테고리') {
-              newFilters.category = category;
-            }
-
-            // 상태 필터
-            if (status && status !== '모든 상태') {
-              newFilters.status = status;
-            }
-
-            // 재고 필터 (기본값이 아닌 경우만)
-            const isDefaultStock = minStockValue === 0 && maxStockValue === 1000;
-            if (!isDefaultStock) {
-              newFilters.min_stock = minStockValue;
-              newFilters.max_stock = maxStockValue;
-            }
-
-            // 판매 필터 (기본값이 아닌 경우만)
-            const isDefaultSales = minSalesValue === 0 && maxSalesValue === 5000000;
-            if (!isDefaultSales) {
-              newFilters.min_sales = minSalesValue;
-              newFilters.max_sales = maxSalesValue;
-            }
-
-            setAppliedFilters(newFilters);
-            updateURL(newFilters);
-          }}
-          onReset={handleReset}
+      {/* 테이블 - 뷰 모드에 따라 다른 테이블 표시 */}
+      {viewMode === 'variant' ? (
+        <InventoryTable
+          inventories={tabData}
+          onDelete={handleVariantDelete}
+          onExportToExcel={handleExportToExcel}
+          // 무한 스크롤 관련 props
+          fetchNextPage={fetchNextPage}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          infiniteScroll={infiniteScroll}
         />
-      </div>
-
-      <InventoryTable
-        inventories={tabData}
-        onDelete={handleVariantDelete}
-        onExportToExcel={handleExportToExcel}
-        lastUpdateDate={currentUpdateDate}
-        // 무한 스크롤 관련 props
-        fetchNextPage={fetchNextPage}
-        hasNextPage={hasNextPage}
-        isFetchingNextPage={isFetchingNextPage}
-        infiniteScroll={infiniteScroll}
-      />
+      ) : (
+        <>
+          <VariantStatusTable
+            data={variantStatusData?.results || []}
+            isLoading={isStatusLoading}
+            year={selectedYear}
+            month={selectedMonth}
+            onRowClick={handleStatusRowClick}
+            onStockAdjust={handleStatusStockAdjust}
+          />
+          {/* 페이지네이션 - 월별 재고 현황 모드일 때만 표시 */}
+          {variantStatusData && variantStatusData.count > 0 && (
+            <div className='mt-4'>
+              <Pagination
+                currentPage={currentStatusPage}
+                totalItems={variantStatusData.count}
+                itemsPerPage={statusPageSize}
+                onPageChange={(page) => setCurrentStatusPage(page)}
+                onItemsPerPageChange={(newPageSize) => {
+                  setStatusPageSize(newPageSize);
+                  setCurrentStatusPage(1); // 페이지 크기 변경 시 첫 페이지로 리셋
+                }}
+              />
+            </div>
+          )}
+        </>
+      )}
       {selectedProduct && (
         <EditProductModal
-          isOpen={!!editId}
+          isOpen={!!editId || !!statusSelectedVariantCode}
           onClose={handleCloseModal}
-          product={selectedProduct}
+          product={selectedProduct as Product}
           onSave={handleUpdateSave}
-          onStockAdjustClick={handleStockClick}
         />
       )}
       {isAddModalOpen && (
@@ -782,14 +907,6 @@ const InventoryPage = () => {
           isOpen={isAddModalOpen}
           onClose={() => setAddModalOpen(false)}
           onSave={handleAddSave}
-        />
-      )}
-      {isMergeModalOpen && (
-        <MergeVariantsModal
-          isOpen={isMergeModalOpen}
-          onClose={() => setMergeModalOpen(false)}
-          variants={allMergeData as Product[]}
-          onMerge={handleMerge}
         />
       )}
       {isStockAdjustModalOpen && selectedVariantForStock && (
@@ -800,27 +917,66 @@ const InventoryPage = () => {
             setSelectedVariantForStock(null);
           }}
           variant={selectedVariantForStock}
-          onAdjust={handleStockAdjust}
           onSuccess={handleStockAdjustSuccess}
-        />
-      )}
-      {isStockHistoryModalOpen && (
-        <StockHistoryModal
-          isOpen={isStockHistoryModalOpen}
-          onClose={() => setStockHistoryModalOpen(false)}
-        />
-      )}
-      {isRollbackModalOpen && (
-        <InventoryRollbackModal
-          isOpen={isRollbackModalOpen}
-          onClose={() => setRollbackModalOpen(false)}
-          onSuccess={refetch}
+          year={viewMode === 'status' ? selectedYear : undefined}
+          month={viewMode === 'status' ? selectedMonth : undefined}
         />
       )}
 
-      {/* 병합 데이터 로딩 스피너 */}
-      {isMergeDataLoading && (
-        <LoadingSpinner overlay={true} text='병합용 데이터를 불러오는 중...' />
+      {/* 엑셀 업로드 년/월 선택 모달 */}
+      {isUploadDateModalOpen && (
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm'>
+          <div className='w-full max-w-md rounded-lg bg-white p-6 shadow-xl'>
+            <div className='mb-4 flex items-center justify-between'>
+              <h2 className='text-xl font-semibold text-gray-900'>엑셀 업로드 기간 선택</h2>
+              <button
+                onClick={() => setIsUploadDateModalOpen(false)}
+                className='text-gray-400 hover:text-gray-600'>
+                <svg className='h-6 w-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M6 18L18 6M6 6l12 12'
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className='space-y-4'>
+              <div>
+                <label className='mb-2 block text-sm font-medium text-gray-700'>연도</label>
+                <CategorySelect
+                  value={`${uploadYear}년`}
+                  onChange={(value) => {
+                    const year = Number(value.replace('년', ''));
+                    setUploadYear(year);
+                  }}
+                  options={Array.from(
+                    { length: 300 }, // 1900년 ~ 2199년 (총 300년)
+                    (_, i) => 1900 + i
+                  ).map((year) => `${year}년`)}
+                  placeholder='연도 선택'
+                />
+              </div>
+              <div>
+                <label className='mb-2 block text-sm font-medium text-gray-700'>월</label>
+                <CategorySelect
+                  value={`${uploadMonth}월`}
+                  onChange={(value) => {
+                    const month = Number(value.replace('월', ''));
+                    setUploadMonth(month);
+                  }}
+                  options={Array.from({ length: 12 }, (_, i) => i + 1).map((month) => `${month}월`)}
+                  placeholder='월 선택'
+                />
+              </div>
+            </div>
+            <div className='mt-6 flex justify-end space-x-3'>
+              <SecondaryButton text='취소' onClick={() => setIsUploadDateModalOpen(false)} />
+              <PrimaryButton text='확인' onClick={handleUploadDateConfirm} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

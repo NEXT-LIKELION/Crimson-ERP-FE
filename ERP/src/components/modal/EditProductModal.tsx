@@ -1,69 +1,105 @@
 import { useEffect, useState } from 'react';
 import { FiX, FiAlertTriangle } from 'react-icons/fi';
 import TextInput from '../input/TextInput';
-import SelectInput from '../input/SelectInput';
-import { FaBoxArchive, FaClipboardList } from 'react-icons/fa6';
-import { BsCoin } from 'react-icons/bs';
-import { useSuppliers } from '../../hooks/queries/useSuppliers';
-import { Product, Supplier } from '../../types/product';
+import CategorySelect from '../input/CategorySelect';
+import PrimaryButton from '../button/PrimaryButton';
+import SecondaryButton from '../button/SecondaryButton';
+import { Product } from '../../types/product';
+import type { ApiProductVariant } from '../../hooks/queries/useInventories';
+
+// Product 타입 확장 (API 응답 필드 포함)
+type ExtendedProduct = Product & {
+  offline_name?: string;
+  online_name?: string;
+  big_category?: string;
+  middle_category?: string;
+  detail_option?: string;
+};
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { useQuery } from '@tanstack/react-query';
+import { fetchVariantDetail, fetchCategories } from '../../api/inventory';
 
 interface EditProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  product: Product;
-  onSave: (product: Product) => void;
-  onStockAdjustClick: (variant: {
-    variant_code: string;
-    product_id: string;
-    name: string;
-    option: string;
-    current_stock: number;
-    min_stock: number;
-  }) => void;
-}
-
-interface SupplierForm {
-  supplier_name: string;
-  cost_price: number;
-  is_primary: boolean;
+  product: ExtendedProduct;
+  onSave: (product: ExtendedProduct) => void;
 }
 
 interface EditForm {
   product_id: string;
-  name: string;
+  offline_name?: string;
+  online_name?: string;
+  big_category?: string;
+  middle_category?: string;
+  category?: string;
   variant_id?: number | string;
   variant_code?: string;
   option?: string;
-  stock: number;
+  detail_option?: string;
   min_stock?: number;
   price?: number | string;
-  cost_price?: number | string;
   description?: string;
   memo?: string;
-  suppliers: SupplierForm[];
   channels: string[];
 }
 
-const EditProductModal = ({
-  isOpen,
-  onClose,
-  product,
-  onSave,
-  onStockAdjustClick,
-}: EditProductModalProps) => {
-  const { data: suppliersData, isLoading: isLoadingSuppliers } = useSuppliers();
-  const supplierOptions = suppliersData?.data?.map((s: Supplier) => s.name) || [];
+const EditProductModal = ({ isOpen, onClose, product, onSave }: EditProductModalProps) => {
+  // 카테고리 목록 조회
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+    enabled: isOpen,
+  });
+
+  // 최신 variant 정보 조회
+  const { data: latestVariantData } = useQuery({
+    queryKey: ['variantDetail', product?.variant_code],
+    queryFn: () => fetchVariantDetail(product?.variant_code || ''),
+    enabled: isOpen && !!product?.variant_code,
+    staleTime: 0, // 항상 최신 데이터 가져오기
+  });
+
+  // 동적 카테고리 옵션 생성
+  const categoriesDataTyped = categoriesData?.data as
+    | { big_categories?: string[]; middle_categories?: string[]; categories?: string[] }
+    | undefined;
+  const existingCategories = categoriesDataTyped?.categories || [];
+  const categoryOptions = Array.isArray(existingCategories)
+    ? [...new Set(existingCategories)].sort()
+    : [];
+  categoryOptions.push('직접 입력');
+
+  const existingBigCategories = categoriesDataTyped?.big_categories || [];
+  const bigCategoryOptions = Array.isArray(existingBigCategories)
+    ? [...new Set(existingBigCategories)].sort()
+    : [];
+  bigCategoryOptions.push('직접 입력');
+
+  const existingMiddleCategories = categoriesDataTyped?.middle_categories || [];
+  const middleCategoryOptions = Array.isArray(existingMiddleCategories)
+    ? [...new Set(existingMiddleCategories)].sort()
+    : [];
+  middleCategoryOptions.push('직접 입력');
+
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [isCustomBigCategory, setIsCustomBigCategory] = useState(false);
+  const [isCustomMiddleCategory, setIsCustomMiddleCategory] = useState(false);
+
   const [form, setForm] = useState<EditForm>({
-    ...product,
-    stock: product.stock ?? 0,
-    suppliers: Array.isArray(product.suppliers)
-      ? product.suppliers.map((s) => ({
-          supplier_name: s.name,
-          cost_price: s.cost_price,
-          is_primary: s.is_primary,
-        }))
-      : [{ supplier_name: '', cost_price: 0, is_primary: false }],
+    product_id: product.product_id || '',
+    offline_name: product.offline_name || product.name || '',
+    online_name: product.online_name || '',
+    big_category: product.big_category || '',
+    middle_category: product.middle_category || '',
+    category: product.category || '',
+    variant_code: product.variant_code || '',
+    option: product.option || '',
+    detail_option: product.detail_option || '',
+    min_stock: product.min_stock || 0,
+    price: product.price || 0,
+    description: product.description || '',
+    memo: product.memo || '',
     channels: product.channels || [],
   });
   const [errors, setErrors] = useState<string[]>([]);
@@ -76,78 +112,69 @@ const EditProductModal = ({
     }
   };
 
-  const handleRemoveSupplier = (index: number) => {
-    setForm((prev: EditForm) => {
-      const updatedSuppliers = [...prev.suppliers];
-      updatedSuppliers.splice(index, 1);
-      return { ...prev, suppliers: updatedSuppliers };
-    });
-  };
-
   const handleChange = (field: string, value: string | number | string[]) => {
     setForm((prev: EditForm) => ({ ...prev, [field]: value }));
   };
 
-  const handleSupplierChange = (
-    index: number,
-    field: keyof SupplierForm,
-    value: string | number | boolean
-  ) => {
-    const newSuppliers = [...form.suppliers];
-    newSuppliers[index] = { ...newSuppliers[index], [field]: value };
-    setForm((prev) => ({ ...prev, suppliers: newSuppliers }));
+  const handleCategoryChange = (value: string) => {
+    if (value === '직접 입력') {
+      setIsCustomCategory(true);
+      setForm((prev) => ({ ...prev, category: '' }));
+    } else {
+      setIsCustomCategory(false);
+      setForm((prev) => ({ ...prev, category: value }));
+    }
   };
 
-  const handleAddSupplier = () => {
-    setForm((prev: EditForm) => ({
-      ...prev,
-      suppliers: [...prev.suppliers, { supplier_name: '', cost_price: 0, is_primary: false }],
-    }));
+  const handleBigCategoryChange = (value: string) => {
+    if (value === '직접 입력') {
+      setIsCustomBigCategory(true);
+      setForm((prev) => ({ ...prev, big_category: '' }));
+    } else {
+      setIsCustomBigCategory(false);
+      setForm((prev) => ({ ...prev, big_category: value }));
+    }
+  };
+
+  const handleMiddleCategoryChange = (value: string) => {
+    if (value === '직접 입력') {
+      setIsCustomMiddleCategory(true);
+      setForm((prev) => ({ ...prev, middle_category: '' }));
+    } else {
+      setIsCustomMiddleCategory(false);
+      setForm((prev) => ({ ...prev, middle_category: value }));
+    }
   };
 
   const handleSubmit = () => {
     const errs = [];
-    if (!form.name?.trim()) errs.push('상품명을 입력해주세요.');
+    if (!form.offline_name?.trim()) errs.push('오프라인 상품명을 입력해주세요.');
     if (!form.price || isNaN(Number(form.price))) errs.push('판매가는 숫자여야 합니다.');
     if (!form.channels || form.channels.length === 0)
       errs.push('판매 채널을 최소 하나 이상 선택해주세요.');
-    // 원가 데이터 유효성 검사 - 빈 값이면 0으로 처리
-    const costPrice =
-      form.cost_price === '' || form.cost_price === undefined ? 0 : Number(form.cost_price);
-    if (isNaN(costPrice)) {
-      errs.push('매입가는 숫자여야 합니다.');
-    }
-
-    // 공급업체 검증
-    const filteredSuppliers = form.suppliers.filter(
-      (s) => s.supplier_name && s.supplier_name !== '선택' && s.supplier_name.trim()
-    );
-
-    // 공급업체가 최소 1개는 있어야 함
-    if (filteredSuppliers.length === 0) {
-      errs.push('공급업체를 최소 1개 이상 선택해주세요.');
-    }
-
-    // 추가된 공급업체 행이 있는데 선택되지 않은 경우 체크
-    if (filteredSuppliers.length !== form.suppliers.length && filteredSuppliers.length > 0) {
-      errs.push('선택하지 않은 공급업체가 있습니다. 삭제 버튼을 눌러 제거해주세요.');
-    }
 
     if (errs.length > 0) {
       alert(errs.join('\n'));
       return;
     }
 
-    const updated = {
-      variant_code: form.variant_code, // variant 식별을 위해 추가
+    const updated: ExtendedProduct = {
+      ...product,
+      variant_code: form.variant_code || '',
       product_id: form.product_id,
-      name: form.name,
+      name: form.offline_name || '',
+      offline_name: form.offline_name || '',
+      online_name: form.online_name,
+      big_category: form.big_category,
+      middle_category: form.middle_category,
+      category: form.category,
       option: form.option || '기본',
-      price: Number(form.price), // 숫자로 변환
-      min_stock: Number(form.min_stock) || 0, // 최소재고가 없는 경우 0으로 설정
+      detail_option: form.detail_option,
+      price: Number(form.price),
+      min_stock: Number(form.min_stock) || 0,
       description: form.description || '',
       memo: form.memo || '',
-      channels: form.channels, // 판매 채널 추가
+      channels: form.channels,
     };
 
     onSave(updated);
@@ -156,92 +183,137 @@ const EditProductModal = ({
 
   useEffect(() => {
     if (isOpen && product) {
+      const variantData = latestVariantData?.data || product;
+
+      const variantDataTyped = variantData as ApiProductVariant;
       setForm({
-        ...product,
-        product_id: product.product_id ?? '',
-        stock: product.stock ?? 0,
-        description: product.description || '',
-        memo: product.memo || '',
-        min_stock: product.min_stock || 0, // 최소재고가 없는 경우 0으로 설정
-        cost_price: product.cost_price || 0, // 원가 데이터가 없는 경우 0으로 설정
-        channels: product.channels || [], // 채널 데이터 로딩
-        suppliers: Array.isArray(product.suppliers)
-          ? product.suppliers.map(
-              (s: { name: string; cost_price?: number; is_primary?: boolean }) => ({
-                supplier_name: s.name,
-                cost_price: s.cost_price || 0,
-                is_primary: s.is_primary ?? false,
-              })
-            )
-          : [{ supplier_name: '', cost_price: 0, is_primary: false }],
+        product_id: product.product_id || '',
+        offline_name: variantDataTyped.offline_name || product.offline_name || product.name || '',
+        online_name: variantDataTyped.online_name || product.online_name || '',
+        big_category: variantDataTyped.big_category || product.big_category || '',
+        middle_category: variantDataTyped.middle_category || product.middle_category || '',
+        category: variantDataTyped.category || product.category || '',
+        variant_code: product.variant_code || '',
+        option: variantDataTyped.option || product.option || '',
+        detail_option: variantDataTyped.detail_option || product.detail_option || '',
+        min_stock: variantDataTyped.min_stock || product.min_stock || 0,
+        price: variantDataTyped.price || product.price || 0,
+        description: variantDataTyped.description || product.description || '',
+        memo: variantDataTyped.memo || product.memo || '',
+        channels: variantDataTyped.channels || product.channels || [],
       });
+
+      // 커스텀 카테고리 상태 초기화
+      setIsCustomCategory(false);
+      setIsCustomBigCategory(false);
+      setIsCustomMiddleCategory(false);
       setErrors([]);
     }
-  }, [isOpen, product]);
+  }, [isOpen, product, latestVariantData]);
 
   useEscapeKey(onClose, isOpen);
 
-  if (!isOpen || !product || isLoadingSuppliers) return null;
-
-  const avgCost =
-    form.suppliers.length > 0
-      ? Math.round(form.suppliers.reduce((sum, s) => sum + s.cost_price, 0) / form.suppliers.length)
-      : 0;
+  if (!isOpen || !product) return null;
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm'>
-      <div className='max-h-[90vh] w-[900px] overflow-auto rounded-lg bg-white shadow-lg'>
-        <div className='flex items-center justify-between border-b border-gray-300 px-6 py-4'>
-          <div className='flex items-center gap-2'>
-            <h2 className='text-lg font-semibold'>상품 정보 편집</h2>
-          </div>
+      <div className='mx-4 flex max-h-[90vh] w-full max-w-4xl flex-col rounded-lg bg-white shadow-lg'>
+        <div className='flex items-center justify-between border-b border-gray-200 px-6 py-4'>
+          <h2 className='text-lg font-semibold'>상품 정보 편집</h2>
           <button onClick={onClose}>
             <FiX className='h-6 w-6 text-gray-500 hover:text-gray-700' />
           </button>
         </div>
 
-        <div className='space-y-8 p-6'>
-          {errors.length > 0 && (
-            <div className='rounded-md border border-red-200 bg-red-50 p-4'>
-              <div className='flex items-start'>
-                <FiAlertTriangle className='mt-1 mr-2 text-red-600' />
-                <ul className='list-inside list-disc text-sm text-red-700'>
-                  {errors.map((err, i) => (
-                    <li key={i}>{err}</li>
-                  ))}
-                </ul>
+        <div className='flex-1 overflow-y-auto px-6 py-4'>
+          <div className='space-y-4'>
+            {errors.length > 0 && (
+              <div className='rounded-md border border-red-200 bg-red-50 p-3'>
+                <div className='flex items-start'>
+                  <FiAlertTriangle className='mt-0.5 mr-2 text-red-600' />
+                  <ul className='list-inside list-disc text-xs text-red-700'>
+                    {errors.map((err, i) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className='grid grid-cols-2 gap-10'>
-            <section>
-              <div className='mb-3 flex items-center gap-2'>
-                <FaBoxArchive className='text-indigo-500' />
-                <h3 className='text-md font-semibold'>기본 정보</h3>
-              </div>
-              <div className='space-y-4'>
+            {/* 기본 정보 */}
+            <div className='grid grid-cols-2 gap-4'>
+              <div className='space-y-3'>
                 <TextInput label='상품코드' value={form.product_id} disabled />
-                <TextInput label='품목코드' value={form.variant_id?.toString() || ''} disabled />
+                <TextInput label='품목코드' value={form.variant_code || ''} disabled />
                 <TextInput
-                  label='상품명'
-                  value={form.name || ''}
-                  onChange={(val) => handleChange('name', val)}
+                  label='오프라인 상품명'
+                  value={form.offline_name || ''}
+                  onChange={(val) => handleChange('offline_name', val)}
                 />
+                <TextInput
+                  label='온라인 상품명'
+                  value={form.online_name || ''}
+                  onChange={(val) => handleChange('online_name', val)}
+                  placeholder='온라인 판매용 상품명 (선택)'
+                />
+                <CategorySelect
+                  label='대분류'
+                  value={isCustomBigCategory ? '직접 입력' : form.big_category || ''}
+                  options={bigCategoryOptions}
+                  onChange={handleBigCategoryChange}
+                  placeholder='대분류 선택'
+                />
+                {isCustomBigCategory && (
+                  <TextInput
+                    label='새 대분류명'
+                    value={form.big_category || ''}
+                    onChange={(val) => handleChange('big_category', val)}
+                    placeholder='새 대분류를 입력하세요'
+                  />
+                )}
+                <CategorySelect
+                  label='중분류'
+                  value={isCustomMiddleCategory ? '직접 입력' : form.middle_category || ''}
+                  options={middleCategoryOptions}
+                  onChange={handleMiddleCategoryChange}
+                  placeholder='중분류 선택'
+                />
+                {isCustomMiddleCategory && (
+                  <TextInput
+                    label='새 중분류명'
+                    value={form.middle_category || ''}
+                    onChange={(val) => handleChange('middle_category', val)}
+                    placeholder='새 중분류를 입력하세요'
+                  />
+                )}
+                <CategorySelect
+                  label='카테고리'
+                  value={isCustomCategory ? '직접 입력' : form.category || ''}
+                  options={categoryOptions}
+                  onChange={handleCategoryChange}
+                  placeholder='카테고리 선택'
+                />
+                {isCustomCategory && (
+                  <TextInput
+                    label='새 카테고리명'
+                    value={form.category || ''}
+                    onChange={(val) => handleChange('category', val)}
+                    placeholder='새 카테고리를 입력하세요'
+                  />
+                )}
                 <TextInput
                   label='옵션'
                   value={form.option || ''}
                   onChange={(val) => handleChange('option', val)}
                 />
+                <TextInput
+                  label='상세 옵션'
+                  value={form.detail_option || ''}
+                  onChange={(val) => handleChange('detail_option', val)}
+                />
               </div>
-            </section>
 
-            <section>
-              <div className='mb-3 flex items-center gap-2'>
-                <BsCoin className='text-indigo-500' />
-                <h3 className='text-md font-semibold'>판매 정보</h3>
-              </div>
-              <div className='space-y-4'>
+              <div className='space-y-3'>
                 <TextInput
                   label='판매가'
                   type='number'
@@ -250,28 +322,6 @@ const EditProductModal = ({
                   onKeyDown={handleNumberKeyDown}
                   noSpinner
                 />
-                <TextInput label='매입가' value={avgCost?.toLocaleString() || ''} disabled />
-                <div className='space-y-1'>
-                  <label className='block text-sm font-medium text-gray-700'>현재 재고</label>
-                  <div
-                    onClick={() =>
-                      onStockAdjustClick({
-                        variant_code: form.variant_code || form.variant_id?.toString() || '',
-                        product_id: form.product_id,
-                        name: form.name,
-                        option: form.option || '기본',
-                        current_stock: form.stock || 0,
-                        min_stock: form.min_stock || 0,
-                      })
-                    }
-                    className='w-full cursor-pointer rounded-md border border-gray-300 bg-blue-50 px-3 py-2 text-sm transition-colors hover:bg-blue-100 focus:border-transparent focus:ring-2 focus:ring-blue-500'
-                    title='클릭하여 재고 조정'>
-                    {Math.max(0, Number(form.stock) || 0).toString()}
-                  </div>
-                  <p className='mt-1 text-xs text-blue-600'>
-                    💡 재고 칸을 클릭하여 재고를 조정할 수 있습니다.
-                  </p>
-                </div>
                 <TextInput
                   label='최소 재고'
                   type='number'
@@ -280,154 +330,73 @@ const EditProductModal = ({
                   onKeyDown={handleNumberKeyDown}
                   noSpinner
                 />
-                <p className='mt-1 text-xs text-gray-500'>
-                  재고가 이 수준 이하로 떨어지면 경고가 표시됩니다.
-                </p>
-
-                {/* 판매 채널 선택 */}
-                <div className='mt-4'>
-                  <label className='mb-2 block text-sm font-medium text-gray-700'>
-                    판매 채널 <span className='text-red-500'>*</span>
-                  </label>
-                  <div className='flex gap-4'>
-                    <label className='flex items-center'>
-                      <input
-                        type='checkbox'
-                        checked={form.channels.includes('online')}
-                        onChange={(e) => {
-                          const channels = e.target.checked
-                            ? [...form.channels, 'online']
-                            : form.channels.filter((c) => c !== 'online');
-                          handleChange('channels', channels);
-                        }}
-                        className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                      />
-                      온라인
-                    </label>
-                    <label className='flex items-center'>
-                      <input
-                        type='checkbox'
-                        checked={form.channels.includes('offline')}
-                        onChange={(e) => {
-                          const channels = e.target.checked
-                            ? [...form.channels, 'offline']
-                            : form.channels.filter((c) => c !== 'offline');
-                          handleChange('channels', channels);
-                        }}
-                        className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                      />
-                      오프라인
-                    </label>
-                  </div>
-                  <p className='mt-1 text-xs text-gray-500'>
-                    온라인, 오프라인 중 최소 하나 이상 선택해야 합니다. 중복 선택도 가능합니다.
-                  </p>
-                </div>
               </div>
-            </section>
-          </div>
-          {/* 설명 추가 */}
-          <section>
-            <div className='mb-2'>
-              <label className='text-sm font-medium text-gray-700'>설명</label>
-            </div>
-            <textarea
-              className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-200 focus:outline-none'
-              rows={3}
-              value={form.description || ''}
-              onChange={(e) => handleChange('description', e.target.value)}
-            />
-          </section>
-
-          <section>
-            <div className='mb-3 flex items-center gap-2'>
-              <FaClipboardList className='text-indigo-500' />
-              <h3 className='text-md font-semibold'>공급업체 정보</h3>
             </div>
 
-            <table className='w-full table-auto border-collapse border border-gray-300'>
-              <thead>
-                <tr className='bg-gray-100'>
-                  <th className='border px-4 py-2 text-left'>공급업체</th>
-                  <th className='border px-4 py-2 text-left'>매입가</th>
-                  <th className='border px-4 py-2 text-center'>주요 공급자</th>
-                  <th className='border px-4 py-2 text-center'>삭제</th>
-                </tr>
-              </thead>
-              <tbody>
-                {form.suppliers.map((s, i) => (
-                  <tr key={i}>
-                    {/* 공급업체 선택 */}
-                    <td className='border px-4 py-2'>
-                      <SelectInput
-                        value={s.supplier_name}
-                        options={supplierOptions}
-                        onChange={(val) => handleSupplierChange(i, 'supplier_name', val)}
-                      />
-                    </td>
-
-                    {/* 매입가 입력 */}
-                    <td className='border px-4 py-2'>
-                      <TextInput
-                        type='number'
-                        value={s.cost_price.toString()}
-                        onChange={(val) => handleSupplierChange(i, 'cost_price', Number(val))}
-                      />
-                    </td>
-
-                    {/* 주요공급자 체크박스 */}
-                    <td className='border px-4 py-2 text-center'>
-                      <input
-                        type='checkbox'
-                        checked={s.is_primary}
-                        onChange={(e) => handleSupplierChange(i, 'is_primary', e.target.checked)}
-                      />
-                    </td>
-
-                    {/* 행 삭제 버튼 */}
-                    <td className='border px-4 py-2 text-center'>
-                      <button
-                        onClick={() => handleRemoveSupplier(i)}
-                        className='text-red-500 hover:underline'>
-                        삭제
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-
-                {/* 새로운 공급자 추가 버튼 */}
-                <tr>
-                  <td colSpan={4} className='px-4 py-2'>
-                    <button
-                      onClick={handleAddSupplier}
-                      className='text-sm text-indigo-600 hover:underline'>
-                      + 공급업체 추가
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            {/* 판매 채널 */}
             <div>
-              <label className='text-sm text-gray-600'>관리자 메모</label>
+              <label className='mb-2 block text-sm font-medium text-gray-700'>
+                판매 채널 <span className='text-red-500'>*</span>
+              </label>
+              <div className='flex gap-4'>
+                <label className='flex items-center text-sm'>
+                  <input
+                    type='checkbox'
+                    checked={form.channels.includes('online')}
+                    onChange={(e) => {
+                      const channels = e.target.checked
+                        ? [...form.channels, 'online']
+                        : form.channels.filter((c) => c !== 'online');
+                      handleChange('channels', channels);
+                    }}
+                    className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                  />
+                  온라인
+                </label>
+                <label className='flex items-center text-sm'>
+                  <input
+                    type='checkbox'
+                    checked={form.channels.includes('offline')}
+                    onChange={(e) => {
+                      const channels = e.target.checked
+                        ? [...form.channels, 'offline']
+                        : form.channels.filter((c) => c !== 'offline');
+                      handleChange('channels', channels);
+                    }}
+                    className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                  />
+                  오프라인
+                </label>
+              </div>
+            </div>
+
+            {/* 설명 */}
+            <div>
+              <label className='mb-1.5 block text-sm font-medium text-gray-700'>설명</label>
               <textarea
-                className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm'
-                rows={3}
+                className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none'
+                rows={2}
+                value={form.description || ''}
+                onChange={(e) => handleChange('description', e.target.value)}
+              />
+            </div>
+
+            {/* 관리자 메모 */}
+            <div>
+              <label className='mb-1.5 block text-sm font-medium text-gray-700'>관리자 메모</label>
+              <textarea
+                className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none'
+                rows={2}
                 value={form.memo?.toString() || ''}
                 onChange={(e) => handleChange('memo', e.target.value)}
               />
             </div>
-          </section>
-
-          <div className='flex justify-end gap-3 border-t border-gray-300 px-6 py-4'>
-            <button onClick={onClose} className='rounded-md border px-4 py-2 text-gray-700'>
-              취소
-            </button>
-            <button
-              onClick={handleSubmit}
-              className='rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700'>
-              저장하기
-            </button>
           </div>
+        </div>
+
+        <div className='flex justify-end gap-3 border-t border-gray-200 px-6 py-4'>
+          <SecondaryButton text='취소' onClick={onClose} />
+          <PrimaryButton text='저장하기' onClick={handleSubmit} />
         </div>
       </div>
     </div>
