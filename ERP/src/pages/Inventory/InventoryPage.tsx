@@ -19,6 +19,8 @@ import {
   uploadVariantStatusExcel,
   downloadVariantStatusExcel,
   fetchVariantDetail,
+  loadPreviousMonthVariantStatus,
+  syncInboundFromOrders,
 } from '../../api/inventory';
 import { useSearchParams } from 'react-router-dom';
 import EditProductModal from '../../components/modal/EditProductModal';
@@ -40,6 +42,8 @@ const InventoryPage = () => {
   const [isStockAdjustModalOpen, setStockAdjustModalOpen] = useState(false);
   const [isStatusExcelUploading, setIsStatusExcelUploading] = useState(false);
   const [isStatusExcelDownloading, setIsStatusExcelDownloading] = useState(false);
+  const [isLoadingPreviousMonth, setIsLoadingPreviousMonth] = useState(false);
+  const [isSyncingInbound, setIsSyncingInbound] = useState(false);
   const [isUploadDateModalOpen, setIsUploadDateModalOpen] = useState(false);
   const [uploadYear, setUploadYear] = useState(new Date().getFullYear());
   const [uploadMonth, setUploadMonth] = useState(new Date().getMonth() + 1);
@@ -408,6 +412,59 @@ const InventoryPage = () => {
     }
   };
 
+  // 이전 달 계산 헬퍼 함수
+  const getPreviousMonth = (year: number, month: number): string => {
+    if (month === 1) {
+      return `${year - 1}년 12월`;
+    }
+    return `${year}년 ${month - 1}월`;
+  };
+
+  // 저번 달 재고 불러오기 핸들러
+  const handleLoadPreviousMonth = async () => {
+    const previousMonth = getPreviousMonth(selectedYear, selectedMonth);
+    const confirmMessage = `${selectedYear}년 ${selectedMonth}월에 대해 이전 달(${previousMonth})의 데이터를 기반으로 재고 데이터를 생성하시겠습니까?`;
+
+    if (!confirm(confirmMessage)) return;
+
+    setIsLoadingPreviousMonth(true);
+    try {
+      await loadPreviousMonthVariantStatus(selectedYear, selectedMonth);
+      alert(`${selectedYear}년 ${selectedMonth}월 재고 데이터가 성공적으로 생성되었습니다.`);
+
+      // 캐시 무효화하여 최신 데이터 가져오기
+      queryClient.invalidateQueries({
+        queryKey: ['variantStatus', selectedYear, selectedMonth],
+      });
+    } catch (err) {
+      alert('저번 달 재고 불러오기 중 오류 발생: ' + getErrorMessage(err));
+    } finally {
+      setIsLoadingPreviousMonth(false);
+    }
+  };
+
+  // 이번 달 발주 불러오기 핸들러
+  const handleSyncInbound = async () => {
+    const confirmMessage = `${selectedYear}년 ${selectedMonth}월의 발주 데이터를 당월입고에 불러오시겠습니까?`;
+
+    if (!confirm(confirmMessage)) return;
+
+    setIsSyncingInbound(true);
+    try {
+      await syncInboundFromOrders(selectedYear, selectedMonth);
+      alert(`${selectedYear}년 ${selectedMonth}월 발주 데이터가 성공적으로 불러와졌습니다.`);
+
+      // 캐시 무효화하여 최신 데이터 가져오기
+      queryClient.invalidateQueries({
+        queryKey: ['variantStatus', selectedYear, selectedMonth],
+      });
+    } catch (err) {
+      alert('발주 불러오기 중 오류 발생: ' + getErrorMessage(err));
+    } finally {
+      setIsSyncingInbound(false);
+    }
+  };
+
   // 월별 재고 현황 엑셀 다운로드 핸들러
   const handleStatusExcelDownload = async () => {
     setIsStatusExcelDownloading(true);
@@ -701,6 +758,12 @@ const InventoryPage = () => {
   return (
     <div className='min-h-[calc(100vh+10px)] w-full max-w-full overflow-hidden'>
       {isLoading && <LoadingSpinner overlay text='재고 데이터를 불러오는 중...' />}
+      {isLoadingPreviousMonth && (
+        <LoadingSpinner overlay text='저번 달 재고를 불러오는 중...' />
+      )}
+      {isSyncingInbound && (
+        <LoadingSpinner overlay text='발주 데이터를 불러오는 중...' />
+      )}
       {isStatusExcelUploading && (
         <LoadingSpinner overlay text='월별 재고 현황을 업로드하는 중...' />
       )}
@@ -746,17 +809,47 @@ const InventoryPage = () => {
           {/* 월별 재고 현황 모드일 때 엑셀 업로드/다운로드 버튼 */}
           {viewMode === 'status' && permissions.canCreate('INVENTORY') && (
             <>
+              <GreenButton
+                text='저번 달 재고 불러오기'
+                onClick={handleLoadPreviousMonth}
+                disabled={
+                  isLoadingPreviousMonth ||
+                  isSyncingInbound ||
+                  isStatusExcelUploading ||
+                  isStatusExcelDownloading
+                }
+              />
+              <GreenButton
+                text='이번 달 발주 불러오기'
+                onClick={handleSyncInbound}
+                disabled={
+                  isLoadingPreviousMonth ||
+                  isSyncingInbound ||
+                  isStatusExcelUploading ||
+                  isStatusExcelDownloading
+                }
+              />
               <PrimaryButton
                 text='엑셀 업로드'
                 icon={<FaFileArrowUp size={16} />}
                 onClick={handleStatusExcelButtonClick}
-                disabled={isStatusExcelUploading || isStatusExcelDownloading}
+                disabled={
+                  isLoadingPreviousMonth ||
+                  isSyncingInbound ||
+                  isStatusExcelUploading ||
+                  isStatusExcelDownloading
+                }
               />
               <SecondaryButton
                 text='엑셀 다운로드'
                 icon={<FaFileArrowDown size={16} />}
                 onClick={handleStatusExcelDownload}
-                disabled={isStatusExcelUploading || isStatusExcelDownloading}
+                disabled={
+                  isLoadingPreviousMonth ||
+                  isSyncingInbound ||
+                  isStatusExcelUploading ||
+                  isStatusExcelDownloading
+                }
               />
             </>
           )}

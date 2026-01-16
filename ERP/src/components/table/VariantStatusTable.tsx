@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { ProductVariantStatus } from '../../types/product';
-import { updateVariantStatus } from '../../api/inventory';
+import { updateVariantStatus, deleteVariantStatus, bulkUpdateVariantStatus } from '../../api/inventory';
 import { useQueryClient } from '@tanstack/react-query';
 import { useColumnVisibility } from '../../hooks/useColumnVisibility';
 import ColumnSettingsModal from '../modal/ColumnSettingsModal';
 import type { TableColumn } from '../../types/tableColumns';
+import { MdOutlineDelete } from 'react-icons/md';
+import PrimaryButton from '../button/PrimaryButton';
+import SecondaryButton from '../button/SecondaryButton';
 
 interface VariantStatusTableProps {
   data: ProductVariantStatus[];
@@ -68,6 +71,17 @@ const VARIANT_STATUS_COLUMNS: TableColumn[] = [
   { id: 'ending_stock', label: '기말재고', defaultVisible: true },
 ];
 
+// 편집된 데이터를 저장하는 타입
+interface EditedRowData {
+  variant_code: string;
+  warehouse_stock_start?: number;
+  store_stock_start?: number;
+  inbound_quantity?: number;
+  store_sales?: number;
+  online_sales?: number;
+  version: number;
+}
+
 const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
   data,
   isLoading,
@@ -77,10 +91,10 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
   onStockAdjust,
 }) => {
   const queryClient = useQueryClient();
-  const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
-  const [editValue, setEditValue] = useState<string>('');
-  const [savingCell, setSavingCell] = useState<EditingCell | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [isLocked, setIsLocked] = useState(false); // 데이터 잠금 상태
+  const [editedData, setEditedData] = useState<Map<string, EditedRowData>>(new Map()); // 편집된 데이터 저장
+  const [isSaving, setIsSaving] = useState(false); // 저장 중 상태
+  const [deletingRows, setDeletingRows] = useState<Set<string>>(new Set()); // 삭제 중인 행들
 
   // 편집 가능한 필드인지 확인하는 헬퍼 함수
   const isEditableField = (fieldId: string): boolean => {
@@ -100,135 +114,172 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
       tableType: 'variantStatus',
     });
 
-  // 편집 모드 진입 시 input에 포커스
-  useEffect(() => {
-    if (editingCell && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [editingCell]);
-
-  // 셀 더블클릭으로 편집 모드 진입
-  const handleCellDoubleClick = (
-    rowIndex: number,
+  // 셀 값 변경 핸들러
+  const handleCellChange = (
+    variantCode: string,
     field: EditableField,
-    currentValue: number | undefined
+    value: string,
+    version: number
   ) => {
-    setEditingCell({ rowIndex, field });
-    setEditValue(currentValue?.toString() || '0');
-  };
+    if (isLocked) return;
 
-  // 편집 취소
-  const handleCancelEdit = () => {
-    setEditingCell(null);
-    setEditValue('');
-  };
-
-  // 값 저장
-  const handleSaveEdit = async (rowIndex: number, field: EditableField, variantCode: string) => {
-    if (!variantCode) {
-      alert('상품 코드가 없어 수정할 수 없습니다.');
-      return;
+    const numericValue = value === '' ? undefined : parseInt(value);
+    if (value !== '' && (isNaN(numericValue!) || numericValue! < 0)) {
+      return; // 유효하지 않은 값은 무시
     }
 
-    const numericValue = parseInt(editValue);
-    if (isNaN(numericValue) || numericValue < 0) {
-      alert('0 이상의 숫자만 입력 가능합니다.');
-      setEditingCell({ rowIndex, field });
-      setEditValue(editValue);
-      return;
-    }
+    setEditedData((prev) => {
+      const newMap = new Map(prev);
+      const existing = newMap.get(variantCode) || {
+        variant_code: variantCode,
+        version,
+      };
 
-    setSavingCell({ rowIndex, field });
-    setEditingCell(null);
+      newMap.set(variantCode, {
+        ...existing,
+        [field]: numericValue,
+      });
+
+      return newMap;
+    });
+  };
+
+  // 행 삭제 핸들러
+  const handleDeleteRow = async (variantCode: string) => {
+    if (!variantCode) return;
+
+    if (!confirm('정말로 이 행을 삭제하시겠습니까?')) return;
+
+    setDeletingRows((prev) => new Set(prev).add(variantCode));
 
     try {
-      const updateData: Record<string, number> = {};
-      updateData[field] = numericValue;
-
-      await updateVariantStatus(year, month, variantCode, updateData);
-
-      // 성공 시 관련된 모든 캐시 무효화하여 최신 데이터 가져오기
+      await deleteVariantStatus(year, month, variantCode);
       queryClient.invalidateQueries({ queryKey: ['variantStatus', year, month] });
-      queryClient.invalidateQueries({ queryKey: ['inventories'] });
-      queryClient.invalidateQueries({ queryKey: ['variantDetail'] });
+      alert('행이 성공적으로 삭제되었습니다.');
     } catch (error: unknown) {
-      console.error('수정 실패:', error);
+      console.error('삭제 실패:', error);
       const errorMessage =
         error && typeof error === 'object' && 'response' in error
           ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail ||
-            '수정 중 오류가 발생했습니다.'
-          : '수정 중 오류가 발생했습니다.';
+            '삭제 중 오류가 발생했습니다.'
+          : '삭제 중 오류가 발생했습니다.';
       alert(errorMessage);
-      // 실패 시 편집 모드로 다시 진입
-      setEditingCell({ rowIndex, field });
-      setEditValue(numericValue.toString());
     } finally {
-      setSavingCell(null);
+      setDeletingRows((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(variantCode);
+        return newSet;
+      });
     }
   };
 
-  // Enter 키로 저장, ESC 키로 취소
-  const handleKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    rowIndex: number,
-    field: EditableField,
-    variantCode: string
-  ) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSaveEdit(rowIndex, field, variantCode);
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      handleCancelEdit();
+  // 저장하기 핸들러
+  const handleSaveAll = async () => {
+    if (editedData.size === 0) {
+      alert('저장할 변경사항이 없습니다.');
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const rows = Array.from(editedData.values());
+      const response = await bulkUpdateVariantStatus({
+        year,
+        month,
+        rows,
+      });
+
+      // 응답에서 conflicts와 errors 확인
+      const responseData = response.data as {
+        updated?: number;
+        conflicts?: unknown[];
+        errors?: unknown[];
+      };
+
+      const hasConflicts = responseData?.conflicts && responseData.conflicts.length > 0;
+      const hasErrors = responseData?.errors && responseData.errors.length > 0;
+
+      if (hasConflicts || hasErrors) {
+        alert(
+          '다른 사용자가 동시에 수정하여 충돌이 발생했거나 오류가 발생했습니다. 페이지를 새로고침하여 최신 데이터를 불러오세요.'
+        );
+        // 새로고침 유도
+        if (confirm('지금 새로고침하시겠습니까?')) {
+          window.location.reload();
+        }
+        // 충돌/오류가 있어도 일부는 저장되었을 수 있으므로 캐시 무효화
+        queryClient.invalidateQueries({ queryKey: ['variantStatus', year, month] });
+        // 충돌/오류가 발생한 행은 편집 데이터에서 제거하지 않음 (사용자가 확인할 수 있도록)
+        return;
+      }
+
+      // 성공 시 편집 데이터 초기화 및 캐시 무효화
+      setEditedData(new Map());
+      queryClient.invalidateQueries({ queryKey: ['variantStatus', year, month] });
+      const updatedCount = responseData?.updated || rows.length;
+      alert(`${updatedCount}개 행이 성공적으로 저장되었습니다.`);
+    } catch (error: unknown) {
+      console.error('저장 실패:', error);
+
+      const errorMessage =
+        error && typeof error === 'object' && 'response' in error
+          ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail ||
+            '저장 중 오류가 발생했습니다.'
+          : '저장 중 오류가 발생했습니다.';
+      alert(errorMessage);
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // 편집 가능한 셀 렌더링
+  // 편집 가능한 셀 렌더링 (항상 input으로 표시)
   const renderEditableCell = (
-    rowIndex: number,
     field: EditableField,
     value: number | undefined,
     variantCode: string,
+    version: number,
     className: string = '',
     style: React.CSSProperties = {}
   ) => {
-    const isEditing = editingCell?.rowIndex === rowIndex && editingCell?.field === field;
-    const isSaving = savingCell?.rowIndex === rowIndex && savingCell?.field === field;
-    const displayValue = value?.toLocaleString() || 0;
+    const isEditable = isEditableField(field);
+    const editedValue = editedData.get(variantCode)?.[field];
+    const displayValue = editedValue !== undefined ? editedValue : value;
+    const inputValue = displayValue?.toString() || '';
 
-    if (isEditing) {
+    if (!isEditable) {
       return (
         <td className={className} style={style}>
-          <input
-            ref={inputRef}
-            type='number'
-            value={editValue}
-            onChange={(e) => {
-              const value = e.target.value;
-              // 음수 입력 방지
-              if (value === '' || (!isNaN(Number(value)) && Number(value) >= 0)) {
-                setEditValue(value);
-              }
-            }}
-            onBlur={() => handleSaveEdit(rowIndex, field, variantCode)}
-            onKeyDown={(e) => handleKeyDown(e, rowIndex, field, variantCode)}
-            className='w-full rounded border border-blue-500 px-2 py-1 text-right text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none'
-            min='0'
-            step='1'
-          />
+          {displayValue?.toLocaleString() || 0}
         </td>
       );
     }
 
-    const isEditable = isEditableField(field);
+    const isEdited = editedData.has(variantCode) && editedData.get(variantCode)?.[field] !== undefined;
+
     return (
-      <td
-        className={`${className} ${isEditable ? 'bg-yellow-50' : ''} whitespace-nowrap ${isSaving ? 'opacity-50' : isEditable ? 'cursor-pointer hover:bg-yellow-100' : ''} transition-colors`}
-        onDoubleClick={isEditable ? () => handleCellDoubleClick(rowIndex, field, value) : undefined}
-        title={isEditable ? '더블클릭하여 수정' : ''}
-        style={style}>
-        {isSaving ? '저장 중...' : displayValue}
+      <td className={`${className} ${isEditable ? 'bg-yellow-50' : ''}`} style={style}>
+        <input
+          type='number'
+          value={inputValue}
+          onChange={(e) => {
+            const newValue = e.target.value;
+            // 음수 입력 방지
+            if (newValue === '' || (!isNaN(Number(newValue)) && Number(newValue) >= 0)) {
+              handleCellChange(variantCode, field, newValue, version);
+            }
+          }}
+          disabled={isLocked}
+          className={`w-full rounded border px-2 py-1 text-right text-xs focus:ring-1 focus:outline-none ${
+            isLocked
+              ? 'cursor-not-allowed bg-gray-100 border-gray-300 text-gray-500'
+              : isEdited
+                ? 'border-blue-500 bg-blue-50 focus:ring-blue-500'
+                : 'border-gray-300 focus:ring-blue-500'
+          }`}
+          min='0'
+          step='1'
+        />
       </td>
     );
   };
@@ -251,7 +302,7 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
   return (
     <div>
       {/* 헤더 */}
-      <div className='mb-4 flex items-center justify-end'>
+      <div className='mb-4 flex items-center justify-between'>
         <ColumnSettingsModal
           columns={VARIANT_STATUS_COLUMNS}
           columnVisibility={columnVisibility}
@@ -259,6 +310,23 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
           onShowAll={showAllColumns}
           onReset={resetToDefault}
         />
+        <div className='flex items-center gap-2'>
+          {editedData.size > 0 && (
+            <span className='text-sm text-gray-600'>
+              {editedData.size}개 행 수정됨
+            </span>
+          )}
+          <PrimaryButton
+            text={isLocked ? '잠금 해제' : '데이터 잠그기'}
+            onClick={() => setIsLocked(!isLocked)}
+            disabled={isSaving}
+          />
+          <PrimaryButton
+            text='저장하기'
+            onClick={handleSaveAll}
+            disabled={isLocked || isSaving || editedData.size === 0}
+          />
+        </div>
       </div>
       {/* 테이블 */}
       <div className='overflow-x-auto'>
@@ -405,6 +473,11 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                   {getColumnLabel('ending_stock')}
                 </th>
               )}
+              <th
+                className='px-1 py-1 text-center text-xs font-medium whitespace-nowrap text-gray-500 uppercase'
+                style={{ width: '3%', minWidth: '50px' }}>
+                관리
+              </th>
             </tr>
           </thead>
           <tbody className='divide-y divide-gray-200 bg-white'>
@@ -502,19 +575,19 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                 )}
                 {isColumnVisible('warehouse_stock_start') &&
                   renderEditableCell(
-                    index,
                     'warehouse_stock_start',
                     item.warehouse_stock_start,
                     item.variant_code || '',
+                    (item as { version?: number }).version || 0,
                     'px-1 sm:px-2 py-2 text-right text-xs text-gray-900',
                     { width: '5%', minWidth: '80px' }
                   )}
                 {isColumnVisible('store_stock_start') &&
                   renderEditableCell(
-                    index,
                     'store_stock_start',
                     item.store_stock_start,
                     item.variant_code || '',
+                    (item as { version?: number }).version || 0,
                     'px-1 sm:px-2 py-2 text-right text-xs text-gray-900',
                     { width: '5%', minWidth: '80px' }
                   )}
@@ -527,28 +600,28 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                 )}
                 {isColumnVisible('inbound_quantity') &&
                   renderEditableCell(
-                    index,
                     'inbound_quantity',
                     item.inbound_quantity,
                     item.variant_code || '',
+                    (item as { version?: number }).version || 0,
                     'px-1 sm:px-2 py-2 text-right text-xs text-gray-900',
                     { width: '5%', minWidth: '80px' }
                   )}
                 {isColumnVisible('store_sales') &&
                   renderEditableCell(
-                    index,
                     'store_sales',
                     item.store_sales,
                     item.variant_code || '',
+                    (item as { version?: number }).version || 0,
                     'px-1 sm:px-2 py-2 text-right text-xs text-gray-900',
                     { width: '5%', minWidth: '80px' }
                   )}
                 {isColumnVisible('online_sales') &&
                   renderEditableCell(
-                    index,
                     'online_sales',
                     item.online_sales,
                     item.variant_code || '',
+                    (item as { version?: number }).version || 0,
                     'px-1 sm:px-2 py-2 text-right text-xs text-gray-900',
                     { width: '5%', minWidth: '80px' }
                   )}
@@ -621,11 +694,34 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
                     {item.ending_stock?.toLocaleString() || 0}
                   </td>
                 )}
+                <td className='px-1 py-2 text-center sm:px-2'>
+                  <button
+                    onClick={() => handleDeleteRow(item.variant_code || '')}
+                    disabled={isLocked || deletingRows.has(item.variant_code || '')}
+                    className={`rounded p-1 transition-colors ${
+                      isLocked || deletingRows.has(item.variant_code || '')
+                        ? 'cursor-not-allowed text-gray-400'
+                        : 'text-red-500 hover:bg-red-50 hover:text-red-700'
+                    }`}
+                    title='행 삭제'>
+                    {deletingRows.has(item.variant_code || '') ? (
+                      <div className='h-4 w-4 animate-spin rounded-full border-2 border-red-500 border-t-transparent'></div>
+                    ) : (
+                      <MdOutlineDelete size={18} />
+                    )}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {isSaving && (
+        <div className='mt-4 flex items-center justify-center gap-2 text-sm text-gray-600'>
+          <div className='h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent'></div>
+          <span>저장 중...</span>
+        </div>
+      )}
     </div>
   );
 };
