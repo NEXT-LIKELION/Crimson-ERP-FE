@@ -59,6 +59,10 @@ const InventoryPage = () => {
   const [currentStatusPage, setCurrentStatusPage] = useState(1); // 월별 재고 현황 페이지 번호
   const [statusPageSize, setStatusPageSize] = useState(10); // 월별 재고 현황 페이지당 항목 수
 
+  // 상품 관리 페이지네이션 관련 state
+  const [currentVariantPage, setCurrentVariantPage] = useState(1); // 상품 관리 페이지 번호
+  const [variantPageSize, setVariantPageSize] = useState(10); // 상품 관리 페이지당 항목 수
+
   const [selectedVariantForStock, setSelectedVariantForStock] = useState<{
     variant_code: string;
     product_id: string;
@@ -115,11 +119,8 @@ const InventoryPage = () => {
     isLoading,
     error,
     refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    infiniteScroll,
-  } = useInventories(appliedFilters);
+    pagination,
+  } = useInventories(appliedFilters, currentVariantPage, variantPageSize);
 
   // data 타입을 명시적으로 보장 (ApiProductVariant[])
   const data: ApiProductVariant[] = useMemo(() => rawData ?? [], [rawData]);
@@ -554,6 +555,7 @@ const InventoryPage = () => {
     const baseFilters: Record<string, string | number> = {};
 
     setAppliedFilters(baseFilters);
+    setCurrentVariantPage(1); // 필터 초기화 시 첫 페이지로 리셋
     updateURL(baseFilters);
     // 필터 초기화로 자동 refetch됨
   };
@@ -848,6 +850,7 @@ const InventoryPage = () => {
               }
 
               setAppliedFilters(newFilters);
+              setCurrentVariantPage(1); // 필터 변경 시 첫 페이지로 리셋
               updateURL(newFilters);
             }}
             onReset={handleReset}
@@ -857,16 +860,29 @@ const InventoryPage = () => {
 
       {/* 테이블 - 뷰 모드에 따라 다른 테이블 표시 */}
       {viewMode === 'variant' ? (
-        <InventoryTable
-          inventories={tabData}
-          onDelete={handleVariantDelete}
-          onExportToExcel={handleExportToExcel}
-          // 무한 스크롤 관련 props
-          fetchNextPage={fetchNextPage}
-          hasNextPage={hasNextPage}
-          isFetchingNextPage={isFetchingNextPage}
-          infiniteScroll={infiniteScroll}
-        />
+        <>
+          <InventoryTable
+            inventories={tabData}
+            onDelete={handleVariantDelete}
+            onExportToExcel={handleExportToExcel}
+            totalCount={pagination.count}
+          />
+          {/* 페이지네이션 - 상품 관리 모드일 때만 표시 */}
+          {pagination.count > 0 && (
+            <div className='mt-4'>
+              <Pagination
+                currentPage={currentVariantPage}
+                totalItems={pagination.count}
+                itemsPerPage={variantPageSize}
+                onPageChange={(page) => setCurrentVariantPage(page)}
+                onItemsPerPageChange={(newPageSize) => {
+                  setVariantPageSize(newPageSize);
+                  setCurrentVariantPage(1); // 페이지 크기 변경 시 첫 페이지로 리셋
+                }}
+              />
+            </div>
+          )}
+        </>
       ) : (
         <>
           <VariantStatusTable

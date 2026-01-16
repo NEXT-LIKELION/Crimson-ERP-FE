@@ -63,8 +63,8 @@ const VARIANT_STATUS_COLUMNS: TableColumn[] = [
   { id: 'store_sales', label: '매장판매', defaultVisible: true },
   { id: 'online_sales', label: '온라인판매', defaultVisible: true },
   { id: 'total_sales', label: '판매합계', defaultVisible: true },
-  { id: 'adjustment_quantity', label: '재고조정수량', defaultVisible: false },
-  { id: 'adjustment_status', label: '재고조정사유', defaultVisible: false },
+  { id: 'adjustment_quantity', label: '재고조정수량', defaultVisible: true },
+  { id: 'adjustment_status', label: '재고조정사유', defaultVisible: true },
   { id: 'ending_stock', label: '기말재고', defaultVisible: true },
 ];
 
