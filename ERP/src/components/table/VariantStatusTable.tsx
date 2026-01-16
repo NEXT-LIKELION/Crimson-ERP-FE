@@ -1,13 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { ProductVariantStatus } from '../../types/product';
-import { updateVariantStatus, deleteVariantStatus, bulkUpdateVariantStatus } from '../../api/inventory';
+import { deleteVariantStatus, bulkUpdateVariantStatus } from '../../api/inventory';
 import { useQueryClient } from '@tanstack/react-query';
 import { useColumnVisibility } from '../../hooks/useColumnVisibility';
 import ColumnSettingsModal from '../modal/ColumnSettingsModal';
 import type { TableColumn } from '../../types/tableColumns';
 import { MdOutlineDelete } from 'react-icons/md';
 import PrimaryButton from '../button/PrimaryButton';
-import SecondaryButton from '../button/SecondaryButton';
 
 interface VariantStatusTableProps {
   data: ProductVariantStatus[];
@@ -24,11 +23,6 @@ type EditableField =
   | 'inbound_quantity'
   | 'store_sales'
   | 'online_sales';
-
-interface EditingCell {
-  rowIndex: number;
-  field: EditableField;
-}
 
 // 편집 가능한 필드 목록 (노란색 배경 표시용)
 const EDITABLE_FIELDS: string[] = [

@@ -6,14 +6,6 @@ import { components } from '../../types/api';
 // API 응답 타입 (api.d.ts의 ProductVariant 사용)
 export type ApiProductVariant = components['schemas']['ProductVariant'];
 
-// API 응답 타입 정의
-interface InventoryPageData {
-  results: ApiProductVariant[];
-  count: number;
-  next: string | null;
-  previous: string | null;
-}
-
 // useInventories 훅의 반환 타입 정의
 export interface UseInventoriesReturn {
   data: ApiProductVariant[];
