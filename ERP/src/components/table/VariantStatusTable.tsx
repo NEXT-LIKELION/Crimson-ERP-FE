@@ -13,6 +13,8 @@ interface VariantStatusTableProps {
   isLoading?: boolean;
   year: number;
   month: number;
+  isLocked: boolean;
+  onToggleLock: () => void;
   onRowClick?: (variantCode: string) => void;
   onStockAdjust?: (item: ProductVariantStatus, year: number, month: number) => void;
 }
@@ -81,11 +83,12 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
   isLoading,
   year,
   month,
+  isLocked,
+  onToggleLock,
   onRowClick,
   onStockAdjust,
 }) => {
   const queryClient = useQueryClient();
-  const [isLocked, setIsLocked] = useState(false); // 데이터 잠금 상태
   const [editedData, setEditedData] = useState<Map<string, EditedRowData>>(new Map()); // 편집된 데이터 저장
   const [isSaving, setIsSaving] = useState(false); // 저장 중 상태
   const [deletingRows, setDeletingRows] = useState<Set<string>>(new Set()); // 삭제 중인 행들
@@ -312,7 +315,7 @@ const VariantStatusTable: React.FC<VariantStatusTableProps> = ({
           )}
           <PrimaryButton
             text={isLocked ? '잠금 해제' : '데이터 잠그기'}
-            onClick={() => setIsLocked(!isLocked)}
+            onClick={onToggleLock}
             disabled={isSaving}
           />
           <PrimaryButton

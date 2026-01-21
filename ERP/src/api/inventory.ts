@@ -376,7 +376,7 @@ export const downloadVariantStatusExcel = (params: {
 
 // 저번 달 재고 불러오기 (현재 년/월 기준으로 이전 달 데이터 기반 생성)
 export const loadPreviousMonthVariantStatus = (year: number, month: number) => {
-  return api.post(`/inventory/variant-status/${year}/${month}/`);
+  return api.post(`/inventory/variant-status/${year}/${month}`);
 };
 
 // 이번 달 발주 불러오기 (발주 데이터를 당월입고에 동기화)

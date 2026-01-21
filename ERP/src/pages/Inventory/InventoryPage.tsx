@@ -44,6 +44,7 @@ const InventoryPage = () => {
   const [isStatusExcelDownloading, setIsStatusExcelDownloading] = useState(false);
   const [isLoadingPreviousMonth, setIsLoadingPreviousMonth] = useState(false);
   const [isSyncingInbound, setIsSyncingInbound] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
   const [isUploadDateModalOpen, setIsUploadDateModalOpen] = useState(false);
   const [uploadYear, setUploadYear] = useState(new Date().getFullYear());
   const [uploadMonth, setUploadMonth] = useState(new Date().getMonth() + 1);
@@ -749,6 +750,10 @@ const InventoryPage = () => {
     setStatusSelectedVariantCode(variantCode);
   };
 
+  const handleToggleLock = () => {
+    setIsLocked((prev) => !prev);
+  };
+
   // 모든 탭에서 동일한 API 기반 데이터 사용
   const tabData = data ?? [];
   console.log('tabData', tabData);
@@ -814,6 +819,7 @@ const InventoryPage = () => {
                 onClick={handleLoadPreviousMonth}
                 disabled={
                   isLoadingPreviousMonth ||
+                  isLocked ||
                   isSyncingInbound ||
                   isStatusExcelUploading ||
                   isStatusExcelDownloading
@@ -824,6 +830,7 @@ const InventoryPage = () => {
                 onClick={handleSyncInbound}
                 disabled={
                   isLoadingPreviousMonth ||
+                  isLocked ||
                   isSyncingInbound ||
                   isStatusExcelUploading ||
                   isStatusExcelDownloading
@@ -835,6 +842,7 @@ const InventoryPage = () => {
                 onClick={handleStatusExcelButtonClick}
                 disabled={
                   isLoadingPreviousMonth ||
+                  isLocked ||
                   isSyncingInbound ||
                   isStatusExcelUploading ||
                   isStatusExcelDownloading
@@ -846,6 +854,7 @@ const InventoryPage = () => {
                 onClick={handleStatusExcelDownload}
                 disabled={
                   isLoadingPreviousMonth ||
+                  isLocked ||
                   isSyncingInbound ||
                   isStatusExcelUploading ||
                   isStatusExcelDownloading
@@ -983,6 +992,8 @@ const InventoryPage = () => {
             isLoading={isStatusLoading}
             year={selectedYear}
             month={selectedMonth}
+            isLocked={isLocked}
+            onToggleLock={handleToggleLock}
             onRowClick={handleStatusRowClick}
             onStockAdjust={handleStatusStockAdjust}
           />
