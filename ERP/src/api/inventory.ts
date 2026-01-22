@@ -320,6 +320,28 @@ export const updateVariantStatus = (
   return api.patch(`/inventory/variant-status/${year}/${month}/${variantCode}/`, data);
 };
 
+// 월별 재고 현황 행 삭제
+export const deleteVariantStatus = (year: number, month: number, variantCode: string) => {
+  return api.delete(`/inventory/variant-status/${year}/${month}/${variantCode}/`);
+};
+
+// 월별 재고 현황 일괄 수정 (bulk update)
+export const bulkUpdateVariantStatus = (data: {
+  year: number;
+  month: number;
+  rows: Array<{
+    variant_code: string;
+    warehouse_stock_start?: number;
+    store_stock_start?: number;
+    inbound_quantity?: number;
+    store_sales?: number;
+    online_sales?: number;
+    version: number;
+  }>;
+}) => {
+  return api.patch('/inventory/variant-status/bulk', data);
+};
+
 // 월별 재고 현황 엑셀 업로드
 export const uploadVariantStatusExcel = (file: File, year?: number, month?: number) => {
   const formData = new FormData();
@@ -350,4 +372,26 @@ export const downloadVariantStatusExcel = (params: {
     params,
     // responseType 제거 - JSON 데이터이므로 기본 처리
   });
+};
+
+// 저번 달 재고 불러오기 (현재 년/월 기준으로 이전 달 데이터 기반 생성)
+export const loadPreviousMonthVariantStatus = (year: number, month: number) => {
+  return api.post(`/inventory/variant-status/${year}/${month}`);
+};
+
+// 이번 달 발주 불러오기 (발주 데이터를 당월입고에 동기화)
+export const syncInboundFromOrders = (year: number, month: number) => {
+  return api.post(`/inventory/variant-status/sync-inbound/${year}/${month}/`);
+};
+
+// 상품 목록 조회 (product_id, name, online_name 반환)
+// 엔드포인트: GET /inventory/products/
+export const fetchProductList = () => {
+  return api.get('/inventory/products/');
+};
+
+// 상품 카테고리 조회 (product_id로 big_category, middle_category, category 반환)
+// 엔드포인트: GET /inventory/products/{product_id}/categories/
+export const fetchProductCategories = (product_id: string) => {
+  return api.get(`/inventory/products/${product_id}/categories/`);
 };
