@@ -19,6 +19,8 @@ import {
   uploadVariantStatusExcel,
   downloadVariantStatusExcel,
   fetchVariantDetail,
+  loadPreviousMonthVariantStatus,
+  syncInboundFromOrders,
 } from '../../api/inventory';
 import { useSearchParams } from 'react-router-dom';
 import EditProductModal from '../../components/modal/EditProductModal';
@@ -40,6 +42,9 @@ const InventoryPage = () => {
   const [isStockAdjustModalOpen, setStockAdjustModalOpen] = useState(false);
   const [isStatusExcelUploading, setIsStatusExcelUploading] = useState(false);
   const [isStatusExcelDownloading, setIsStatusExcelDownloading] = useState(false);
+  const [isLoadingPreviousMonth, setIsLoadingPreviousMonth] = useState(false);
+  const [isSyncingInbound, setIsSyncingInbound] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
   const [isUploadDateModalOpen, setIsUploadDateModalOpen] = useState(false);
   const [uploadYear, setUploadYear] = useState(new Date().getFullYear());
   const [uploadMonth, setUploadMonth] = useState(new Date().getMonth() + 1);
@@ -58,6 +63,10 @@ const InventoryPage = () => {
   const [statusSelectedVariantCode, setStatusSelectedVariantCode] = useState<string | null>(null);
   const [currentStatusPage, setCurrentStatusPage] = useState(1); // 월별 재고 현황 페이지 번호
   const [statusPageSize, setStatusPageSize] = useState(10); // 월별 재고 현황 페이지당 항목 수
+
+  // 상품 관리 페이지네이션 관련 state
+  const [currentVariantPage, setCurrentVariantPage] = useState(1); // 상품 관리 페이지 번호
+  const [variantPageSize, setVariantPageSize] = useState(10); // 상품 관리 페이지당 항목 수
 
   const [selectedVariantForStock, setSelectedVariantForStock] = useState<{
     variant_code: string;
@@ -115,11 +124,8 @@ const InventoryPage = () => {
     isLoading,
     error,
     refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    infiniteScroll,
-  } = useInventories(appliedFilters);
+    pagination,
+  } = useInventories(appliedFilters, currentVariantPage, variantPageSize);
 
   // data 타입을 명시적으로 보장 (ApiProductVariant[])
   const data: ApiProductVariant[] = useMemo(() => rawData ?? [], [rawData]);
@@ -407,6 +413,59 @@ const InventoryPage = () => {
     }
   };
 
+  // 이전 달 계산 헬퍼 함수
+  const getPreviousMonth = (year: number, month: number): string => {
+    if (month === 1) {
+      return `${year - 1}년 12월`;
+    }
+    return `${year}년 ${month - 1}월`;
+  };
+
+  // 저번 달 재고 불러오기 핸들러
+  const handleLoadPreviousMonth = async () => {
+    const previousMonth = getPreviousMonth(selectedYear, selectedMonth);
+    const confirmMessage = `${selectedYear}년 ${selectedMonth}월에 대해 이전 달(${previousMonth})의 데이터를 기반으로 재고 데이터를 생성하시겠습니까?`;
+
+    if (!confirm(confirmMessage)) return;
+
+    setIsLoadingPreviousMonth(true);
+    try {
+      await loadPreviousMonthVariantStatus(selectedYear, selectedMonth);
+      alert(`${selectedYear}년 ${selectedMonth}월 재고 데이터가 성공적으로 생성되었습니다.`);
+
+      // 캐시 무효화하여 최신 데이터 가져오기
+      queryClient.invalidateQueries({
+        queryKey: ['variantStatus', selectedYear, selectedMonth],
+      });
+    } catch (err) {
+      alert('저번 달 재고 불러오기 중 오류 발생: ' + getErrorMessage(err));
+    } finally {
+      setIsLoadingPreviousMonth(false);
+    }
+  };
+
+  // 이번 달 발주 불러오기 핸들러
+  const handleSyncInbound = async () => {
+    const confirmMessage = `${selectedYear}년 ${selectedMonth}월의 발주 데이터를 당월입고에 불러오시겠습니까?`;
+
+    if (!confirm(confirmMessage)) return;
+
+    setIsSyncingInbound(true);
+    try {
+      await syncInboundFromOrders(selectedYear, selectedMonth);
+      alert(`${selectedYear}년 ${selectedMonth}월 발주 데이터가 성공적으로 불러와졌습니다.`);
+
+      // 캐시 무효화하여 최신 데이터 가져오기
+      queryClient.invalidateQueries({
+        queryKey: ['variantStatus', selectedYear, selectedMonth],
+      });
+    } catch (err) {
+      alert('발주 불러오기 중 오류 발생: ' + getErrorMessage(err));
+    } finally {
+      setIsSyncingInbound(false);
+    }
+  };
+
   // 월별 재고 현황 엑셀 다운로드 핸들러
   const handleStatusExcelDownload = async () => {
     setIsStatusExcelDownloading(true);
@@ -554,6 +613,7 @@ const InventoryPage = () => {
     const baseFilters: Record<string, string | number> = {};
 
     setAppliedFilters(baseFilters);
+    setCurrentVariantPage(1); // 필터 초기화 시 첫 페이지로 리셋
     updateURL(baseFilters);
     // 필터 초기화로 자동 refetch됨
   };
@@ -690,6 +750,10 @@ const InventoryPage = () => {
     setStatusSelectedVariantCode(variantCode);
   };
 
+  const handleToggleLock = () => {
+    setIsLocked((prev) => !prev);
+  };
+
   // 모든 탭에서 동일한 API 기반 데이터 사용
   const tabData = data ?? [];
   console.log('tabData', tabData);
@@ -699,6 +763,12 @@ const InventoryPage = () => {
   return (
     <div className='min-h-[calc(100vh+10px)] w-full max-w-full overflow-hidden'>
       {isLoading && <LoadingSpinner overlay text='재고 데이터를 불러오는 중...' />}
+      {isLoadingPreviousMonth && (
+        <LoadingSpinner overlay text='저번 달 재고를 불러오는 중...' />
+      )}
+      {isSyncingInbound && (
+        <LoadingSpinner overlay text='발주 데이터를 불러오는 중...' />
+      )}
       {isStatusExcelUploading && (
         <LoadingSpinner overlay text='월별 재고 현황을 업로드하는 중...' />
       )}
@@ -744,17 +814,51 @@ const InventoryPage = () => {
           {/* 월별 재고 현황 모드일 때 엑셀 업로드/다운로드 버튼 */}
           {viewMode === 'status' && permissions.canCreate('INVENTORY') && (
             <>
+              <GreenButton
+                text='저번 달 재고 불러오기'
+                onClick={handleLoadPreviousMonth}
+                disabled={
+                  isLoadingPreviousMonth ||
+                  isLocked ||
+                  isSyncingInbound ||
+                  isStatusExcelUploading ||
+                  isStatusExcelDownloading
+                }
+              />
+              <GreenButton
+                text='이번 달 발주 불러오기'
+                onClick={handleSyncInbound}
+                disabled={
+                  isLoadingPreviousMonth ||
+                  isLocked ||
+                  isSyncingInbound ||
+                  isStatusExcelUploading ||
+                  isStatusExcelDownloading
+                }
+              />
               <PrimaryButton
                 text='엑셀 업로드'
                 icon={<FaFileArrowUp size={16} />}
                 onClick={handleStatusExcelButtonClick}
-                disabled={isStatusExcelUploading || isStatusExcelDownloading}
+                disabled={
+                  isLoadingPreviousMonth ||
+                  isLocked ||
+                  isSyncingInbound ||
+                  isStatusExcelUploading ||
+                  isStatusExcelDownloading
+                }
               />
               <SecondaryButton
                 text='엑셀 다운로드'
                 icon={<FaFileArrowDown size={16} />}
                 onClick={handleStatusExcelDownload}
-                disabled={isStatusExcelUploading || isStatusExcelDownloading}
+                disabled={
+                  isLoadingPreviousMonth ||
+                  isLocked ||
+                  isSyncingInbound ||
+                  isStatusExcelUploading ||
+                  isStatusExcelDownloading
+                }
               />
             </>
           )}
@@ -848,6 +952,7 @@ const InventoryPage = () => {
               }
 
               setAppliedFilters(newFilters);
+              setCurrentVariantPage(1); // 필터 변경 시 첫 페이지로 리셋
               updateURL(newFilters);
             }}
             onReset={handleReset}
@@ -857,16 +962,29 @@ const InventoryPage = () => {
 
       {/* 테이블 - 뷰 모드에 따라 다른 테이블 표시 */}
       {viewMode === 'variant' ? (
-        <InventoryTable
-          inventories={tabData}
-          onDelete={handleVariantDelete}
-          onExportToExcel={handleExportToExcel}
-          // 무한 스크롤 관련 props
-          fetchNextPage={fetchNextPage}
-          hasNextPage={hasNextPage}
-          isFetchingNextPage={isFetchingNextPage}
-          infiniteScroll={infiniteScroll}
-        />
+        <>
+          <InventoryTable
+            inventories={tabData}
+            onDelete={handleVariantDelete}
+            onExportToExcel={handleExportToExcel}
+            totalCount={pagination.count}
+          />
+          {/* 페이지네이션 - 상품 관리 모드일 때만 표시 */}
+          {pagination.count > 0 && (
+            <div className='mt-4'>
+              <Pagination
+                currentPage={currentVariantPage}
+                totalItems={pagination.count}
+                itemsPerPage={variantPageSize}
+                onPageChange={(page) => setCurrentVariantPage(page)}
+                onItemsPerPageChange={(newPageSize) => {
+                  setVariantPageSize(newPageSize);
+                  setCurrentVariantPage(1); // 페이지 크기 변경 시 첫 페이지로 리셋
+                }}
+              />
+            </div>
+          )}
+        </>
       ) : (
         <>
           <VariantStatusTable
@@ -874,6 +992,8 @@ const InventoryPage = () => {
             isLoading={isStatusLoading}
             year={selectedYear}
             month={selectedMonth}
+            isLocked={isLocked}
+            onToggleLock={handleToggleLock}
             onRowClick={handleStatusRowClick}
             onStockAdjust={handleStatusStockAdjust}
           />
